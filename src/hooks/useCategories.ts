@@ -114,6 +114,7 @@ export function useCreateCategory() {
       parent_id?: string | null;
       description?: string | null;
       dre_group?: string | null;
+      expense_classification?: string | null;
     }) => {
       const organizationId = getRequiredOrganizationId();
       
@@ -172,6 +173,7 @@ export function useUpdateCategory() {
       parent_id: string | null;
       description: string | null;
       dre_group: string | null;
+      expense_classification: string | null;
     }>) => {
       // Validate: if parent_id is set, it must be a valid parent
       if (category.parent_id) {
