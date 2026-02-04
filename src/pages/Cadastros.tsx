@@ -462,31 +462,38 @@ export default function Cadastros() {
                         <TableHead className="text-xs">Descrição</TableHead>
                         <TableHead className="text-xs text-right">Valor</TableHead>
                         <TableHead className="text-xs">Tipo</TableHead>
+                        <TableHead className="text-xs">Categoria</TableHead>
                         <TableHead className="text-xs text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {rules.map((rule) => (
-                        <TableRow key={rule.id}>
-                          <TableCell className="text-xs font-medium py-2">{rule.description}</TableCell>
-                          <TableCell className="text-xs text-right py-2">{formatCurrency(rule.amount)}</TableCell>
-                          <TableCell className="py-2">
-                            <Badge variant={rule.transaction_type === "income" ? "default" : "destructive"} className="text-[10px] h-5">
-                              {rule.transaction_type === "income" ? "Receita" : "Despesa"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right py-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => setDeleteRuleId(rule.id)}
-                            >
-                              <Trash2 className="h-3 w-3 text-destructive" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {rules.map((rule) => {
+                        const category = allCategories?.find(c => c.id === rule.category_id);
+                        return (
+                          <TableRow key={rule.id}>
+                            <TableCell className="text-xs font-medium py-2">{rule.description}</TableCell>
+                            <TableCell className="text-xs text-right py-2">{formatCurrency(rule.amount)}</TableCell>
+                            <TableCell className="py-2">
+                              <Badge variant={rule.transaction_type === "income" ? "default" : "destructive"} className="text-[10px] h-5">
+                                {rule.transaction_type === "income" ? "Receita" : "Despesa"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground py-2">
+                              {category?.name || "-"}
+                            </TableCell>
+                            <TableCell className="text-right py-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => setDeleteRuleId(rule.id)}
+                              >
+                                <Trash2 className="h-3 w-3 text-destructive" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 )}
