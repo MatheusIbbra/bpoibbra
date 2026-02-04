@@ -13,6 +13,7 @@ interface StatCardProps {
   };
   description?: string;
   variant?: "default" | "success" | "warning" | "destructive";
+  onClick?: () => void;
 }
 
 export function StatCard({
@@ -22,6 +23,7 @@ export function StatCard({
   trend,
   description,
   variant = "default",
+  onClick,
 }: StatCardProps) {
   const variantStyles = {
     default: "border-border",
@@ -38,38 +40,45 @@ export function StatCard({
   };
 
   return (
-    <Card className={cn("transition-all hover:shadow-md", variantStyles[variant])}>
-      <CardContent className="p-6">
+    <Card 
+      className={cn(
+        "transition-all hover:shadow-md", 
+        variantStyles[variant],
+        onClick && "cursor-pointer hover:scale-[1.02]"
+      )}
+      onClick={onClick}
+    >
+      <CardContent className="p-4">
         <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-2xl font-bold tracking-tight">{value}</p>
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">{title}</p>
+            <p className="text-xl font-bold tracking-tight">{value}</p>
             {trend && (
               <div className="flex items-center gap-1">
                 {trend.isPositive ? (
-                  <TrendingUp className="h-4 w-4 text-success" />
+                  <TrendingUp className="h-3 w-3 text-success" />
                 ) : (
-                  <TrendingDown className="h-4 w-4 text-destructive" />
+                  <TrendingDown className="h-3 w-3 text-destructive" />
                 )}
                 <span
                   className={cn(
-                    "text-sm font-medium",
+                    "text-xs font-medium",
                     trend.isPositive ? "text-success" : "text-destructive"
                   )}
                 >
                   {trend.isPositive ? "+" : ""}
                   {trend.value}%
                 </span>
-                <span className="text-sm text-muted-foreground">vs mês anterior</span>
+                <span className="text-xs text-muted-foreground">vs mês anterior</span>
               </div>
             )}
             {description && (
-              <p className="text-sm text-muted-foreground">{description}</p>
+              <p className="text-xs text-muted-foreground">{description}</p>
             )}
           </div>
           <div
             className={cn(
-              "flex h-12 w-12 items-center justify-center rounded-lg",
+              "flex h-10 w-10 items-center justify-center rounded-lg",
               iconVariantStyles[variant]
             )}
           >
