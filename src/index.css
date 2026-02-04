@@ -3,44 +3,47 @@
 @tailwind utilities;
 
 /* Premium Executive Financial SaaS Design System */
+/* Velvety Blue with Golden Accents */
 
 @layer base {
   :root {
-    /* Brand Colors - Executive Navy & Ivory */
-    --brand-navy-deep: 218 33% 12%;
-    --brand-navy: 218 33% 18%;
-    --brand-slate: 215 19% 35%;
-    --brand-ivory: 40 20% 96%;
-    --brand-gold: 38 65% 52%;
-    --brand-gold-muted: 38 30% 75%;
+    /* Brand Colors - Velvety Navy & Gold */
+    --brand-navy-deep: 220 45% 10%;
+    --brand-navy: 220 42% 16%;
+    --brand-navy-soft: 220 35% 22%;
+    --brand-slate: 218 20% 35%;
+    --brand-ivory: 45 25% 97%;
+    --brand-gold: 42 75% 50%;
+    --brand-gold-light: 42 60% 65%;
+    --brand-gold-muted: 42 35% 80%;
     
-    /* Core backgrounds - Soft ivory warmth */
-    --background: 40 20% 98%;
-    --foreground: 218 33% 12%;
+    /* Core backgrounds - Warm ivory */
+    --background: 45 25% 98%;
+    --foreground: 220 45% 10%;
 
-    /* Cards - Pure white with elegant contrast */
+    /* Cards - Pure white with warmth */
     --card: 0 0% 100%;
-    --card-foreground: 218 33% 12%;
+    --card-foreground: 220 45% 10%;
 
     /* Popovers */
     --popover: 0 0% 100%;
-    --popover-foreground: 218 33% 12%;
+    --popover-foreground: 220 45% 10%;
 
-    /* Primary - Deep Navy Executive */
-    --primary: 218 33% 18%;
-    --primary-foreground: 40 20% 98%;
+    /* Primary - Velvety Deep Blue */
+    --primary: 220 42% 16%;
+    --primary-foreground: 45 25% 98%;
 
     /* Secondary - Warm Ivory */
-    --secondary: 40 15% 92%;
-    --secondary-foreground: 218 33% 18%;
+    --secondary: 45 20% 93%;
+    --secondary-foreground: 220 42% 16%;
 
-    /* Muted - Subtle slate */
-    --muted: 215 15% 94%;
-    --muted-foreground: 215 19% 45%;
+    /* Muted - Subtle warmth */
+    --muted: 220 15% 94%;
+    --muted-foreground: 218 20% 45%;
 
     /* Accent - Executive Gold */
-    --accent: 38 65% 52%;
-    --accent-foreground: 218 33% 12%;
+    --accent: 42 75% 50%;
+    --accent-foreground: 220 45% 10%;
 
     /* Status colors - Refined palette */
     --destructive: 0 65% 50%;
@@ -49,60 +52,60 @@
     --success: 152 55% 42%;
     --success-foreground: 0 0% 100%;
     
-    --warning: 38 92% 50%;
-    --warning-foreground: 218 33% 12%;
+    --warning: 42 92% 50%;
+    --warning-foreground: 220 45% 10%;
     
-    --info: 205 85% 45%;
+    --info: 210 85% 50%;
     --info-foreground: 0 0% 100%;
 
     /* Borders and inputs - Refined edges */
-    --border: 220 13% 88%;
-    --input: 220 13% 88%;
-    --ring: 218 33% 18%;
+    --border: 220 15% 88%;
+    --input: 220 15% 88%;
+    --ring: 220 42% 16%;
 
     --radius: 0.75rem;
 
-    /* Sidebar - Deep navy sophistication */
-    --sidebar-background: 218 33% 12%;
-    --sidebar-foreground: 40 15% 92%;
-    --sidebar-primary: 38 65% 55%;
-    --sidebar-primary-foreground: 218 33% 12%;
-    --sidebar-accent: 218 33% 20%;
-    --sidebar-accent-foreground: 40 15% 98%;
-    --sidebar-border: 218 25% 22%;
-    --sidebar-ring: 38 65% 52%;
-    --sidebar-muted: 215 15% 55%;
+    /* Sidebar - Deep velvety navy */
+    --sidebar-background: 220 45% 10%;
+    --sidebar-foreground: 45 20% 93%;
+    --sidebar-primary: 42 75% 55%;
+    --sidebar-primary-foreground: 220 45% 10%;
+    --sidebar-accent: 220 42% 18%;
+    --sidebar-accent-foreground: 45 20% 98%;
+    --sidebar-border: 220 35% 20%;
+    --sidebar-ring: 42 75% 50%;
+    --sidebar-muted: 218 15% 55%;
 
     /* Chart colors - Executive palette */
-    --chart-1: 218 33% 18%;
-    --chart-2: 38 65% 52%;
+    --chart-1: 220 42% 16%;
+    --chart-2: 42 75% 50%;
     --chart-3: 152 55% 42%;
-    --chart-4: 205 85% 45%;
+    --chart-4: 210 85% 50%;
     --chart-5: 0 65% 50%;
   }
 
   .dark {
     /* Dark mode - Executive night theme */
-    --background: 218 33% 8%;
-    --foreground: 40 15% 92%;
+    --background: 220 45% 6%;
+    --foreground: 45 20% 93%;
 
-    --card: 218 33% 12%;
-    --card-foreground: 40 15% 92%;
+    --card: 220 45% 10%;
+    --card-foreground: 45 20% 93%;
 
-    --popover: 218 33% 12%;
-    --popover-foreground: 40 15% 92%;
+    --popover: 220 45% 10%;
+    --popover-foreground: 45 20% 93%;
 
-    --primary: 38 65% 55%;
-    --primary-foreground: 218 33% 8%;
+    --primary: 42 75% 55%;
+    --primary-foreground: 220 45% 6%;
 
-    --secondary: 218 25% 18%;
-    --secondary-foreground: 40 15% 92%;
+    --secondary: 220 30% 16%;
+    --secondary-foreground: 45 20% 93%;
 
-    --muted: 218 25% 18%;
-    --muted-foreground: 215 15% 55%;
+    --muted: 220 30% 16%;
+    --muted-foreground: 218 15% 55%;
 
-    --accent: 38 65% 55%;
-    --accent-foreground: 218 33% 8%;
+    --accent: 42 75% 55%;
+    --accent-foreground: 220 45% 6%;
 
     --destructive: 0 55% 45%;
     --destructive-foreground: 0 0% 100%;
@@ -110,32 +113,32 @@
     --success: 152 55% 42%;
     --success-foreground: 0 0% 100%;
     
-    --warning: 38 92% 50%;
-    --warning-foreground: 218 33% 8%;
+    --warning: 42 92% 50%;
+    --warning-foreground: 220 45% 6%;
     
-    --info: 205 85% 50%;
+    --info: 210 85% 55%;
     --info-foreground: 0 0% 100%;
 
-    --border: 218 25% 22%;
-    --input: 218 25% 22%;
-    --ring: 38 65% 55%;
+    --border: 220 30% 20%;
+    --input: 220 30% 20%;
+    --ring: 42 75% 55%;
 
     /* Sidebar Dark */
-    --sidebar-background: 218 33% 6%;
-    --sidebar-foreground: 40 15% 92%;
-    --sidebar-primary: 38 65% 55%;
-    --sidebar-primary-foreground: 218 33% 8%;
-    --sidebar-accent: 218 33% 15%;
-    --sidebar-accent-foreground: 40 15% 98%;
-    --sidebar-border: 218 25% 18%;
-    --sidebar-ring: 38 65% 55%;
-    --sidebar-muted: 215 15% 50%;
+    --sidebar-background: 220 45% 5%;
+    --sidebar-foreground: 45 20% 93%;
+    --sidebar-primary: 42 75% 55%;
+    --sidebar-primary-foreground: 220 45% 6%;
+    --sidebar-accent: 220 42% 12%;
+    --sidebar-accent-foreground: 45 20% 98%;
+    --sidebar-border: 220 30% 15%;
+    --sidebar-ring: 42 75% 55%;
+    --sidebar-muted: 218 15% 50%;
 
     /* Chart colors dark */
-    --chart-1: 38 65% 55%;
-    --chart-2: 205 85% 50%;
+    --chart-1: 42 75% 55%;
+    --chart-2: 210 85% 55%;
     --chart-3: 152 55% 42%;
-    --chart-4: 38 92% 50%;
+    --chart-4: 42 92% 50%;
     --chart-5: 0 55% 50%;
   }
 }
@@ -199,6 +202,15 @@
     @apply bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent;
   }
 
+  /* Gold Accent Border */
+  .border-gold {
+    border-color: hsl(var(--accent));
+  }
+
+  .border-gold-subtle {
+    border-color: hsl(var(--accent) / 0.3);
+  }
+
   /* Premium Shadows */
   .shadow-executive {
     box-shadow: 
@@ -212,6 +224,12 @@
       0 2px 4px 0 rgb(0 0 0 / 0.03),
       0 8px 16px -4px rgb(0 0 0 / 0.05),
       0 24px 48px -8px rgb(0 0 0 / 0.08);
+  }
+
+  .shadow-gold {
+    box-shadow: 
+      0 0 0 1px hsl(var(--accent) / 0.1),
+      0 4px 12px -2px hsl(var(--accent) / 0.15);
   }
 
   /* Status Badges - Refined */
@@ -259,6 +277,19 @@
   .focus-ring {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
   }
+
+  /* Gold accent utilities */
+  .text-gold {
+    color: hsl(var(--accent));
+  }
+
+  .bg-gold {
+    background-color: hsl(var(--accent));
+  }
+
+  .bg-gold-subtle {
+    background-color: hsl(var(--accent) / 0.1);
+  }
 }
 
 /* Premium Card Variants */
@@ -271,6 +302,11 @@
     @apply card-executive transition-all duration-300 hover:shadow-executive-lg hover:border-border;
   }
 
+  .card-gold-accent {
+    @apply card-executive border-l-2;
+    border-left-color: hsl(var(--accent));
+  }
+
   /* Premium Input Styling */
   .input-executive {
     @apply bg-background/50 border-border/60 focus:border-primary/40 focus:ring-2 focus:ring-primary/10 transition-all duration-200;
@@ -280,13 +316,17 @@
   .sidebar-premium {
     background: linear-gradient(180deg, 
       hsl(var(--sidebar-background)) 0%,
-      hsl(218 33% 10%) 100%
+      hsl(220 45% 8%) 100%
     );
   }
 
   /* Premium Badge */
   .badge-executive {
     @apply bg-accent/10 text-accent border-accent/20 font-medium;
+  }
+
+  .badge-gold {
+    @apply bg-accent/15 text-accent border border-accent/30 font-medium;
   }
 }
 

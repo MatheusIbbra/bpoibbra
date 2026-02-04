@@ -40,10 +40,10 @@ const CustomTooltipContent = forwardRef<HTMLDivElement, CustomTooltipProps>(
   ({ active, payload, label }, ref) => {
     if (active && payload && payload.length) {
       return (
-        <div ref={ref} className="rounded-lg border bg-card p-2 shadow-lg text-sm">
-          <p className="font-medium text-card-foreground mb-1">{label}</p>
+        <div ref={ref} className="rounded-lg border bg-card p-3 shadow-executive text-sm">
+          <p className="font-semibold text-foreground mb-2">{label}</p>
           {payload.map((entry, index) => (
-            <p key={index} style={{ color: entry.color }} className="text-xs">
+            <p key={index} style={{ color: entry.color }} className="text-xs font-medium">
               {entry.name}: {formatCurrency(entry.value)}
             </p>
           ))}
@@ -76,11 +76,11 @@ export function MonthlyEvolutionChart() {
 
   if (isLoading) {
     return (
-      <Card className="shadow-sm">
+      <Card className="shadow-executive">
         <CardHeader className="py-3 px-4">
           <CardTitle className="text-sm font-semibold">Evolução Financeira</CardTitle>
         </CardHeader>
-        <CardContent className="flex h-[200px] items-center justify-center">
+        <CardContent className="flex h-[220px] items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
@@ -89,7 +89,7 @@ export function MonthlyEvolutionChart() {
 
   if (!data || data.length === 0) {
     return (
-      <Card className="shadow-sm">
+      <Card className="shadow-executive">
         <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
           <CardTitle className="text-sm font-semibold">Evolução Financeira</CardTitle>
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
@@ -105,7 +105,7 @@ export function MonthlyEvolutionChart() {
             </TabsList>
           </Tabs>
         </CardHeader>
-        <CardContent className="flex h-[200px] items-center justify-center">
+        <CardContent className="flex h-[220px] items-center justify-center">
           <p className="text-muted-foreground text-sm">Nenhuma transação encontrada</p>
         </CardContent>
       </Card>
@@ -113,16 +113,19 @@ export function MonthlyEvolutionChart() {
   }
 
   return (
-    <Card className="shadow-sm">
+    <Card className="shadow-executive">
       <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
-        <CardTitle className="text-sm font-semibold">Evolução Financeira</CardTitle>
+        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          Evolução Financeira
+          <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+        </CardTitle>
         <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-          <TabsList className="h-7">
-            <TabsTrigger value="monthly" className="text-xs gap-1 px-2 h-6">
+          <TabsList className="h-7 bg-muted/50">
+            <TabsTrigger value="monthly" className="text-xs gap-1 px-2.5 h-6 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Calendar className="h-3 w-3" />
               Mensal
             </TabsTrigger>
-            <TabsTrigger value="daily" className="text-xs gap-1 px-2 h-6">
+            <TabsTrigger value="daily" className="text-xs gap-1 px-2.5 h-6 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <CalendarDays className="h-3 w-3" />
               Diário
             </TabsTrigger>
@@ -130,37 +133,51 @@ export function MonthlyEvolutionChart() {
         </Tabs>
       </CardHeader>
       <CardContent className="px-4 pb-4">
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="hsl(152 55% 42%)" stopOpacity={1}/>
+                <stop offset="100%" stopColor="hsl(152 55% 42%)" stopOpacity={0.7}/>
+              </linearGradient>
+              <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="hsl(0 65% 50%)" stopOpacity={1}/>
+                <stop offset="100%" stopColor="hsl(0 65% 50%)" stopOpacity={0.7}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" vertical={false} />
             <XAxis 
               dataKey={labelKey} 
               tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
               axisLine={{ stroke: "hsl(var(--border))" }}
+              tickLine={false}
               interval={viewMode === "daily" ? 3 : 0}
             />
             <YAxis
-              tickFormatter={(value) => formatCurrency(value)}
+              tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
               tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
-              axisLine={{ stroke: "hsl(var(--border))" }}
-              width={65}
+              axisLine={false}
+              tickLine={false}
+              width={40}
             />
-            <Tooltip content={<CustomTooltipContent />} />
+            <Tooltip content={<CustomTooltipContent />} cursor={{ fill: 'hsl(var(--muted) / 0.3)' }} />
             <Legend 
-              wrapperStyle={{ paddingTop: "10px", fontSize: "12px" }}
-              formatter={(value) => <span className="text-foreground text-xs">{value}</span>}
+              wrapperStyle={{ paddingTop: "12px", fontSize: "11px" }}
+              formatter={(value) => <span className="text-foreground text-xs font-medium">{value}</span>}
             />
             <Bar
               dataKey="entradas"
               name="Entradas"
-              fill="hsl(var(--success))"
-              radius={[2, 2, 0, 0]}
+              fill="url(#colorIncome)"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={40}
             />
             <Bar
               dataKey="saidas"
               name="Saídas"
-              fill="hsl(var(--destructive))"
-              radius={[2, 2, 0, 0]}
+              fill="url(#colorExpense)"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={40}
             />
           </BarChart>
         </ResponsiveContainer>
