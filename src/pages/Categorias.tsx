@@ -619,21 +619,20 @@ export default function Categorias() {
               </div>
             )}
 
-            {/* Expense Classification - Only for expense type categories */}
+            {/* Expense Classification - Required for expense type categories */}
             {formData.type === 'expense' && (
               <div>
-                <Label>Classificação da Despesa</Label>
+                <Label>Classificação da Despesa <span className="text-destructive">*</span></Label>
                 <Select
-                  value={formData.expense_classification || "none"}
+                  value={formData.expense_classification || ""}
                   onValueChange={(value) =>
-                    setFormData({ ...formData, expense_classification: value === "none" ? null : value })
+                    setFormData({ ...formData, expense_classification: value || null })
                   }
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a classificação" />
+                  <SelectTrigger className={!formData.expense_classification ? "border-destructive/50" : ""}>
+                    <SelectValue placeholder="Selecione a classificação (obrigatório)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Não classificada</SelectItem>
                     {EXPENSE_CLASSIFICATION_OPTIONS.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         {opt.label}
@@ -696,7 +695,12 @@ export default function Categorias() {
               <Button
                 className="flex-1"
                 onClick={handleSave}
-                disabled={!formData.name || createCategory.isPending || updateCategory.isPending}
+                disabled={
+                  !formData.name || 
+                  createCategory.isPending || 
+                  updateCategory.isPending ||
+                  (formData.type === 'expense' && !formData.expense_classification)
+                }
               >
                 {(createCategory.isPending || updateCategory.isPending) ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
