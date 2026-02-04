@@ -37,8 +37,10 @@ export async function getLegacyInitialBalanceAdjustment(params: {
     const bal = Number(a.initial_balance) || 0;
     if (bal === 0) return false;
     const start = a.start_date ? String(a.start_date) : "0000-01-01";
-    // Include balances from accounts that started before the report start.
-    return start < beforeDate;
+    // Include balances from accounts that started on or before the report start.
+    // Using <= ensures accounts starting on the first day of the report have their
+    // initial balance counted in the opening balance.
+    return start <= beforeDate;
   });
 
   if (eligibleAccounts.length === 0) return 0;
