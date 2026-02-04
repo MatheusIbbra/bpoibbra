@@ -39,6 +39,7 @@ const ROLE_ICONS: Record<AppRole, React.ReactNode> = {
   supervisor: <Eye className="h-4 w-4" />,
   fa: <Briefcase className="h-4 w-4" />,
   kam: <Building2 className="h-4 w-4" />,
+  projetista: <Briefcase className="h-4 w-4" />,
   cliente: <User className="h-4 w-4" />,
 };
 
@@ -47,6 +48,7 @@ const ROLE_COLORS: Record<AppRole, string> = {
   supervisor: "bg-purple-500/10 text-purple-600 border-purple-200",
   fa: "bg-blue-500/10 text-blue-600 border-blue-200",
   kam: "bg-green-500/10 text-green-600 border-green-200",
+  projetista: "bg-cyan-500/10 text-cyan-600 border-cyan-200",
   cliente: "bg-orange-500/10 text-orange-600 border-orange-200",
 };
 

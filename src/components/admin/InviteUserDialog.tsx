@@ -42,7 +42,7 @@ interface InviteUserDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const ALL_ROLES: AppRole[] = ["admin", "supervisor", "fa", "kam", "cliente"];
+const ALL_ROLES: AppRole[] = ["admin", "supervisor", "fa", "kam", "projetista", "cliente"];
 
 // Hook para buscar usuários por role
 function useUsersByRole(role: AppRole | null) {
