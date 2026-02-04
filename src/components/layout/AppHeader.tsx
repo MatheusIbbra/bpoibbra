@@ -1,6 +1,5 @@
-import { Search, Moon, Sun, LogOut, User, Settings } from "lucide-react";
+import { Moon, Sun, LogOut, User, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -99,15 +98,6 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Search */}
-        <div className="relative hidden lg:block">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar..."
-            className="w-48 pl-9 h-9 bg-background/50 border-border/60 focus:border-primary/40 focus:ring-2 focus:ring-primary/10 transition-all text-sm"
-          />
-        </div>
-
         {/* Theme toggle */}
         <Button 
           variant="ghost" 
