@@ -16,6 +16,8 @@ import {
   Loader2,
   ChevronRight,
   ChevronDown,
+  Sparkles,
+  AlertTriangle,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,11 +40,14 @@ import { useAccounts, useDeleteAccount, AccountType } from "@/hooks/useAccounts"
 import { useCategoriesHierarchy, useCategories, Category } from "@/hooks/useCategories";
 import { useCostCenters, useDeleteCostCenter } from "@/hooks/useCostCenters";
 import { useReconciliationRules, useDeleteReconciliationRule } from "@/hooks/useReconciliationRules";
+import { useSeedReconciliationRules } from "@/hooks/useSeedReconciliationRules";
+import { useClearReconciliationRules } from "@/hooks/useClearReconciliationRules";
 import { AccountDialog } from "@/components/accounts/AccountDialog";
 import { CategoriesDialog } from "@/components/categories/CategoriesDialog";
 import { CostCenterDialog } from "@/components/cost-centers/CostCenterDialog";
 import { TransferDialog } from "@/components/transfers/TransferDialog";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
+import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { cn } from "@/lib/utils";
 
 const ACCOUNT_TYPE_ICONS: Record<AccountType, typeof Building2> = {
@@ -83,6 +88,7 @@ export default function Cadastros() {
   
   // Rule state
   const [deleteRuleId, setDeleteRuleId] = useState<string | null>(null);
+  const [showClearRulesConfirmation, setShowClearRulesConfirmation] = useState(false);
 
   // Data hooks
   const { data: accounts, isLoading: loadingAccounts } = useAccounts();
@@ -94,7 +100,10 @@ export default function Cadastros() {
   const deleteAccount = useDeleteAccount();
   const deleteCostCenter = useDeleteCostCenter();
   const deleteRule = useDeleteReconciliationRule();
+  const seedRules = useSeedReconciliationRules();
+  const clearRules = useClearReconciliationRules();
   const { canCreate } = useCanCreate();
+  const { selectedOrganization } = useBaseFilter();
 
   if (!user) {
     navigate("/auth");
@@ -233,6 +242,38 @@ export default function Cadastros() {
                 <Plus className="h-4 w-4 mr-1" />
                 <span className="hidden sm:inline">Novo Centro</span>
               </Button>
+            )}
+            {activeTab === "regras" && (
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={() => seedRules.mutate()}
+                  disabled={seedRules.isPending}
+                >
+                  {seedRules.isPending ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3 w-3 mr-1" />
+                  )}
+                  <span className="hidden sm:inline">Criar Iniciais</span>
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowClearRulesConfirmation(true)}
+                  disabled={clearRules.isPending || !rules || rules.length === 0}
+                  className="text-destructive hover:text-destructive"
+                >
+                  {clearRules.isPending ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3 w-3 mr-1" />
+                  )}
+                  <span className="hidden sm:inline">Limpar</span>
+                </Button>
+              </div>
             )}
           </div>
 
@@ -535,6 +576,35 @@ export default function Cadastros() {
                 setDeleteRuleId(null);
               }
             }}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Clear Rules Confirmation Dialog */}
+      <AlertDialog open={showClearRulesConfirmation} onOpenChange={setShowClearRulesConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Limpar Todas as Regras
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir todas as {rules?.length || 0} regras
+              {selectedOrganization && ` da base "${selectedOrganization.name}"`}?
+              Esta ação é irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                clearRules.mutate();
+                setShowClearRulesConfirmation(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Limpar Regras
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
