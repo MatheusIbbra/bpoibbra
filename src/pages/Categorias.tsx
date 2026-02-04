@@ -57,6 +57,12 @@ const DRE_GROUP_OPTIONS = [
   { value: "impostos", label: "Impostos" },
 ];
 
+const EXPENSE_CLASSIFICATION_OPTIONS = [
+  { value: "fixa", label: "Despesa Fixa" },
+  { value: "variavel_programada", label: "Despesa Variável Programada" },
+  { value: "variavel_recorrente", label: "Despesa Variável Recorrente" },
+];
+
 const ICON_OPTIONS = [
   { value: "circle", label: "Círculo" },
   { value: "briefcase", label: "Trabalho" },
@@ -94,6 +100,7 @@ interface CategoryFormData {
   parent_id: string | null;
   description: string | null;
   dre_group: string | null;
+  expense_classification: string | null;
 }
 
 export default function Categorias() {
@@ -126,6 +133,7 @@ export default function Categorias() {
     parent_id: null,
     description: null,
     dre_group: null,
+    expense_classification: null,
   });
 
   if (!authLoading && !user) {
@@ -164,6 +172,7 @@ export default function Categorias() {
       parent_id: null,
       description: null,
       dre_group: null,
+      expense_classification: null,
     });
     setEditingCategory(null);
   };
@@ -192,15 +201,18 @@ export default function Categorias() {
       parent_id: category.parent_id,
       description: category.description,
       dre_group: category.dre_group,
+      expense_classification: (category as any).expense_classification || null,
     });
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
     // For child categories, dre_group should be null
+    // expense_classification is only for expense type categories
     const dataToSave = {
       ...formData,
       dre_group: formData.parent_id ? null : formData.dre_group,
+      expense_classification: formData.type === 'expense' ? formData.expense_classification : null,
     };
 
     if (editingCategory) {
@@ -235,6 +247,15 @@ export default function Categorias() {
       case "investment": return "secondary";
       case "redemption": return "outline";
       default: return "secondary";
+    }
+  };
+
+  const getExpenseClassificationLabel = (classification: string | null): string => {
+    switch (classification) {
+      case "fixa": return "Fixa";
+      case "variavel_programada": return "Var. Programada";
+      case "variavel_recorrente": return "Var. Recorrente";
+      default: return "";
     }
   };
 
@@ -281,6 +302,11 @@ export default function Categorias() {
                 <Badge variant={getTypeBadgeVariant(category.type) as any} className="shrink-0 text-xs">
                   {getTypeLabel(category.type)}
                 </Badge>
+                {(category as any).expense_classification && (
+                  <Badge variant="secondary" className="shrink-0 text-xs">
+                    {getExpenseClassificationLabel((category as any).expense_classification)}
+                  </Badge>
+                )}
                 {category.dre_group && (
                   <Badge variant="outline" className="shrink-0 text-xs bg-muted">
                     DRE: {category.dre_group}
@@ -589,6 +615,34 @@ export default function Categorias() {
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
                   Usado para agrupar categorias no Demonstrativo de Resultados
+                </p>
+              </div>
+            )}
+
+            {/* Expense Classification - Only for expense type categories */}
+            {formData.type === 'expense' && (
+              <div>
+                <Label>Classificação da Despesa</Label>
+                <Select
+                  value={formData.expense_classification || "none"}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, expense_classification: value === "none" ? null : value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a classificação" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não classificada</SelectItem>
+                    {EXPENSE_CLASSIFICATION_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Fixa: recorrente e valor constante. Variável Programada: planejada, valor variável. Variável Recorrente: não planejada mas frequente.
                 </p>
               </div>
             )}

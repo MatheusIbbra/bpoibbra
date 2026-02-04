@@ -298,6 +298,7 @@ export type Database = {
           created_at: string
           description: string | null
           dre_group: string | null
+          expense_classification: string | null
           icon: string | null
           id: string
           name: string
@@ -312,6 +313,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           dre_group?: string | null
+          expense_classification?: string | null
           icon?: string | null
           id?: string
           name: string
@@ -326,6 +328,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           dre_group?: string | null
+          expense_classification?: string | null
           icon?: string | null
           id?: string
           name?: string
