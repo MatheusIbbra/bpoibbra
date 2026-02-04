@@ -7,139 +7,139 @@
 
 @layer base {
   :root {
-    /* Brand Colors - Velvety Navy & Gold */
-    --brand-navy-deep: 220 45% 10%;
-    --brand-navy: 220 42% 16%;
-    --brand-navy-soft: 220 35% 22%;
-    --brand-slate: 218 20% 35%;
-    --brand-ivory: 45 25% 97%;
-    --brand-gold: 42 75% 50%;
-    --brand-gold-light: 42 60% 65%;
-    --brand-gold-muted: 42 35% 80%;
+    /* Brand Colors - Rich Velvety Navy & Warm Gold */
+    --brand-navy-deep: 222 47% 8%;
+    --brand-navy: 222 44% 14%;
+    --brand-navy-soft: 222 38% 20%;
+    --brand-slate: 220 22% 32%;
+    --brand-ivory: 48 30% 97%;
+    --brand-gold: 40 82% 52%;
+    --brand-gold-light: 40 70% 62%;
+    --brand-gold-muted: 40 40% 78%;
     
     /* Core backgrounds - Warm ivory */
-    --background: 45 25% 98%;
-    --foreground: 220 45% 10%;
+    --background: 48 28% 98%;
+    --foreground: 222 47% 8%;
 
     /* Cards - Pure white with warmth */
     --card: 0 0% 100%;
-    --card-foreground: 220 45% 10%;
+    --card-foreground: 222 47% 8%;
 
     /* Popovers */
     --popover: 0 0% 100%;
-    --popover-foreground: 220 45% 10%;
+    --popover-foreground: 222 47% 8%;
 
-    /* Primary - Velvety Deep Blue */
-    --primary: 220 42% 16%;
-    --primary-foreground: 45 25% 98%;
+    /* Primary - Rich Velvety Blue */
+    --primary: 222 44% 14%;
+    --primary-foreground: 48 28% 98%;
 
     /* Secondary - Warm Ivory */
-    --secondary: 45 20% 93%;
-    --secondary-foreground: 220 42% 16%;
+    --secondary: 48 22% 93%;
+    --secondary-foreground: 222 44% 14%;
 
     /* Muted - Subtle warmth */
-    --muted: 220 15% 94%;
-    --muted-foreground: 218 20% 45%;
+    --muted: 222 18% 94%;
+    --muted-foreground: 220 22% 42%;
 
-    /* Accent - Executive Gold */
-    --accent: 42 75% 50%;
-    --accent-foreground: 220 45% 10%;
+    /* Accent - Rich Warm Gold */
+    --accent: 40 82% 52%;
+    --accent-foreground: 222 47% 8%;
 
     /* Status colors - Refined palette */
-    --destructive: 0 65% 50%;
+    --destructive: 0 68% 48%;
     --destructive-foreground: 0 0% 100%;
     
-    --success: 152 55% 42%;
+    --success: 152 58% 40%;
     --success-foreground: 0 0% 100%;
     
-    --warning: 42 92% 50%;
-    --warning-foreground: 220 45% 10%;
+    --warning: 40 95% 52%;
+    --warning-foreground: 222 47% 8%;
     
-    --info: 210 85% 50%;
+    --info: 212 88% 52%;
     --info-foreground: 0 0% 100%;
 
     /* Borders and inputs - Refined edges */
-    --border: 220 15% 88%;
-    --input: 220 15% 88%;
-    --ring: 220 42% 16%;
+    --border: 222 18% 86%;
+    --input: 222 18% 86%;
+    --ring: 222 44% 14%;
 
     --radius: 0.75rem;
 
     /* Sidebar - Deep velvety navy */
-    --sidebar-background: 220 45% 10%;
-    --sidebar-foreground: 45 20% 93%;
-    --sidebar-primary: 42 75% 55%;
-    --sidebar-primary-foreground: 220 45% 10%;
-    --sidebar-accent: 220 42% 18%;
-    --sidebar-accent-foreground: 45 20% 98%;
-    --sidebar-border: 220 35% 20%;
-    --sidebar-ring: 42 75% 50%;
-    --sidebar-muted: 218 15% 55%;
+    --sidebar-background: 222 47% 8%;
+    --sidebar-foreground: 48 22% 93%;
+    --sidebar-primary: 40 82% 55%;
+    --sidebar-primary-foreground: 222 47% 8%;
+    --sidebar-accent: 222 44% 16%;
+    --sidebar-accent-foreground: 48 22% 98%;
+    --sidebar-border: 222 38% 18%;
+    --sidebar-ring: 40 82% 52%;
+    --sidebar-muted: 220 18% 52%;
 
     /* Chart colors - Executive palette */
-    --chart-1: 220 42% 16%;
-    --chart-2: 42 75% 50%;
-    --chart-3: 152 55% 42%;
-    --chart-4: 210 85% 50%;
-    --chart-5: 0 65% 50%;
+    --chart-1: 222 44% 14%;
+    --chart-2: 40 82% 52%;
+    --chart-3: 152 58% 40%;
+    --chart-4: 212 88% 52%;
+    --chart-5: 0 68% 48%;
   }
 
   .dark {
     /* Dark mode - Executive night theme */
-    --background: 220 45% 6%;
-    --foreground: 45 20% 93%;
+    --background: 222 47% 5%;
+    --foreground: 48 22% 93%;
 
-    --card: 220 45% 10%;
-    --card-foreground: 45 20% 93%;
+    --card: 222 47% 8%;
+    --card-foreground: 48 22% 93%;
 
-    --popover: 220 45% 10%;
-    --popover-foreground: 45 20% 93%;
+    --popover: 222 47% 8%;
+    --popover-foreground: 48 22% 93%;
 
-    --primary: 42 75% 55%;
-    --primary-foreground: 220 45% 6%;
+    --primary: 40 82% 55%;
+    --primary-foreground: 222 47% 5%;
 
-    --secondary: 220 30% 16%;
-    --secondary-foreground: 45 20% 93%;
+    --secondary: 222 32% 14%;
+    --secondary-foreground: 48 22% 93%;
 
-    --muted: 220 30% 16%;
-    --muted-foreground: 218 15% 55%;
+    --muted: 222 32% 14%;
+    --muted-foreground: 220 18% 52%;
 
-    --accent: 42 75% 55%;
-    --accent-foreground: 220 45% 6%;
+    --accent: 40 82% 55%;
+    --accent-foreground: 222 47% 5%;
 
-    --destructive: 0 55% 45%;
+    --destructive: 0 58% 42%;
     --destructive-foreground: 0 0% 100%;
     
-    --success: 152 55% 42%;
+    --success: 152 58% 40%;
     --success-foreground: 0 0% 100%;
     
-    --warning: 42 92% 50%;
-    --warning-foreground: 220 45% 6%;
+    --warning: 40 95% 52%;
+    --warning-foreground: 222 47% 5%;
     
-    --info: 210 85% 55%;
+    --info: 212 88% 55%;
     --info-foreground: 0 0% 100%;
 
-    --border: 220 30% 20%;
-    --input: 220 30% 20%;
-    --ring: 42 75% 55%;
+    --border: 222 32% 18%;
+    --input: 222 32% 18%;
+    --ring: 40 82% 55%;
 
     /* Sidebar Dark */
-    --sidebar-background: 220 45% 5%;
-    --sidebar-foreground: 45 20% 93%;
-    --sidebar-primary: 42 75% 55%;
-    --sidebar-primary-foreground: 220 45% 6%;
-    --sidebar-accent: 220 42% 12%;
-    --sidebar-accent-foreground: 45 20% 98%;
-    --sidebar-border: 220 30% 15%;
-    --sidebar-ring: 42 75% 55%;
-    --sidebar-muted: 218 15% 50%;
+    --sidebar-background: 222 47% 4%;
+    --sidebar-foreground: 48 22% 93%;
+    --sidebar-primary: 40 82% 55%;
+    --sidebar-primary-foreground: 222 47% 5%;
+    --sidebar-accent: 222 44% 10%;
+    --sidebar-accent-foreground: 48 22% 98%;
+    --sidebar-border: 222 32% 12%;
+    --sidebar-ring: 40 82% 55%;
+    --sidebar-muted: 220 18% 48%;
 
     /* Chart colors dark */
-    --chart-1: 42 75% 55%;
-    --chart-2: 210 85% 55%;
-    --chart-3: 152 55% 42%;
-    --chart-4: 42 92% 50%;
-    --chart-5: 0 55% 50%;
+    --chart-1: 40 82% 55%;
+    --chart-2: 212 88% 55%;
+    --chart-3: 152 58% 40%;
+    --chart-4: 40 95% 52%;
+    --chart-5: 0 58% 48%;
   }
 }
 

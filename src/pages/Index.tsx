@@ -184,11 +184,11 @@ const Index = () => {
         {/* Budget Alerts */}
         <BudgetAlerts showNotifications={true} />
         
-        {/* Strategic Insights - Compact */}
-        <StrategicInsightsCard />
-        
         {/* Monthly Evolution Chart */}
         <MonthlyEvolutionChart />
+        
+        {/* Strategic Insights - Below Evolution */}
+        <StrategicInsightsCard />
         
         <div className="grid gap-3 grid-cols-1 lg:grid-cols-3">
           <div className="lg:col-span-2">
