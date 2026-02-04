@@ -2,144 +2,141 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Financial BPO SaaS - Wealth Management / Investment Bank Style */
+/* Premium Executive Financial SaaS Design System */
 
 @layer base {
   :root {
-    /* Brand Colors - Navy & Beige */
-    --brand-navy: 210 100% 13%; /* #011e40 */
-    --brand-beige: 18 33% 89%; /* #eae1dc */
-    --brand-blue-light: 210 97% 37%; /* #025dba */
-    --brand-blue-accent: 217 100% 49%; /* #0058f9 */
-    --brand-blue-lighter: 218 68% 95%; /* #ECF2FA */
-    --brand-orange: 14 100% 54%; /* #ff4613 */
+    /* Brand Colors - Executive Navy & Ivory */
+    --brand-navy-deep: 218 33% 12%;
+    --brand-navy: 218 33% 18%;
+    --brand-slate: 215 19% 35%;
+    --brand-ivory: 40 20% 96%;
+    --brand-gold: 38 65% 52%;
+    --brand-gold-muted: 38 30% 75%;
     
-    /* Core backgrounds - Warm white with beige undertones */
-    --background: 18 33% 96%;
-    --foreground: 210 100% 13%;
+    /* Core backgrounds - Soft ivory warmth */
+    --background: 40 20% 98%;
+    --foreground: 218 33% 12%;
 
-    /* Cards with subtle warmth */
+    /* Cards - Pure white with elegant contrast */
     --card: 0 0% 100%;
-    --card-foreground: 210 100% 13%;
+    --card-foreground: 218 33% 12%;
 
     /* Popovers */
     --popover: 0 0% 100%;
-    --popover-foreground: 210 100% 13%;
+    --popover-foreground: 218 33% 12%;
 
-    /* Primary - Deep Navy Blue */
-    --primary: 210 100% 13%;
-    --primary-foreground: 0 0% 100%;
+    /* Primary - Deep Navy Executive */
+    --primary: 218 33% 18%;
+    --primary-foreground: 40 20% 98%;
 
-    /* Secondary - Soft Beige */
-    --secondary: 18 33% 89%;
-    --secondary-foreground: 210 100% 13%;
+    /* Secondary - Warm Ivory */
+    --secondary: 40 15% 92%;
+    --secondary-foreground: 218 33% 18%;
 
-    /* Muted tones */
-    --muted: 218 68% 95%;
-    --muted-foreground: 210 30% 40%;
+    /* Muted - Subtle slate */
+    --muted: 215 15% 94%;
+    --muted-foreground: 215 19% 45%;
 
-    /* Accent - Blue accent */
-    --accent: 217 100% 49%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent - Executive Gold */
+    --accent: 38 65% 52%;
+    --accent-foreground: 218 33% 12%;
 
-    /* Status colors */
-    --destructive: 0 72% 51%;
+    /* Status colors - Refined palette */
+    --destructive: 0 65% 50%;
     --destructive-foreground: 0 0% 100%;
     
-    /* Success - Green */
-    --success: 142 71% 45%;
+    --success: 152 55% 42%;
     --success-foreground: 0 0% 100%;
     
-    /* Warning - Amber */
     --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 0%;
+    --warning-foreground: 218 33% 12%;
     
-    /* Info - Blue accent */
-    --info: 210 97% 37%;
+    --info: 205 85% 45%;
     --info-foreground: 0 0% 100%;
 
-    /* Borders and inputs */
-    --border: 18 20% 85%;
-    --input: 18 20% 85%;
-    --ring: 210 100% 13%;
+    /* Borders and inputs - Refined edges */
+    --border: 220 13% 88%;
+    --input: 220 13% 88%;
+    --ring: 218 33% 18%;
 
-    --radius: 0.625rem;
+    --radius: 0.75rem;
 
-    /* Sidebar - Navy theme */
-    --sidebar-background: 210 100% 13%;
-    --sidebar-foreground: 18 33% 89%;
-    --sidebar-primary: 217 100% 49%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 80% 20%;
-    --sidebar-accent-foreground: 18 33% 89%;
-    --sidebar-border: 210 80% 20%;
-    --sidebar-ring: 217 100% 49%;
-    --sidebar-muted: 210 30% 60%;
+    /* Sidebar - Deep navy sophistication */
+    --sidebar-background: 218 33% 12%;
+    --sidebar-foreground: 40 15% 92%;
+    --sidebar-primary: 38 65% 55%;
+    --sidebar-primary-foreground: 218 33% 12%;
+    --sidebar-accent: 218 33% 20%;
+    --sidebar-accent-foreground: 40 15% 98%;
+    --sidebar-border: 218 25% 22%;
+    --sidebar-ring: 38 65% 52%;
+    --sidebar-muted: 215 15% 55%;
 
-    /* Chart colors */
-    --chart-1: 210 100% 13%;
-    --chart-2: 217 100% 49%;
-    --chart-3: 142 71% 45%;
-    --chart-4: 38 92% 50%;
-    --chart-5: 14 100% 54%;
+    /* Chart colors - Executive palette */
+    --chart-1: 218 33% 18%;
+    --chart-2: 38 65% 52%;
+    --chart-3: 152 55% 42%;
+    --chart-4: 205 85% 45%;
+    --chart-5: 0 65% 50%;
   }
 
   .dark {
-    /* Dark mode - Rich navy sophistication */
-    --background: 210 100% 7%;
-    --foreground: 18 33% 89%;
+    /* Dark mode - Executive night theme */
+    --background: 218 33% 8%;
+    --foreground: 40 15% 92%;
 
-    --card: 210 80% 11%;
-    --card-foreground: 18 33% 89%;
+    --card: 218 33% 12%;
+    --card-foreground: 40 15% 92%;
 
-    --popover: 210 80% 11%;
-    --popover-foreground: 18 33% 89%;
+    --popover: 218 33% 12%;
+    --popover-foreground: 40 15% 92%;
 
-    --primary: 217 100% 49%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 38 65% 55%;
+    --primary-foreground: 218 33% 8%;
 
-    --secondary: 210 50% 18%;
-    --secondary-foreground: 18 33% 89%;
+    --secondary: 218 25% 18%;
+    --secondary-foreground: 40 15% 92%;
 
-    --muted: 210 50% 18%;
-    --muted-foreground: 210 20% 60%;
+    --muted: 218 25% 18%;
+    --muted-foreground: 215 15% 55%;
 
-    --accent: 217 100% 49%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 38 65% 55%;
+    --accent-foreground: 218 33% 8%;
 
-    --destructive: 0 62% 45%;
+    --destructive: 0 55% 45%;
     --destructive-foreground: 0 0% 100%;
     
-    --success: 142 71% 45%;
+    --success: 152 55% 42%;
     --success-foreground: 0 0% 100%;
     
     --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 0%;
+    --warning-foreground: 218 33% 8%;
     
-    --info: 210 97% 50%;
+    --info: 205 85% 50%;
     --info-foreground: 0 0% 100%;
 
-    --border: 210 50% 18%;
-    --input: 210 50% 18%;
-    --ring: 217 100% 49%;
+    --border: 218 25% 22%;
+    --input: 218 25% 22%;
+    --ring: 38 65% 55%;
 
     /* Sidebar Dark */
-    --sidebar-background: 210 100% 5%;
-    --sidebar-foreground: 18 33% 89%;
-    --sidebar-primary: 217 100% 49%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 80% 12%;
-    --sidebar-accent-foreground: 18 33% 89%;
-    --sidebar-border: 210 80% 12%;
-    --sidebar-ring: 217 100% 49%;
-    --sidebar-muted: 210 20% 50%;
+    --sidebar-background: 218 33% 6%;
+    --sidebar-foreground: 40 15% 92%;
+    --sidebar-primary: 38 65% 55%;
+    --sidebar-primary-foreground: 218 33% 8%;
+    --sidebar-accent: 218 33% 15%;
+    --sidebar-accent-foreground: 40 15% 98%;
+    --sidebar-border: 218 25% 18%;
+    --sidebar-ring: 38 65% 55%;
+    --sidebar-muted: 215 15% 50%;
 
     /* Chart colors dark */
-    --chart-1: 217 100% 49%;
-    --chart-2: 210 97% 50%;
-    --chart-3: 142 71% 45%;
+    --chart-1: 38 65% 55%;
+    --chart-2: 205 85% 50%;
+    --chart-3: 152 55% 42%;
     --chart-4: 38 92% 50%;
-    --chart-5: 14 100% 54%;
+    --chart-5: 0 55% 50%;
   }
 }
 
@@ -150,58 +147,150 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings: "rlig" 1, "calt" 1, "cv11" 1;
+    letter-spacing: -0.011em;
   }
 
-  /* Custom scrollbar */
+  /* Premium Typography Scale */
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight font-semibold;
+  }
+
+  h1 { letter-spacing: -0.025em; }
+  h2 { letter-spacing: -0.02em; }
+  h3 { letter-spacing: -0.015em; }
+
+  /* Premium Scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-muted/50;
+    @apply bg-transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/20 rounded-full;
+    @apply bg-muted-foreground/15 rounded-full transition-colors;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/30;
+    @apply bg-muted-foreground/25;
+  }
+
+  /* Selection */
+  ::selection {
+    @apply bg-primary/15 text-foreground;
   }
 }
 
 @layer utilities {
-  /* Glass effect for cards */
+  /* Premium Glass Effects */
   .glass {
-    @apply bg-card/80 backdrop-blur-md border border-border/50;
+    @apply bg-card/85 backdrop-blur-xl border border-border/60 shadow-sm;
   }
 
-  /* Gradient text */
+  .glass-strong {
+    @apply bg-card/95 backdrop-blur-2xl border border-border/80 shadow-lg;
+  }
+
+  /* Executive Gradient Text */
   .gradient-text {
-    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent;
   }
 
-  /* Status badges */
+  /* Premium Shadows */
+  .shadow-executive {
+    box-shadow: 
+      0 1px 2px 0 rgb(0 0 0 / 0.03),
+      0 4px 8px -2px rgb(0 0 0 / 0.04),
+      0 12px 24px -4px rgb(0 0 0 / 0.06);
+  }
+
+  .shadow-executive-lg {
+    box-shadow: 
+      0 2px 4px 0 rgb(0 0 0 / 0.03),
+      0 8px 16px -4px rgb(0 0 0 / 0.05),
+      0 24px 48px -8px rgb(0 0 0 / 0.08);
+  }
+
+  /* Status Badges - Refined */
   .status-success {
-    @apply bg-success/10 text-success border-success/20;
+    @apply bg-success/8 text-success border-success/15;
   }
 
   .status-warning {
-    @apply bg-warning/10 text-warning border-warning/20;
+    @apply bg-warning/8 text-warning border-warning/15;
   }
 
   .status-destructive {
-    @apply bg-destructive/10 text-destructive border-destructive/20;
+    @apply bg-destructive/8 text-destructive border-destructive/15;
   }
 
   .status-info {
-    @apply bg-info/10 text-info border-info/20;
+    @apply bg-info/8 text-info border-info/15;
+  }
+
+  /* Premium Card Hover */
+  .card-hover {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .card-hover:hover {
+    @apply shadow-executive-lg -translate-y-0.5;
+  }
+
+  /* Executive Button Shine */
+  .btn-shine {
+    @apply relative overflow-hidden;
+  }
+
+  .btn-shine::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full;
+    animation: shine 3s infinite;
+  }
+
+  @keyframes shine {
+    100% { transform: translateX(100%); }
+  }
+
+  /* Refined Focus States */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
   }
 }
 
-/* Responsive card sizes for mobile/tablet */
+/* Premium Card Variants */
+@layer components {
+  .card-executive {
+    @apply bg-card rounded-xl border border-border/60 shadow-executive;
+  }
+
+  .card-executive-hover {
+    @apply card-executive transition-all duration-300 hover:shadow-executive-lg hover:border-border;
+  }
+
+  /* Premium Input Styling */
+  .input-executive {
+    @apply bg-background/50 border-border/60 focus:border-primary/40 focus:ring-2 focus:ring-primary/10 transition-all duration-200;
+  }
+
+  /* Sidebar Premium Styling */
+  .sidebar-premium {
+    background: linear-gradient(180deg, 
+      hsl(var(--sidebar-background)) 0%,
+      hsl(218 33% 10%) 100%
+    );
+  }
+
+  /* Premium Badge */
+  .badge-executive {
+    @apply bg-accent/10 text-accent border-accent/20 font-medium;
+  }
+}
+
+/* Responsive Premium Adjustments */
 @media (max-width: 1024px) {
   .responsive-card {
     @apply max-w-full;
@@ -219,5 +308,16 @@
   
   .responsive-stat-card h3 {
     @apply text-lg;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    @apply bg-white text-black;
   }
 }

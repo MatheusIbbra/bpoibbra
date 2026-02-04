@@ -6,7 +6,7 @@ import { Database } from "@/integrations/supabase/types";
 
 type UserRoleRow = Database["public"]["Tables"]["user_roles"]["Row"];
 
-export type AppRole = "admin" | "supervisor" | "fa" | "kam" | "cliente";
+export type AppRole = "admin" | "supervisor" | "fa" | "kam" | "projetista" | "cliente";
 
 export interface UserRole extends UserRoleRow {}
 
@@ -22,40 +22,47 @@ export interface UserWithRole {
 }
 
 // Role hierarchy - higher index = more permissions
-const ROLE_HIERARCHY: AppRole[] = ["cliente", "kam", "fa", "supervisor", "admin"];
+const ROLE_HIERARCHY: AppRole[] = ["cliente", "projetista", "kam", "fa", "supervisor", "admin"];
 
 export const ROLE_LABELS: Record<AppRole, string> = {
   admin: "Administrador",
   supervisor: "Supervisor",
   fa: "Analista Financeiro (FA)",
   kam: "Key Account Manager (KAM)",
+  projetista: "Projetista",
   cliente: "Cliente",
 };
 
 export const ROLE_DESCRIPTIONS: Record<AppRole, string[]> = {
   admin: [
     "Gestão completa do sistema",
+    "Acesso irrestrito a todas as Bases",
     "Criação de organizações e usuários",
-    "Validação final de IA",
     "Configurações globais",
   ],
   supervisor: [
     "Supervisiona múltiplos clientes",
+    "Acesso às Bases vinculadas",
     "Valida classificações",
     "Acompanha qualidade",
-    "⛔ Sem acesso a config global",
   ],
   fa: [
     "Classifica movimentações",
+    "Acesso às Bases vinculadas",
     "Analisa extratos",
     "Aprova/rejeita sugestões IA",
-    "⛔ Não gerencia usuários",
   ],
   kam: [
     "Relacionamento com cliente",
+    "Acesso às Bases vinculadas",
     "Visualiza relatórios",
     "Acompanha metas/orçamento",
-    "⛔ Não altera dados financeiros",
+  ],
+  projetista: [
+    "Acesso às Bases vinculadas",
+    "Mesmas permissões do FA",
+    "Classifica movimentações",
+    "Analisa extratos",
   ],
   cliente: [
     "Visualiza APENAS seus dados",
@@ -119,7 +126,7 @@ export function useCanManageUsers() {
 export function useCanClassify() {
   const { data: role, isLoading } = useCurrentUserRole();
   return {
-    canClassify: role === "admin" || role === "supervisor" || role === "fa",
+    canClassify: role === "admin" || role === "supervisor" || role === "fa" || role === "projetista",
     isLoading,
   };
 }
@@ -127,7 +134,7 @@ export function useCanClassify() {
 export function useCanEditFinancials() {
   const { data: role, isLoading } = useCurrentUserRole();
   return {
-    canEdit: role === "admin" || role === "supervisor" || role === "fa",
+    canEdit: role === "admin" || role === "supervisor" || role === "fa" || role === "projetista",
     isLoading,
   };
 }

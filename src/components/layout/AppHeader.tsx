@@ -1,7 +1,8 @@
-import { Search, Moon, Sun, LogOut } from "lucide-react";
+import { Search, Moon, Sun, LogOut, User, Settings, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,7 +26,6 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const { user, signOut } = useAuth();
 
-  // Buscar o perfil do usuário para obter o nome
   const { data: profile } = useQuery({
     queryKey: ["user-profile", user?.id],
     queryFn: async () => {
@@ -40,44 +40,92 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
     enabled: !!user?.id,
   });
 
-  // Gerar inicial do nome (sempre primeira letra do nome)
-  const getInitial = (name: string | null | undefined): string => {
+  const { data: userRole } = useQuery({
+    queryKey: ["header-role", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+      return data?.role;
+    },
+    enabled: !!user?.id,
+  });
+
+  const getInitials = (name: string | null | undefined): string => {
     if (!name) return "U";
-    return name.trim().charAt(0).toUpperCase();
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
   };
 
-  const initial = getInitial(profile?.full_name);
+  const getRoleLabel = (role: string | null | undefined): string => {
+    const labels: Record<string, string> = {
+      admin: "Admin",
+      supervisor: "Supervisor",
+      kam: "KAM",
+      fa: "FA",
+      projetista: "Projetista",
+      cliente: "Cliente",
+      user: "User",
+    };
+    return role ? labels[role] || "User" : "User";
+  };
+
   const displayName = profile?.full_name || "Usuário";
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 md:h-16 items-center gap-2 md:gap-4 border-b bg-card px-3 md:px-6">
-      {/* Sidebar toggle - always visible */}
-      <SidebarTrigger className="shrink-0" />
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-border/60 bg-card/95 backdrop-blur-sm px-4 md:px-6 shadow-sm">
+      {/* Sidebar toggle */}
+      <SidebarTrigger className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" />
       
-      <div className="flex flex-1 items-center gap-2 md:gap-4 min-w-0">
-        {/* Title - hidden on mobile */}
-        <h1 className="hidden md:block text-lg font-semibold text-foreground md:text-xl lg:text-2xl truncate">
-          {title}
-        </h1>
+      <div className="flex flex-1 items-center gap-4 min-w-0">
+        {/* Title */}
+        <div className="hidden md:flex flex-col">
+          <h1 className="text-lg font-semibold text-foreground tracking-tight">
+            {title}
+          </h1>
+        </div>
         
-        {/* Base Selector - always visible */}
+        {/* Base Selector */}
         <div className="shrink-0">
           <BaseSelectorEnhanced />
         </div>
       </div>
 
-      <div className="flex items-center gap-1 md:gap-2">
-        {/* Search - hidden on mobile/tablet */}
+      <div className="flex items-center gap-2">
+        {/* Search */}
         <div className="relative hidden lg:block">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Buscar transações..."
-            className="w-64 pl-9 bg-background"
+            className="w-64 pl-9 h-10 bg-background/50 border-border/60 focus:border-primary/40 focus:ring-2 focus:ring-primary/10 transition-all"
           />
         </div>
 
-        {/* Theme toggle - hidden on mobile/tablet */}
-        <Button variant="ghost" size="icon" onClick={toggleTheme} className="hidden md:inline-flex shrink-0">
+        {/* Notifications - placeholder */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="hidden md:inline-flex h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors relative"
+        >
+          <Bell className="h-5 w-5" />
+          <span className="absolute top-2 right-2 h-2 w-2 bg-accent rounded-full" />
+          <span className="sr-only">Notificações</span>
+        </Button>
+
+        {/* Theme toggle */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={toggleTheme} 
+          className="hidden md:inline-flex h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
           {theme === "light" ? (
             <Moon className="h-5 w-5" />
           ) : (
@@ -86,59 +134,89 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
           <span className="sr-only">Alternar tema</span>
         </Button>
 
+        {/* Divider */}
+        <div className="hidden lg:block h-8 w-px bg-border/60 mx-1" />
+
         {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-auto gap-2 px-2 py-1.5 shrink-0">
-              {/* User info - hidden on mobile/tablet */}
+            <Button 
+              variant="ghost" 
+              className="relative h-auto gap-3 px-2 py-1.5 shrink-0 hover:bg-muted transition-colors rounded-lg"
+            >
+              {/* User info */}
               <div className="hidden lg:flex flex-col items-end text-right">
-                <span className="text-sm font-medium leading-none">{displayName}</span>
-                <span className="text-xs text-muted-foreground leading-none mt-0.5">
-                  {user?.email}
-                </span>
+                <span className="text-sm font-medium leading-none text-foreground">{displayName}</span>
+                <Badge variant="secondary" className="mt-1 text-[10px] px-1.5 py-0 h-4 font-medium">
+                  {getRoleLabel(userRole)}
+                </Badge>
               </div>
-              <Avatar className="h-8 w-8 md:h-9 md:w-9">
+              <Avatar className="h-9 w-9 border-2 border-border/60">
                 <AvatarImage src={profile?.avatar_url || undefined} alt="Avatar" />
-                <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
-                  {initial}
+                <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-xs">
+                  {getInitials(profile?.full_name)}
                 </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end" forceMount>
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{displayName}</p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  {user?.email}
-                </p>
+          <DropdownMenuContent className="w-60 p-2" align="end" forceMount>
+            <DropdownMenuLabel className="font-normal p-3 bg-muted/50 rounded-lg mb-2">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10 border-2 border-border/60">
+                  <AvatarImage src={profile?.avatar_url || undefined} />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-sm font-semibold">
+                    {getInitials(profile?.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-semibold leading-none">{displayName}</p>
+                  <p className="text-xs leading-none text-muted-foreground truncate max-w-[140px]">
+                    {user?.email}
+                  </p>
+                  <Badge variant="secondary" className="w-fit text-[10px] px-1.5 py-0 h-4 mt-1">
+                    {getRoleLabel(userRole)}
+                  </Badge>
+                </div>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => window.location.href = '/perfil'}>
-              Perfil
+            <DropdownMenuItem 
+              onClick={() => window.location.href = '/perfil'}
+              className="cursor-pointer py-2.5 px-3 rounded-lg"
+            >
+              <User className="mr-3 h-4 w-4" />
+              Meu Perfil
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => window.location.href = '/admin'}>
+            <DropdownMenuItem 
+              onClick={() => window.location.href = '/admin'}
+              className="cursor-pointer py-2.5 px-3 rounded-lg"
+            >
+              <Settings className="mr-3 h-4 w-4" />
               Configurações
             </DropdownMenuItem>
-            {/* Theme toggle - visible only on mobile/tablet in dropdown */}
-            <DropdownMenuItem onClick={toggleTheme} className="md:hidden">
+            {/* Theme toggle - mobile */}
+            <DropdownMenuItem 
+              onClick={toggleTheme} 
+              className="md:hidden cursor-pointer py-2.5 px-3 rounded-lg"
+            >
               {theme === "light" ? (
                 <>
-                  <Moon className="mr-2 h-4 w-4" />
+                  <Moon className="mr-3 h-4 w-4" />
                   Modo Escuro
                 </>
               ) : (
                 <>
-                  <Sun className="mr-2 h-4 w-4" />
+                  <Sun className="mr-3 h-4 w-4" />
                   Modo Claro
                 </>
               )}
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive" onClick={signOut}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Sair
+            <DropdownMenuSeparator className="my-2" />
+            <DropdownMenuItem 
+              className="text-destructive cursor-pointer py-2.5 px-3 rounded-lg hover:bg-destructive/10" 
+              onClick={signOut}
+            >
+              <LogOut className="mr-3 h-4 w-4" />
+              Sair do Sistema
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
