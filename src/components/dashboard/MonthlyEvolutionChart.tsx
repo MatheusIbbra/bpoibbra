@@ -154,11 +154,11 @@ export function MonthlyEvolutionChart() {
               interval={viewMode === "daily" ? 3 : 0}
             />
             <YAxis
-              tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+              tickFormatter={(value) => formatCurrency(value)}
               tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
               axisLine={false}
               tickLine={false}
-              width={40}
+              width={80}
             />
             <Tooltip content={<CustomTooltipContent />} cursor={{ fill: 'hsl(var(--muted) / 0.3)' }} />
             <Legend 

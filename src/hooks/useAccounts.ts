@@ -98,31 +98,9 @@ export function useCreateAccount() {
 
       if (error) throw error;
 
-      // Se há saldo inicial diferente de zero, criar transação correspondente
-      const initialBalance = account.initial_balance || 0;
-      if (initialBalance !== 0) {
-        const transactionType = initialBalance > 0 ? "income" : "expense";
-        const transactionAmount = Math.abs(initialBalance);
-        const transactionDate = account.start_date || new Date().toISOString().split("T")[0];
-
-        const { error: txError } = await supabase.from("transactions").insert({
-          account_id: data.id,
-          user_id: user!.id,
-          organization_id: organizationId,
-          type: transactionType,
-          amount: transactionAmount,
-          date: transactionDate,
-          description: `Saldo inicial - ${account.name}`,
-          status: "completed",
-          validation_status: "validated",
-          classification_source: "system",
-        });
-
-        if (txError) {
-          console.error("Erro ao criar transação de saldo inicial:", txError);
-          // Não lança erro para não impedir a criação da conta
-        }
-      }
+      // Nota: O saldo inicial é armazenado apenas no campo initial_balance da conta.
+      // A função calculate_account_balance já considera esse valor, portanto
+      // NÃO criamos uma transação separada para evitar duplicação.
 
       return data;
     },
