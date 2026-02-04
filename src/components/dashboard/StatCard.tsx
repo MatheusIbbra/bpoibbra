@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { TrendingUp, TrendingDown } from "lucide-react";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 interface StatCardProps {
   title: string;
@@ -14,6 +15,7 @@ interface StatCardProps {
   description?: string;
   variant?: "default" | "success" | "warning" | "destructive";
   onClick?: () => void;
+  hoverContent?: ReactNode;
 }
 
 export function StatCard({
@@ -24,37 +26,38 @@ export function StatCard({
   description,
   variant = "default",
   onClick,
+  hoverContent,
 }: StatCardProps) {
   const variantStyles = {
     default: "border-border",
-    success: "border-success/20 bg-success/5",
-    warning: "border-warning/20 bg-warning/5",
-    destructive: "border-destructive/20 bg-destructive/5",
+    success: "border-l-2 border-l-success",
+    warning: "border-l-2 border-l-warning",
+    destructive: "border-l-2 border-l-destructive",
   };
 
   const iconVariantStyles = {
-    default: "bg-primary/10 text-primary",
-    success: "bg-success/10 text-success",
-    warning: "bg-warning/10 text-warning",
-    destructive: "bg-destructive/10 text-destructive",
+    default: "bg-muted/50 text-primary",
+    success: "bg-muted/50 text-success",
+    warning: "bg-muted/50 text-warning",
+    destructive: "bg-muted/50 text-destructive",
   };
 
-  return (
+  const cardContent = (
     <Card 
       className={cn(
-        "transition-all hover:shadow-md", 
+        "shadow-sm transition-all duration-200", 
         variantStyles[variant],
-        onClick && "cursor-pointer hover:scale-[1.02]"
+        onClick && "cursor-pointer hover:shadow-md hover:-translate-y-0.5"
       )}
       onClick={onClick}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">{title}</p>
-            <p className="text-xl font-bold tracking-tight">{value}</p>
+      <CardContent className="p-3">
+        <div className="flex items-center justify-between">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-muted-foreground truncate">{title}</p>
+            <p className="text-lg font-bold tracking-tight mt-0.5 truncate">{value}</p>
             {trend && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 mt-0.5">
                 {trend.isPositive ? (
                   <TrendingUp className="h-3 w-3 text-success" />
                 ) : (
@@ -62,23 +65,21 @@ export function StatCard({
                 )}
                 <span
                   className={cn(
-                    "text-xs font-medium",
+                    "text-[10px] font-medium",
                     trend.isPositive ? "text-success" : "text-destructive"
                   )}
                 >
-                  {trend.isPositive ? "+" : ""}
-                  {trend.value}%
+                  {trend.isPositive ? "+" : ""}{trend.value.toFixed(1)}%
                 </span>
-                <span className="text-xs text-muted-foreground">vs mês anterior</span>
               </div>
             )}
             {description && (
-              <p className="text-xs text-muted-foreground">{description}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{description}</p>
             )}
           </div>
           <div
             className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-lg",
+              "flex h-8 w-8 items-center justify-center rounded-lg shrink-0 ml-2",
               iconVariantStyles[variant]
             )}
           >
@@ -88,4 +89,19 @@ export function StatCard({
       </CardContent>
     </Card>
   );
+
+  if (hoverContent) {
+    return (
+      <HoverCard openDelay={1500} closeDelay={300}>
+        <HoverCardTrigger asChild>
+          {cardContent}
+        </HoverCardTrigger>
+        <HoverCardContent className="w-72 p-0" side="bottom" align="start">
+          {hoverContent}
+        </HoverCardContent>
+      </HoverCard>
+    );
+  }
+
+  return cardContent;
 }
