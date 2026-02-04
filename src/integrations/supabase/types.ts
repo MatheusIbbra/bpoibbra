@@ -1108,7 +1108,14 @@ export type Database = {
         | "investment"
         | "credit_card"
         | "cash"
-      app_role: "admin" | "user" | "supervisor" | "fa" | "kam" | "cliente"
+      app_role:
+        | "admin"
+        | "user"
+        | "supervisor"
+        | "fa"
+        | "kam"
+        | "cliente"
+        | "projetista"
       category_type: "income" | "expense" | "investment" | "redemption"
       import_status:
         | "pending"
@@ -1264,7 +1271,15 @@ export const Constants = {
         "credit_card",
         "cash",
       ],
-      app_role: ["admin", "user", "supervisor", "fa", "kam", "cliente"],
+      app_role: [
+        "admin",
+        "user",
+        "supervisor",
+        "fa",
+        "kam",
+        "cliente",
+        "projetista",
+      ],
       category_type: ["income", "expense", "investment", "redemption"],
       import_status: [
         "pending",
