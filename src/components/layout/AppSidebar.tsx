@@ -7,7 +7,6 @@ import {
   LogOut,
   TrendingUp,
   TrendingDown,
-  Calendar,
   FileText,
   FolderKanban,
   BarChart3,
@@ -17,11 +16,12 @@ import {
   Building2,
   CircleDollarSign,
   AlertCircle,
-  Scale,
   Brain,
-  Shuffle,
   User,
   ChevronRight,
+  Home,
+  Receipt,
+  Settings2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Badge } from "@/components/ui/badge";
@@ -48,61 +48,34 @@ import { supabase } from "@/integrations/supabase/client";
 
 const mainNavItems = [
   {
-    title: "Dashboard",
+    title: "Home",
     url: "/",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "Extrato",
-    url: "/extrato",
-    icon: ArrowUpDown,
-  },
-  {
-    title: "Transações",
-    url: "/transacoes",
-    icon: Shuffle,
-  },
-  {
-    title: "Receitas",
-    url: "/receitas",
-    icon: TrendingUp,
-  },
-  {
-    title: "Despesas",
-    url: "/despesas",
-    icon: TrendingDown,
-  },
-];
-
-const financialNavItems = [
-  {
-    title: "Contas Bancárias",
-    url: "/contas",
-    icon: Building2,
-  },
-  {
-    title: "Categorias",
-    url: "/categorias",
-    icon: Tags,
-  },
-  {
-    title: "Centros de Custo",
-    url: "/centros-custo",
-    icon: FolderKanban,
-  },
-  {
-    title: "Regras Conciliação",
-    url: "/regras-conciliacao",
-    icon: Scale,
+    icon: Home,
   },
   {
     title: "Importar Extratos",
     url: "/importacoes",
     icon: Upload,
   },
+  {
+    title: "Orçamentos",
+    url: "/orcamentos",
+    icon: Wallet,
+  },
+  {
+    title: "Pendências",
+    url: "/pendencias",
+    icon: AlertCircle,
+    hasBadge: true,
+  },
 ];
 
 const reportsNavItems = [
+  {
+    title: "Extrato",
+    url: "/extrato",
+    icon: ArrowUpDown,
+  },
   {
     title: "Análise Orçamento",
     url: "/analise-orcamento",
@@ -127,6 +100,22 @@ const reportsNavItems = [
     title: "Fluxo de Caixa",
     url: "/fluxo-caixa",
     icon: CircleDollarSign,
+  },
+];
+
+const movimentacoesItems = [
+  {
+    title: "Transações",
+    url: "/movimentacoes",
+    icon: Receipt,
+  },
+];
+
+const cadastrosItems = [
+  {
+    title: "Cadastros",
+    url: "/cadastros",
+    icon: Settings2,
   },
 ];
 
@@ -205,10 +194,10 @@ export function AppSidebar() {
       .slice(0, 2);
   };
 
-  const renderNavItems = (items: typeof mainNavItems, showBadgeFor?: string) => (
+  const renderNavItems = (items: typeof mainNavItems) => (
     <SidebarMenu>
       {items.map((item) => (
-        <SidebarMenuItem key={item.title}>
+        <SidebarMenuItem key={item.title} className="relative">
           <SidebarMenuButton
             asChild
             isActive={isActive(item.url)}
@@ -217,66 +206,52 @@ export function AppSidebar() {
             <NavLink
               to={item.url}
               end={item.url === "/"}
-              className={`flex items-center transition-all duration-200 text-sm py-2.5 rounded-lg ${
-                collapsed ? "justify-center px-0" : "gap-3 px-3"
+              className={`flex items-center transition-all duration-200 text-sm py-2 rounded-lg ${
+                collapsed ? "justify-center px-0" : "gap-2.5 px-3"
               } ${isActive(item.url) ? "bg-sidebar-accent/80 text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`}
               activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
             >
-              <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive(item.url) ? "text-sidebar-primary" : ""}`} />
+              <item.icon className={`h-4 w-4 shrink-0 ${(item as any).hasBadge && pendingCount && pendingCount > 0 ? "text-accent" : ""} ${isActive(item.url) ? "text-sidebar-primary" : ""}`} />
               {!collapsed && (
-                <span className="whitespace-nowrap flex-1 tracking-tight">{item.title}</span>
+                <span className="whitespace-nowrap flex-1 text-[13px]">{item.title}</span>
               )}
-              {!collapsed && showBadgeFor === item.url && pendingCount && pendingCount > 0 && (
-                <Badge className="h-5 min-w-5 text-[10px] px-1.5 font-semibold bg-accent text-accent-foreground border-0">
+              {!collapsed && (item as any).hasBadge && pendingCount !== undefined && pendingCount > 0 && (
+                <Badge className="h-5 min-w-5 text-[10px] px-1 font-semibold bg-accent text-accent-foreground border-0">
                   {pendingCount > 99 ? "99+" : pendingCount}
                 </Badge>
               )}
-              {collapsed && showBadgeFor === item.url && pendingCount && pendingCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-accent text-accent-foreground text-[9px] font-bold rounded-full flex items-center justify-center">
-                  {pendingCount > 9 ? "9+" : pendingCount}
-                </span>
-              )}
             </NavLink>
           </SidebarMenuButton>
+          {collapsed && (item as any).hasBadge && pendingCount !== undefined && pendingCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 bg-accent text-accent-foreground text-[8px] font-bold rounded-full flex items-center justify-center">
+              {pendingCount > 9 ? "+" : pendingCount}
+            </span>
+          )}
         </SidebarMenuItem>
       ))}
     </SidebarMenu>
   );
 
-  const planningNavItems = [
-    {
-      title: "Orçamentos",
-      url: "/orcamentos",
-      icon: Wallet,
-    },
-    {
-      title: "Pendências",
-      url: "/pendencias",
-      icon: AlertCircle,
-      hasBadge: true,
-    },
-  ];
-
   return (
     <Sidebar collapsible="icon" className="border-r-0 transition-all duration-300 sidebar-premium">
-      <SidebarHeader className="p-4 pb-2">
-        <div className="flex items-center gap-3">
+      <SidebarHeader className="p-3 pb-2">
+        <div className="flex items-center gap-2">
           <div className="relative">
             <img 
               src="/ibbra-logo.jpeg" 
               alt="Ibbra" 
-              className="h-10 w-10 rounded-xl object-cover shrink-0 shadow-md"
+              className="h-9 w-9 rounded-lg object-cover shrink-0 shadow-md"
             />
             {!collapsed && (
-              <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-success rounded-full border-2 border-sidebar-background" />
+              <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 bg-success rounded-full border-2 border-sidebar-background" />
             )}
           </div>
           {!collapsed && (
             <div className="flex flex-col min-w-0">
-              <span className="text-lg font-bold text-sidebar-foreground tracking-tight">
+              <span className="text-base font-bold text-sidebar-foreground tracking-tight">
                 Ibbra
               </span>
-              <span className="text-[10px] text-sidebar-muted uppercase tracking-widest">
+              <span className="text-[9px] text-sidebar-muted uppercase tracking-widest">
                 Financial
               </span>
             </div>
@@ -284,81 +259,46 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 py-2">
+      <SidebarContent className="px-2 py-1">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium px-3 mb-1">
+          <SidebarGroupLabel className="text-sidebar-muted text-[9px] uppercase tracking-widest font-medium px-3 mb-0.5">
             {!collapsed && "Principal"}
           </SidebarGroupLabel>
           <SidebarGroupContent>{renderNavItems(mainNavItems)}</SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarSeparator className="my-3 bg-sidebar-border/50" />
+        <SidebarSeparator className="my-2 bg-sidebar-border/50" />
 
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium px-3 mb-1">
-            {!collapsed && "Financeiro"}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>{renderNavItems(financialNavItems)}</SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarSeparator className="my-3 bg-sidebar-border/50" />
-
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium px-3 mb-1">
-            {!collapsed && "Planejamento"}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {planningNavItems.map((item) => (
-                <SidebarMenuItem key={item.title} className="relative">
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.url)}
-                    tooltip={collapsed ? item.title : undefined}
-                  >
-                    <NavLink
-                      to={item.url}
-                      className={`flex items-center transition-all duration-200 text-sm py-2.5 rounded-lg ${
-                        collapsed ? "justify-center px-0" : "gap-3 px-3"
-                      } ${isActive(item.url) ? "bg-sidebar-accent/80 text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`}
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    >
-                      <item.icon className={`h-[18px] w-[18px] shrink-0 ${item.hasBadge && pendingCount && pendingCount > 0 ? "text-accent" : ""} ${isActive(item.url) ? "text-sidebar-primary" : ""}`} />
-                      {!collapsed && (
-                        <span className="whitespace-nowrap flex-1 tracking-tight">{item.title}</span>
-                      )}
-                      {!collapsed && item.hasBadge && pendingCount !== undefined && pendingCount > 0 && (
-                        <Badge className="h-5 min-w-5 text-[10px] px-1.5 font-semibold bg-accent text-accent-foreground border-0 animate-pulse">
-                          {pendingCount > 99 ? "99+" : pendingCount}
-                        </Badge>
-                      )}
-                    </NavLink>
-                  </SidebarMenuButton>
-                  {collapsed && item.hasBadge && pendingCount !== undefined && pendingCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 h-4 w-4 bg-accent text-accent-foreground text-[9px] font-bold rounded-full flex items-center justify-center animate-pulse">
-                      {pendingCount > 9 ? "+" : pendingCount}
-                    </span>
-                  )}
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarSeparator className="my-3 bg-sidebar-border/50" />
-
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium px-3 mb-1">
+          <SidebarGroupLabel className="text-sidebar-muted text-[9px] uppercase tracking-widest font-medium px-3 mb-0.5">
             {!collapsed && "Relatórios"}
           </SidebarGroupLabel>
           <SidebarGroupContent>{renderNavItems(reportsNavItems)}</SidebarGroupContent>
         </SidebarGroup>
 
+        <SidebarSeparator className="my-2 bg-sidebar-border/50" />
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-sidebar-muted text-[9px] uppercase tracking-widest font-medium px-3 mb-0.5">
+            {!collapsed && "Movimentações"}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>{renderNavItems(movimentacoesItems)}</SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator className="my-2 bg-sidebar-border/50" />
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-sidebar-muted text-[9px] uppercase tracking-widest font-medium px-3 mb-0.5">
+            {!collapsed && "Cadastros"}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>{renderNavItems(cadastrosItems)}</SidebarGroupContent>
+        </SidebarGroup>
+
         {isAdmin && (
           <>
-            <SidebarSeparator className="my-3 bg-sidebar-border/50" />
+            <SidebarSeparator className="my-2 bg-sidebar-border/50" />
             <SidebarGroup>
-              <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium px-3 mb-1">
+              <SidebarGroupLabel className="text-sidebar-muted text-[9px] uppercase tracking-widest font-medium px-3 mb-0.5">
                 {!collapsed && "Administração"}
               </SidebarGroupLabel>
               <SidebarGroupContent>
@@ -371,13 +311,13 @@ export function AppSidebar() {
                     >
                       <NavLink
                         to="/admin"
-                        className={`flex items-center transition-all duration-200 text-sm py-2.5 rounded-lg ${
-                          collapsed ? "justify-center px-0" : "gap-3 px-3"
+                        className={`flex items-center transition-all duration-200 text-sm py-2 rounded-lg ${
+                          collapsed ? "justify-center px-0" : "gap-2.5 px-3"
                         } ${isActive("/admin") ? "bg-sidebar-accent/80 text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`}
                         activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                       >
-                        <Shield className={`h-[18px] w-[18px] shrink-0 ${isActive("/admin") ? "text-sidebar-primary" : ""}`} />
-                        {!collapsed && <span className="whitespace-nowrap tracking-tight">Gerenciar Acessos</span>}
+                        <Shield className={`h-4 w-4 shrink-0 ${isActive("/admin") ? "text-sidebar-primary" : ""}`} />
+                        {!collapsed && <span className="whitespace-nowrap text-[13px]">Gerenciar Acessos</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -389,13 +329,13 @@ export function AppSidebar() {
                     >
                       <NavLink
                         to="/padroes-aprendidos"
-                        className={`flex items-center transition-all duration-200 text-sm py-2.5 rounded-lg ${
-                          collapsed ? "justify-center px-0" : "gap-3 px-3"
+                        className={`flex items-center transition-all duration-200 text-sm py-2 rounded-lg ${
+                          collapsed ? "justify-center px-0" : "gap-2.5 px-3"
                         } ${isActive("/padroes-aprendidos") ? "bg-sidebar-accent/80 text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`}
                         activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                       >
-                        <Brain className={`h-[18px] w-[18px] shrink-0 ${isActive("/padroes-aprendidos") ? "text-sidebar-primary" : ""}`} />
-                        {!collapsed && <span className="whitespace-nowrap tracking-tight">Padrões Aprendidos</span>}
+                        <Brain className={`h-4 w-4 shrink-0 ${isActive("/padroes-aprendidos") ? "text-sidebar-primary" : ""}`} />
+                        {!collapsed && <span className="whitespace-nowrap text-[13px]">Padrões Aprendidos</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -407,29 +347,29 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-2 pt-0">
-        <SidebarSeparator className="mb-3 bg-sidebar-border/50" />
+        <SidebarSeparator className="mb-2 bg-sidebar-border/50" />
         
         {/* User Profile Section */}
         {!collapsed && (
           <div 
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-sidebar-accent/30 mb-2 cursor-pointer hover:bg-sidebar-accent/50 transition-colors"
+            className="flex items-center gap-2 px-2 py-2 rounded-lg bg-sidebar-accent/30 mb-1.5 cursor-pointer hover:bg-sidebar-accent/50 transition-colors"
             onClick={() => navigate("/perfil")}
           >
-            <Avatar className="h-9 w-9 border-2 border-sidebar-border">
+            <Avatar className="h-8 w-8 border-2 border-sidebar-border">
               <AvatarImage src={userProfile?.avatar_url || undefined} />
               <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-xs font-semibold">
                 {getInitials(userProfile?.full_name)}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">
+              <p className="text-xs font-medium text-sidebar-foreground truncate">
                 {userProfile?.full_name || "Usuário"}
               </p>
-              <p className="text-[10px] text-sidebar-primary font-medium uppercase tracking-wider">
+              <p className="text-[9px] text-sidebar-primary font-medium uppercase tracking-wider">
                 {getRoleLabel(userRole)}
               </p>
             </div>
-            <ChevronRight className="h-4 w-4 text-sidebar-muted" />
+            <ChevronRight className="h-3.5 w-3.5 text-sidebar-muted" />
           </div>
         )}
 
@@ -441,7 +381,7 @@ export function AppSidebar() {
                 className="justify-center"
                 onClick={() => navigate("/perfil")}
               >
-                <Avatar className="h-8 w-8 border border-sidebar-border">
+                <Avatar className="h-7 w-7 border border-sidebar-border">
                   <AvatarImage src={userProfile?.avatar_url || undefined} />
                   <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-xs font-semibold">
                     {getInitials(userProfile?.full_name)}
@@ -455,14 +395,14 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              className={`text-destructive/80 hover:bg-destructive/10 hover:text-destructive text-sm py-2.5 rounded-lg transition-all duration-200 ${
+              className={`text-destructive/80 hover:bg-destructive/10 hover:text-destructive text-sm py-2 rounded-lg transition-all duration-200 ${
                 collapsed ? "justify-center px-0" : "px-3"
               }`}
               tooltip={collapsed ? "Sair" : undefined}
               onClick={handleSignOut}
             >
-              <LogOut className="h-[18px] w-[18px] shrink-0" />
-              {!collapsed && <span className="tracking-tight">Sair do Sistema</span>}
+              <LogOut className="h-4 w-4 shrink-0" />
+              {!collapsed && <span className="text-[13px]">Sair do Sistema</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -559,38 +559,20 @@ export default function Admin() {
           <TabsList className="bg-muted/50 flex-wrap h-auto gap-1 p-1 w-full justify-start overflow-x-auto">
             <TabsTrigger value="cliente" className="gap-1.5 text-xs sm:text-sm">
               <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Cliente</span>
-              <span className="sm:hidden">Cli</span>
+              <span>Clientes</span>
               <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{getRoleCount("cliente")}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="kam" className="gap-1.5 text-xs sm:text-sm">
-              <Building2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">KAM</span>
-              <span className="sm:hidden">KAM</span>
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{getRoleCount("kam")}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="fa" className="gap-1.5 text-xs sm:text-sm">
-              <Briefcase className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">FA</span>
-              <span className="sm:hidden">FA</span>
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{getRoleCount("fa")}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="supervisor" className="gap-1.5 text-xs sm:text-sm">
-              <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Supervisor</span>
-              <span className="sm:hidden">Sup</span>
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{getRoleCount("supervisor")}</Badge>
+            <TabsTrigger value="usuarios" className="gap-1.5 text-xs sm:text-sm">
+              <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span>Usuários</span>
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                {getRoleCount("kam") + getRoleCount("fa") + getRoleCount("supervisor") + getRoleCount("projetista")}
+              </Badge>
             </TabsTrigger>
             <TabsTrigger value="admin" className="gap-1.5 text-xs sm:text-sm">
               <Crown className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Admin</span>
-              <span className="sm:hidden">Adm</span>
+              <span>Admin</span>
               <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{getRoleCount("admin")}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="hierarchy" className="gap-1.5 text-xs sm:text-sm">
-              <GitBranch className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Hierarquia</span>
-              <span className="sm:hidden">Hier</span>
             </TabsTrigger>
             <TabsTrigger value="permissions" className="gap-1.5 text-xs sm:text-sm">
               <Info className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -609,29 +591,172 @@ export default function Admin() {
             <ClientManagementTab />
           </TabsContent>
 
-          {/* KAM Tab */}
-          <TabsContent value="kam">
-            <UserRoleTable role="kam" />
-          </TabsContent>
-
-          {/* FA Tab */}
-          <TabsContent value="fa">
-            <UserRoleTable role="fa" />
-          </TabsContent>
-
-          {/* Supervisor Tab */}
-          <TabsContent value="supervisor">
-            <UserRoleTable role="supervisor" />
+          {/* Usuários Tab - Combined KAM, FA, Supervisor, Projetista */}
+          <TabsContent value="usuarios">
+            <Card>
+              <CardHeader className="border-b bg-muted/30">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Usuários do Sistema
+                    </CardTitle>
+                    <CardDescription>
+                      KAMs, FAs, Supervisores e Projetistas
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9 w-40 sm:w-48"
+                      />
+                    </div>
+                    <Button onClick={() => setInviteDialogOpen(true)} size="sm">
+                      <Plus className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Convidar</span>
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {loadingUsers ? (
+                  <div className="flex items-center justify-center py-16">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/30 hover:bg-muted/30">
+                          <TableHead className="min-w-[200px]">Usuário</TableHead>
+                          <TableHead className="min-w-[200px]">Email</TableHead>
+                          <TableHead>Perfil</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {users
+                          ?.filter(u => ["kam", "fa", "supervisor", "projetista"].includes(u.role || ""))
+                          .filter(u => {
+                            if (!searchQuery) return true;
+                            const name = u.full_name?.toLowerCase() || "";
+                            const email = (userEmails?.[u.id] || "").toLowerCase();
+                            const query = searchQuery.toLowerCase();
+                            return name.includes(query) || email.includes(query);
+                          })
+                          .map((userItem) => {
+                            const email = userEmails?.[userItem.id] || "";
+                            const isCurrentUser = userItem.id === user?.id;
+                            const userRole = userItem.role as AppRole;
+                            
+                            return (
+                              <TableRow key={userItem.id} className="group">
+                                <TableCell>
+                                  <div className="flex items-center gap-3">
+                                    <Avatar className="h-9 w-9">
+                                      <AvatarFallback className={`text-sm ${ROLE_COLORS[userRole]}`}>
+                                        {getInitial(userItem.full_name)}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className="min-w-0">
+                                      <p className="font-medium truncate">
+                                        {userItem.full_name || "Sem nome"}
+                                        {isCurrentUser && (
+                                          <Badge variant="outline" className="ml-2 text-xs">Você</Badge>
+                                        )}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-1.5 text-sm min-w-0">
+                                    <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                    <span className="font-mono text-xs truncate max-w-[180px]">{email || "—"}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge className={ROLE_COLORS[userRole]}>
+                                    {ROLE_LABELS[userRole]}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {userItem.is_blocked ? (
+                                    <Badge variant="destructive" className="flex items-center gap-1 w-fit">
+                                      <Lock className="h-3 w-3" />
+                                      Bloqueado
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="flex items-center gap-1 w-fit text-primary border-primary/30">
+                                      <Unlock className="h-3 w-3" />
+                                      Ativo
+                                    </Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex items-center justify-end gap-1">
+                                    {!isCurrentUser && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setEditUserAccess({
+                                          id: userItem.id,
+                                          full_name: userItem.full_name,
+                                          email: email,
+                                          role: userItem.role,
+                                          is_blocked: userItem.is_blocked,
+                                          blocked_reason: userItem.blocked_reason,
+                                        })}
+                                        title="Editar acesso"
+                                      >
+                                        <Settings className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                    {!isCurrentUser && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={() => setDeleteUser({
+                                          id: userItem.id,
+                                          full_name: userItem.full_name,
+                                          email: email,
+                                          role: userItem.role,
+                                        })}
+                                        title="Excluir usuário"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        {users?.filter(u => ["kam", "fa", "supervisor", "projetista"].includes(u.role || "")).length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-16 text-muted-foreground">
+                              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                              <p className="font-medium">Nenhum usuário cadastrado</p>
+                              <p className="text-sm">Convide usuários para começar</p>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Admin Tab */}
           <TabsContent value="admin">
             <UserRoleTable role="admin" />
-          </TabsContent>
-
-          {/* Hierarchy Tab */}
-          <TabsContent value="hierarchy">
-            <HierarchyManager />
           </TabsContent>
 
           {/* Permissions Matrix Tab */}
@@ -653,12 +778,12 @@ export default function Admin() {
                       <TableRow className="bg-muted/30 hover:bg-muted/30">
                         <TableHead className="w-[250px] font-semibold">Funcionalidade</TableHead>
                         {ALL_ROLES.map((role) => (
-                          <TableHead key={role} className="text-center w-[100px] sm:w-[120px]">
-                            <div className="flex flex-col items-center gap-2">
-                              <div className={`h-7 w-7 sm:h-8 sm:w-8 rounded-lg flex items-center justify-center ${ROLE_COLORS[role]}`}>
+                          <TableHead key={role} className="text-center w-[80px]">
+                            <div className="flex flex-col items-center gap-1">
+                              <div className={`h-6 w-6 rounded-md flex items-center justify-center ${ROLE_COLORS[role]}`}>
                                 {ROLE_ICONS[role]}
                               </div>
-                              <span className="text-xs font-medium hidden sm:inline">{ROLE_LABELS[role].split(" ")[0]}</span>
+                              <span className="text-[10px] font-medium">{ROLE_LABELS[role].split(" ")[0]}</span>
                             </div>
                           </TableHead>
                         ))}
@@ -667,40 +792,47 @@ export default function Admin() {
                     <TableBody>
                       {PERMISSIONS_MATRIX.map((row, idx) => (
                         <TableRow key={idx}>
-                          <TableCell className="font-medium text-sm">{row.feature}</TableCell>
+                          <TableCell className="font-medium text-xs">{row.feature}</TableCell>
                           <TableCell className="text-center">
                             {row.admin ? (
-                              <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary mx-auto" />
+                              <CheckCircle2 className="h-4 w-4 text-primary mx-auto" />
                             ) : (
-                              <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground/30 mx-auto" />
+                              <XCircle className="h-4 w-4 text-muted-foreground/30 mx-auto" />
                             )}
                           </TableCell>
                           <TableCell className="text-center">
                             {row.supervisor ? (
-                              <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary mx-auto" />
+                              <CheckCircle2 className="h-4 w-4 text-primary mx-auto" />
                             ) : (
-                              <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground/30 mx-auto" />
+                              <XCircle className="h-4 w-4 text-muted-foreground/30 mx-auto" />
                             )}
                           </TableCell>
                           <TableCell className="text-center">
                             {row.fa ? (
-                              <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary mx-auto" />
+                              <CheckCircle2 className="h-4 w-4 text-primary mx-auto" />
                             ) : (
-                              <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground/30 mx-auto" />
+                              <XCircle className="h-4 w-4 text-muted-foreground/30 mx-auto" />
                             )}
                           </TableCell>
                           <TableCell className="text-center">
                             {row.kam ? (
-                              <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary mx-auto" />
+                              <CheckCircle2 className="h-4 w-4 text-primary mx-auto" />
                             ) : (
-                              <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground/30 mx-auto" />
+                              <XCircle className="h-4 w-4 text-muted-foreground/30 mx-auto" />
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {row.projetista ? (
+                              <CheckCircle2 className="h-4 w-4 text-primary mx-auto" />
+                            ) : (
+                              <XCircle className="h-4 w-4 text-muted-foreground/30 mx-auto" />
                             )}
                           </TableCell>
                           <TableCell className="text-center">
                             {row.cliente ? (
-                              <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary mx-auto" />
+                              <CheckCircle2 className="h-4 w-4 text-primary mx-auto" />
                             ) : (
-                              <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground/30 mx-auto" />
+                              <XCircle className="h-4 w-4 text-muted-foreground/30 mx-auto" />
                             )}
                           </TableCell>
                         </TableRow>

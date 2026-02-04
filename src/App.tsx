@@ -29,6 +29,8 @@ import RegrasConciliacao from "./pages/RegrasConciliacao";
 import PadroesAprendidos from "./pages/PadroesAprendidos";
 import Documentacao from "./pages/Documentacao";
 import Extrato from "./pages/Extrato";
+import Movimentacoes from "./pages/Movimentacoes";
+import Cadastros from "./pages/Cadastros";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +51,8 @@ const App = () => (
                 <Route path="/transacoes" element={<Transacoes />} />
                 <Route path="/receitas" element={<Receitas />} />
                 <Route path="/despesas" element={<Despesas />} />
+                <Route path="/movimentacoes" element={<Movimentacoes />} />
+                <Route path="/cadastros" element={<Cadastros />} />
                 <Route path="/contas" element={<Contas />} />
                 <Route path="/categorias" element={<Categorias />} />
                 <Route path="/centros-custo" element={<CentrosCusto />} />
