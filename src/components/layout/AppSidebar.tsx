@@ -32,8 +32,7 @@ import { useIsAdmin } from "@/hooks/useUserRoles";
 import { usePendingTransactionsCount } from "@/hooks/usePendingTransactionsCount";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import ibbraLogoFull from "@/assets/ibbra-logo-full.png";
-import ibbraLogoIcon from "@/assets/ibbra-logo-icon.png";
+import ibbraLogoWhite from "@/assets/ibbra-logo-white.png";
 
 const navItems = [
   {
@@ -155,9 +154,9 @@ export function AppSidebar() {
         <div className="flex items-center gap-2">
           <div className="relative">
             <img 
-              src={collapsed ? ibbraLogoIcon : ibbraLogoFull} 
+              src={ibbraLogoWhite} 
               alt="Ibbra" 
-              className={`${collapsed ? "h-8 w-8" : "h-8"} object-contain shrink-0`}
+              className={`${collapsed ? "h-8 w-8" : "h-10"} object-contain shrink-0`}
             />
           </div>
         </div>
