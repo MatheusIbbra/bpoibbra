@@ -202,7 +202,7 @@ export default function Auth() {
                 <span>Segurança Avançada</span>
               </div>
               <div className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-accent" />
+                
                 
               </div>
             </div>
