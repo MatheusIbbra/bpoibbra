@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Upload, AlertCircle, User, ChevronRight, Home, Receipt, Settings2, Wallet, FileText, Shield, Brain } from "lucide-react";
+import { LogOut, Upload, AlertCircle, User, ChevronRight, Home, Receipt, Settings2, Wallet, FileText, Shield, Brain, Building2 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -19,6 +19,10 @@ const navItems = [{
   title: "Importar Extratos",
   url: "/importacoes",
   icon: Upload
+}, {
+  title: "Open Finance",
+  url: "/open-finance",
+  icon: Building2
 }, {
   title: "Orçamentos",
   url: "/orcamentos",

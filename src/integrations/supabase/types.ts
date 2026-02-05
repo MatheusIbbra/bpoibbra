@@ -231,6 +231,71 @@ export type Database = {
           },
         ]
       }
+      bank_connections: {
+        Row: {
+          access_token_encrypted: string | null
+          created_at: string
+          external_account_id: string | null
+          external_consent_id: string | null
+          id: string
+          last_sync_at: string | null
+          metadata: Json | null
+          organization_id: string
+          provider: string
+          provider_name: string | null
+          refresh_token_encrypted: string | null
+          status: string
+          sync_error: string | null
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token_encrypted?: string | null
+          created_at?: string
+          external_account_id?: string | null
+          external_consent_id?: string | null
+          id?: string
+          last_sync_at?: string | null
+          metadata?: Json | null
+          organization_id: string
+          provider?: string
+          provider_name?: string | null
+          refresh_token_encrypted?: string | null
+          status?: string
+          sync_error?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token_encrypted?: string | null
+          created_at?: string
+          external_account_id?: string | null
+          external_consent_id?: string | null
+          id?: string
+          last_sync_at?: string | null
+          metadata?: Json | null
+          organization_id?: string
+          provider?: string
+          provider_name?: string | null
+          refresh_token_encrypted?: string | null
+          status?: string
+          sync_error?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_connections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budgets: {
         Row: {
           amount: number
@@ -521,6 +586,107 @@ export type Database = {
           },
         ]
       }
+      integration_logs: {
+        Row: {
+          bank_connection_id: string | null
+          created_at: string
+          error_details: string | null
+          event_type: string
+          id: string
+          ip_address: unknown
+          message: string | null
+          organization_id: string | null
+          payload: Json | null
+          provider: string
+          status: string
+          user_agent: string | null
+        }
+        Insert: {
+          bank_connection_id?: string | null
+          created_at?: string
+          error_details?: string | null
+          event_type: string
+          id?: string
+          ip_address?: unknown
+          message?: string | null
+          organization_id?: string | null
+          payload?: Json | null
+          provider?: string
+          status?: string
+          user_agent?: string | null
+        }
+        Update: {
+          bank_connection_id?: string | null
+          created_at?: string
+          error_details?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown
+          message?: string | null
+          organization_id?: string | null
+          payload?: Json | null
+          provider?: string
+          status?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_logs_bank_connection_id_fkey"
+            columns: ["bank_connection_id"]
+            isOneToOne: false
+            referencedRelation: "bank_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oauth_states: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          organization_id: string
+          provider: string
+          redirect_path: string | null
+          state: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          organization_id: string
+          provider?: string
+          redirect_path?: string | null
+          state: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          organization_id?: string
+          provider?: string
+          redirect_path?: string | null
+          state?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_states_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           created_at: string
@@ -779,6 +945,7 @@ export type Database = {
           account_id: string
           accrual_date: string | null
           amount: number
+          bank_connection_id: string | null
           category_id: string | null
           classification_source: string | null
           cost_center_id: string | null
@@ -786,6 +953,7 @@ export type Database = {
           date: string
           description: string | null
           due_date: string | null
+          external_transaction_id: string | null
           id: string
           import_batch_id: string | null
           is_ignored: boolean | null
@@ -812,6 +980,7 @@ export type Database = {
           account_id: string
           accrual_date?: string | null
           amount: number
+          bank_connection_id?: string | null
           category_id?: string | null
           classification_source?: string | null
           cost_center_id?: string | null
@@ -819,6 +988,7 @@ export type Database = {
           date: string
           description?: string | null
           due_date?: string | null
+          external_transaction_id?: string | null
           id?: string
           import_batch_id?: string | null
           is_ignored?: boolean | null
@@ -845,6 +1015,7 @@ export type Database = {
           account_id?: string
           accrual_date?: string | null
           amount?: number
+          bank_connection_id?: string | null
           category_id?: string | null
           classification_source?: string | null
           cost_center_id?: string | null
@@ -852,6 +1023,7 @@ export type Database = {
           date?: string
           description?: string | null
           due_date?: string | null
+          external_transaction_id?: string | null
           id?: string
           import_batch_id?: string | null
           is_ignored?: boolean | null
@@ -880,6 +1052,13 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_bank_connection_id_fkey"
+            columns: ["bank_connection_id"]
+            isOneToOne: false
+            referencedRelation: "bank_connections"
             referencedColumns: ["id"]
           },
           {
@@ -1057,6 +1236,7 @@ export type Database = {
         Args: { _target_user_id: string; _viewer_id: string }
         Returns: boolean
       }
+      cleanup_expired_oauth_states: { Args: never; Returns: number }
       generate_financial_metrics: {
         Args: { p_organization_id: string; p_period?: string }
         Returns: Json

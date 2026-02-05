@@ -31,6 +31,8 @@ import Documentacao from "./pages/Documentacao";
 import Extrato from "./pages/Extrato";
 import Movimentacoes from "./pages/Movimentacoes";
 import Cadastros from "./pages/Cadastros";
+import OpenFinance from "./pages/OpenFinance";
+import CallbackKlavi from "./pages/CallbackKlavi";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +70,8 @@ const App = () => (
                 <Route path="/perfil" element={<Perfil />} />
                 <Route path="/padroes-aprendidos" element={<PadroesAprendidos />} />
                 <Route path="/documentacao" element={<Documentacao />} />
+                <Route path="/open-finance" element={<OpenFinance />} />
+                <Route path="/callback-klavi" element={<CallbackKlavi />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
