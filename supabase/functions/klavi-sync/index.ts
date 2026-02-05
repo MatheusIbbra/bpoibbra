@@ -5,111 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Decrypt token (matching the encrypt function)
-function decryptToken(encryptedToken: string, key: string): string {
-  const keyBytes = new TextEncoder().encode(key);
-  const encryptedBytes = new Uint8Array(atob(encryptedToken).split('').map(c => c.charCodeAt(0)));
-  const decrypted = new Uint8Array(encryptedBytes.length);
-  
-  for (let i = 0; i < encryptedBytes.length; i++) {
-    decrypted[i] = encryptedBytes[i] ^ keyBytes[i % keyBytes.length];
-  }
-  
-  return new TextDecoder().decode(decrypted);
-}
-
-// Encrypt token for storage
-function encryptToken(token: string, key: string): string {
-  const keyBytes = new TextEncoder().encode(key);
-  const tokenBytes = new TextEncoder().encode(token);
-  const encrypted = new Uint8Array(tokenBytes.length);
-  
-  for (let i = 0; i < tokenBytes.length; i++) {
-    encrypted[i] = tokenBytes[i] ^ keyBytes[i % keyBytes.length];
-  }
-  
-  return btoa(String.fromCharCode(...encrypted));
-}
-
-// Refresh access token if expired
-async function refreshAccessToken(
-  supabaseAdmin: any, 
-  connection: any, 
-  klaviBaseUrl: string,
-  clientId: string,
-  clientSecret: string
-): Promise<string> {
-  const now = new Date();
-  const expiresAt = new Date(connection.token_expires_at);
-  
-  // If token is still valid (with 5 min buffer), return decrypted token
-  if (expiresAt.getTime() - now.getTime() > 5 * 60 * 1000) {
-    return decryptToken(connection.access_token_encrypted, clientSecret);
-  }
-
-  console.log('Token expired, refreshing...');
-
-  if (!connection.refresh_token_encrypted) {
-    throw new Error('No refresh token available');
-  }
-
-  const refreshToken = decryptToken(connection.refresh_token_encrypted, clientSecret);
-
-  const response = await fetch(`${klaviBaseUrl}/oauth/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`
-    },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken
-    })
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Token refresh failed:', errorText);
-    
-    // Update connection status to expired
-    await supabaseAdmin
-      .from('bank_connections')
-      .update({ status: 'expired', sync_error: 'Token refresh failed' })
-      .eq('id', connection.id);
-    
-    throw new Error('Token refresh failed');
-  }
-
-  const tokenData = await response.json();
-  
-  // Update tokens in database
-  const newExpiresAt = new Date(Date.now() + (tokenData.expires_in || 3600) * 1000);
-  
-  await supabaseAdmin
-    .from('bank_connections')
-    .update({
-      access_token_encrypted: encryptToken(tokenData.access_token, clientSecret),
-      refresh_token_encrypted: tokenData.refresh_token 
-        ? encryptToken(tokenData.refresh_token, clientSecret)
-        : connection.refresh_token_encrypted,
-      token_expires_at: newExpiresAt.toISOString(),
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', connection.id);
-
-  // Log refresh
-  await supabaseAdmin.from('integration_logs').insert({
-    organization_id: connection.organization_id,
-    bank_connection_id: connection.id,
-    provider: 'klavi',
-    event_type: 'token_refresh',
-    status: 'success',
-    message: 'Access token refreshed successfully'
-  });
-
-  return tokenData.access_token;
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -117,9 +12,22 @@ Deno.serve(async (req) => {
 
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const KLAVI_CLIENT_ID = Deno.env.get('KLAVI_CLIENT_ID')!;
-  const KLAVI_CLIENT_SECRET = Deno.env.get('KLAVI_CLIENT_SECRET')!;
-  const KLAVI_BASE_URL = Deno.env.get('KLAVI_BASE_URL')!;
+  const KLAVI_BASE_URL = Deno.env.get('KLAVI_BASE_URL');
+  const KLAVI_ACCESS_KEY = Deno.env.get('KLAVI_ACCESS_KEY');
+  const KLAVI_SECRET_KEY = Deno.env.get('KLAVI_SECRET_KEY');
+
+  // Validate required secrets
+  if (!KLAVI_BASE_URL || !KLAVI_ACCESS_KEY || !KLAVI_SECRET_KEY) {
+    console.error('Missing Open Finance configuration', {
+      hasBaseUrl: !!KLAVI_BASE_URL,
+      hasAccessKey: !!KLAVI_ACCESS_KEY,
+      hasSecretKey: !!KLAVI_SECRET_KEY
+    });
+    return new Response(
+      JSON.stringify({ error: 'Configuração Open Finance incompleta. Verifique os secrets.' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
 
   const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -145,26 +53,62 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { bank_connection_id, from_date, to_date } = await req.json();
+    const { organization_id, bank_connection_id, from_date, to_date } = await req.json();
 
-    if (!bank_connection_id) {
+    // If bank_connection_id provided, sync that specific connection
+    // Otherwise, sync all active connections for the organization
+    let connectionToSync: any = null;
+    
+    if (bank_connection_id) {
+      const { data: connection, error: connectionError } = await supabaseAdmin
+        .from('bank_connections')
+        .select('*')
+        .eq('id', bank_connection_id)
+        .single();
+
+      if (connectionError || !connection) {
+        return new Response(
+          JSON.stringify({ error: 'Bank connection not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      connectionToSync = connection;
+    } else if (organization_id) {
+      // Create or get connection for this organization
+      const { data: existingConnection } = await supabaseAdmin
+        .from('bank_connections')
+        .select('*')
+        .eq('organization_id', organization_id)
+        .eq('provider', 'klavi')
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (existingConnection) {
+        connectionToSync = existingConnection;
+      } else {
+        // Create new connection record
+        const { data: newConnection, error: createError } = await supabaseAdmin
+          .from('bank_connections')
+          .insert({
+            organization_id,
+            user_id: user.id,
+            provider: 'klavi',
+            provider_name: 'Open Finance',
+            status: 'active'
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Failed to create bank connection:', createError);
+          throw new Error('Failed to create bank connection');
+        }
+        connectionToSync = newConnection;
+      }
+    } else {
       return new Response(
-        JSON.stringify({ error: 'bank_connection_id is required' }),
+        JSON.stringify({ error: 'organization_id or bank_connection_id is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Fetch bank connection
-    const { data: connection, error: connectionError } = await supabaseAdmin
-      .from('bank_connections')
-      .select('*')
-      .eq('id', bank_connection_id)
-      .single();
-
-    if (connectionError || !connection) {
-      return new Response(
-        JSON.stringify({ error: 'Bank connection not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -173,46 +117,57 @@ Deno.serve(async (req) => {
       _user_id: user.id
     });
 
-    if (!viewableOrgs?.includes(connection.organization_id)) {
+    if (!viewableOrgs?.includes(connectionToSync.organization_id)) {
       return new Response(
         JSON.stringify({ error: 'Access denied' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (connection.status !== 'active') {
-      return new Response(
-        JSON.stringify({ error: `Connection is ${connection.status}` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Build headers for Klavi API (Basic WhiteLabel authentication)
+    const klaviHeaders = {
+      'accessKey': KLAVI_ACCESS_KEY,
+      'secretKey': KLAVI_SECRET_KEY,
+      'Content-Type': 'application/json'
+    };
+
+    console.log('Fetching accounts from Klavi...');
+
+    // Fetch accounts
+    let accounts: any[] = [];
+    try {
+      const accountsResponse = await fetch(`${KLAVI_BASE_URL}/data/v1/accounts`, {
+        method: 'GET',
+        headers: klaviHeaders
+      });
+
+      if (accountsResponse.ok) {
+        const accountsData = await accountsResponse.json();
+        accounts = accountsData.data || accountsData.accounts || accountsData || [];
+        console.log(`Received ${accounts.length} accounts from Klavi`);
+      } else {
+        const errorText = await accountsResponse.text();
+        console.warn('Failed to fetch accounts:', accountsResponse.status, errorText);
+      }
+    } catch (accountsError) {
+      console.warn('Error fetching accounts:', accountsError);
     }
 
-    // Get valid access token (refresh if needed)
-    const accessToken = await refreshAccessToken(
-      supabaseAdmin, 
-      connection, 
-      KLAVI_BASE_URL,
-      KLAVI_CLIENT_ID,
-      KLAVI_CLIENT_SECRET
-    );
-
     // Build transactions request URL
-    const transactionsUrl = new URL(`${KLAVI_BASE_URL}/transactions`);
+    const transactionsUrl = new URL(`${KLAVI_BASE_URL}/data/v1/transactions`);
     if (from_date) transactionsUrl.searchParams.set('from', from_date);
     if (to_date) transactionsUrl.searchParams.set('to', to_date);
 
-    console.log('Fetching transactions from Klavi...');
+    console.log('Fetching transactions from Klavi...', transactionsUrl.toString());
 
     const transactionsResponse = await fetch(transactionsUrl.toString(), {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      }
+      method: 'GET',
+      headers: klaviHeaders
     });
 
     if (!transactionsResponse.ok) {
       const errorText = await transactionsResponse.text();
-      console.error('Klavi transactions fetch failed:', errorText);
+      console.error('Klavi transactions fetch failed:', transactionsResponse.status, errorText);
       
       // Update connection with error
       await supabaseAdmin
@@ -221,11 +176,11 @@ Deno.serve(async (req) => {
           sync_error: `Fetch failed: ${transactionsResponse.status}`,
           updated_at: new Date().toISOString()
         })
-        .eq('id', connection.id);
+        .eq('id', connectionToSync.id);
 
       await supabaseAdmin.from('integration_logs').insert({
-        organization_id: connection.organization_id,
-        bank_connection_id: connection.id,
+        organization_id: connectionToSync.organization_id,
+        bank_connection_id: connectionToSync.id,
         provider: 'klavi',
         event_type: 'sync',
         status: 'error',
@@ -233,11 +188,14 @@ Deno.serve(async (req) => {
         error_details: errorText
       });
 
-      throw new Error('Failed to fetch transactions from Klavi');
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch transactions from Open Finance', details: errorText }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const transactionsData = await transactionsResponse.json();
-    const transactions = transactionsData.data || transactionsData.transactions || [];
+    const transactions = transactionsData.data || transactionsData.transactions || transactionsData || [];
 
     console.log(`Received ${transactions.length} transactions from Klavi`);
 
@@ -248,15 +206,15 @@ Deno.serve(async (req) => {
     const { data: defaultAccount } = await supabaseAdmin
       .from('accounts')
       .select('id')
-      .eq('organization_id', connection.organization_id)
+      .eq('organization_id', connectionToSync.organization_id)
       .eq('status', 'active')
       .limit(1)
       .single();
 
     if (!defaultAccount) {
       await supabaseAdmin.from('integration_logs').insert({
-        organization_id: connection.organization_id,
-        bank_connection_id: connection.id,
+        organization_id: connectionToSync.organization_id,
+        bank_connection_id: connectionToSync.id,
         provider: 'klavi',
         event_type: 'sync',
         status: 'warning',
@@ -275,14 +233,14 @@ Deno.serve(async (req) => {
 
     // Process each transaction
     for (const tx of transactions) {
-      const externalId = tx.id || tx.transaction_id;
+      const externalId = tx.id || tx.transaction_id || tx.externalId || `${tx.date}-${tx.amount}-${tx.description}`;
       
-      // Check for duplicate
+      // Check for duplicate using external_transaction_id (idempotency)
       const { data: existing } = await supabaseAdmin
         .from('transactions')
         .select('id')
         .eq('external_transaction_id', externalId)
-        .eq('bank_connection_id', connection.id)
+        .eq('bank_connection_id', connectionToSync.id)
         .maybeSingle();
 
       if (existing) {
@@ -291,26 +249,27 @@ Deno.serve(async (req) => {
       }
 
       // Determine transaction type
-      const amount = Math.abs(parseFloat(tx.amount) || 0);
-      const type = tx.type === 'credit' || tx.amount > 0 ? 'income' : 'expense';
+      const rawAmount = parseFloat(tx.amount) || 0;
+      const amount = Math.abs(rawAmount);
+      const type = tx.type === 'credit' || tx.type === 'CREDIT' || rawAmount > 0 ? 'income' : 'expense';
 
       // Insert transaction
       const { error: insertError } = await supabaseAdmin
         .from('transactions')
         .insert({
-          organization_id: connection.organization_id,
-          user_id: connection.user_id,
-          bank_connection_id: connection.id,
+          organization_id: connectionToSync.organization_id,
+          user_id: connectionToSync.user_id,
+          bank_connection_id: connectionToSync.id,
           external_transaction_id: externalId,
           account_id: defaultAccount.id,
-          date: tx.date || tx.transaction_date || new Date().toISOString().split('T')[0],
-          description: tx.description || tx.memo || 'Transação via Open Finance',
-          raw_description: tx.description || tx.memo,
+          date: tx.date || tx.transactionDate || tx.transaction_date || new Date().toISOString().split('T')[0],
+          description: tx.description || tx.memo || tx.name || 'Transação via Open Finance',
+          raw_description: JSON.stringify(tx),
           amount: amount,
           type: type,
           status: 'completed',
           classification_source: 'open_finance',
-          notes: `Importado via Klavi - ${connection.provider_name || 'Open Finance'}`
+          notes: `Importado via Open Finance`
         });
 
       if (insertError) {
@@ -327,19 +286,20 @@ Deno.serve(async (req) => {
       .update({ 
         last_sync_at: new Date().toISOString(),
         sync_error: null,
+        status: 'active',
         updated_at: new Date().toISOString()
       })
-      .eq('id', connection.id);
+      .eq('id', connectionToSync.id);
 
     // Log sync success
     await supabaseAdmin.from('integration_logs').insert({
-      organization_id: connection.organization_id,
-      bank_connection_id: connection.id,
+      organization_id: connectionToSync.organization_id,
+      bank_connection_id: connectionToSync.id,
       provider: 'klavi',
       event_type: 'sync',
       status: 'success',
       message: `Sync completed: ${imported} imported, ${skipped} skipped`,
-      payload: { imported, skipped, total: transactions.length }
+      payload: { imported, skipped, total: transactions.length, accounts_count: accounts.length }
     });
 
     return new Response(
@@ -347,7 +307,9 @@ Deno.serve(async (req) => {
         success: true,
         imported,
         skipped,
-        total: transactions.length
+        total: transactions.length,
+        accounts: accounts.length,
+        connection_id: connectionToSync.id
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
