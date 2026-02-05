@@ -51,3 +51,29 @@ export function formatPhone(value: string): string {
 export function unformatValue(value: string): string {
   return value.replace(/\D/g, "");
 }
+
+/**
+ * Parse a date string (YYYY-MM-DD) as a local date without UTC conversion.
+ * This prevents the common off-by-one-day bug when parsing ISO date strings.
+ */
+export function parseLocalDate(dateStr: string): Date {
+  if (!dateStr) return new Date();
+  
+  // Handle both YYYY-MM-DD and full ISO datetime strings
+  const datePart = dateStr.split("T")[0];
+  const [year, month, day] = datePart.split("-").map(Number);
+  
+  // Create date using local timezone (months are 0-indexed)
+  return new Date(year, month - 1, day);
+}
+
+/**
+ * Format a Date object as YYYY-MM-DD string without UTC conversion.
+ * This prevents timezone shifts when formatting dates.
+ */
+export function formatLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}

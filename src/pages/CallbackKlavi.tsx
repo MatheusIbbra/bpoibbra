@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useExchangeKlaviToken } from "@/hooks/useBankConnections";
+import { useSavePluggyItem, useSyncBankConnection } from "@/hooks/useBankConnections";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,15 +8,20 @@ import { Button } from "@/components/ui/button";
 export default function CallbackKlavi() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const exchangeToken = useExchangeKlaviToken();
+  const savePluggyItem = useSavePluggyItem();
+  const syncConnection = useSyncBankConnection();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
   useEffect(() => {
-    const code = searchParams.get("code");
-    const state = searchParams.get("state");
+    // Pluggy callback parameters
+    const itemId = searchParams.get("itemId");
     const error = searchParams.get("error");
     const errorDescription = searchParams.get("error_description");
+
+    // Get stored organization from localStorage
+    const pendingOrgId = localStorage.getItem('pending_openfinance_org');
+    const returnPath = localStorage.getItem('pending_openfinance_return') || '/open-finance';
 
     if (error) {
       setStatus("error");
@@ -24,26 +29,50 @@ export default function CallbackKlavi() {
       return;
     }
 
-    if (!code || !state) {
+    if (!itemId) {
       setStatus("error");
-      setErrorMessage("Parâmetros de autorização inválidos");
+      setErrorMessage("Parâmetros de autorização inválidos. itemId não encontrado.");
       return;
     }
 
-    // Exchange the code for tokens
-    exchangeToken.mutate(
-      { code, state },
+    if (!pendingOrgId) {
+      setStatus("error");
+      setErrorMessage("Organização não encontrada. Por favor, tente novamente.");
+      return;
+    }
+
+    // Save the Pluggy item and sync transactions
+    savePluggyItem.mutate(
+      { 
+        organizationId: pendingOrgId, 
+        itemId,
+        connectorName: searchParams.get("connectorName") || undefined
+      },
       {
-        onSuccess: (data) => {
+        onSuccess: async (data) => {
+          // Clear stored data
+          localStorage.removeItem('pending_openfinance_org');
+          localStorage.removeItem('pending_openfinance_return');
+
+          // Trigger sync
+          try {
+            await syncConnection.mutateAsync({
+              organizationId: pendingOrgId,
+              itemId
+            });
+          } catch (syncError) {
+            console.warn('Auto-sync failed, user can sync manually:', syncError);
+          }
+
           setStatus("success");
           // Redirect after a brief delay
           setTimeout(() => {
-            navigate(data.redirect_path || "/open-finance", { replace: true });
+            navigate(returnPath, { replace: true });
           }, 2000);
         },
         onError: (error) => {
           setStatus("error");
-          setErrorMessage(error.message || "Falha ao conectar banco");
+          setErrorMessage(error.message || "Falha ao salvar conexão");
         },
       }
     );
