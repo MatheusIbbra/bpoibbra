@@ -34,7 +34,14 @@ Deno.serve(async (req) => {
     const KLAVI_REDIRECT_URI = Deno.env.get('KLAVI_REDIRECT_URI');
 
     if (!KLAVI_CLIENT_ID || !KLAVI_CLIENT_SECRET || !KLAVI_BASE_URL || !KLAVI_REDIRECT_URI) {
-      throw new Error('Missing Klavi configuration');
+      console.error('Missing Open Finance configuration');
+      throw new Error('Configuração Open Finance incompleta');
+    }
+
+    // Validate that KLAVI_BASE_URL is a valid URL
+    if (!KLAVI_BASE_URL.startsWith('http://') && !KLAVI_BASE_URL.startsWith('https://')) {
+      console.error('Invalid KLAVI_BASE_URL format');
+      throw new Error('KLAVI_BASE_URL deve ser uma URL válida. Verifique a configuração dos secrets.');
     }
 
     const { code, state } = await req.json();
@@ -122,7 +129,7 @@ Deno.serve(async (req) => {
         organization_id: oauthState.organization_id,
         user_id: oauthState.user_id,
         provider: 'klavi',
-        provider_name: tokenData.institution_name || 'Banco via Klavi',
+        provider_name: tokenData.institution_name || 'Banco via Open Finance',
         external_consent_id: tokenData.consent_id || null,
         external_account_id: tokenData.account_id || null,
         access_token_encrypted: accessTokenEncrypted,

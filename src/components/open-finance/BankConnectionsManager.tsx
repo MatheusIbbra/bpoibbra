@@ -151,7 +151,7 @@ export function BankConnectionsManager() {
                 Open Finance
               </CardTitle>
               <CardDescription>
-                Conecte suas contas bancárias via Open Finance (Klavi)
+                Conecte suas contas bancárias via Open Finance
                 {selectedOrganization && (
                   <span className="block mt-1 text-xs">
                     Base: {selectedOrganization.name}
@@ -260,7 +260,7 @@ function ConnectionCard({ connection, onSync, onDisconnect, isSyncing, isDisconn
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-medium">{connection.provider_name || 'Banco via Klavi'}</span>
+            <span className="font-medium">{connection.provider_name || 'Banco via Open Finance'}</span>
             <Badge variant={status.variant} className="text-xs">
               <StatusIcon className="h-3 w-3 mr-1" />
               {status.label}
