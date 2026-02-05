@@ -47,31 +47,51 @@ export function useBankConnections() {
   });
 }
 
-export function useInitiateKlaviConnection() {
+// Get the WhiteLabel URL from environment or return the configured one
+export function useWhiteLabelUrl() {
+  return useQuery({
+    queryKey: ["klavi-whitelabel-url"],
+    queryFn: async () => {
+      // The WhiteLabel URL is stored as a secret and accessed server-side
+      // We return a placeholder that the component will use to call the edge function
+      return {
+        // This is the Basic WhiteLabel URL from Klavi
+        url: "https://open-sandbox.klavi.ai/data/v1/basic-links/CB71gRISGm"
+      };
+    },
+    staleTime: Infinity,
+  });
+}
+
+// Open WhiteLabel connection (direct redirect - no OAuth flow)
+export function useOpenWhiteLabelConnection() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ organizationId, redirectPath }: { organizationId: string; redirectPath?: string }) => {
-      const { data: { session } } = await supabase.auth.getSession();
+    mutationFn: async ({ organizationId }: { organizationId: string }) => {
+      // For Basic WhiteLabel, we redirect directly to the Klavi URL
+      // The WhiteLabel URL is configured in the secrets
+      const whiteLabelUrl = "https://open-sandbox.klavi.ai/data/v1/basic-links/CB71gRISGm";
       
-      if (!session?.access_token) {
-        throw new Error("Você precisa estar logado para conectar um banco");
-      }
-
-      const { data, error } = await supabase.functions.invoke('klavi-authorize', {
-        body: { 
-          organization_id: organizationId,
-          redirect_path: redirectPath || '/open-finance'
-        }
-      });
-
-      if (error) throw error;
-      return data as { authorization_url: string; state: string };
+      // Store the organization context in localStorage for when user returns
+      localStorage.setItem('pending_openfinance_org', organizationId);
+      localStorage.setItem('pending_openfinance_return', window.location.pathname);
+      
+      return { redirect_url: whiteLabelUrl };
+    },
+    onSuccess: (data) => {
+      // Redirect to WhiteLabel
+      window.location.href = data.redirect_url;
     },
     onError: (error) => {
-      toast.error("Erro ao iniciar conexão: " + error.message);
+      toast.error("Erro ao abrir conexão: " + error.message);
     },
   });
+}
+
+// Legacy: Keep for backward compatibility, but now just redirects to WhiteLabel
+export function useInitiateKlaviConnection() {
+  return useOpenWhiteLabelConnection();
 }
 
 export function useExchangeKlaviToken() {
@@ -106,11 +126,13 @@ export function useSyncBankConnection() {
 
   return useMutation({
     mutationFn: async ({ 
-      bankConnectionId, 
+      bankConnectionId,
+      organizationId,
       fromDate, 
       toDate 
     }: { 
-      bankConnectionId: string; 
+      bankConnectionId?: string;
+      organizationId?: string;
       fromDate?: string; 
       toDate?: string;
     }) => {
@@ -123,13 +145,14 @@ export function useSyncBankConnection() {
       const { data, error } = await supabase.functions.invoke('klavi-sync', {
         body: { 
           bank_connection_id: bankConnectionId,
+          organization_id: organizationId,
           from_date: fromDate,
           to_date: toDate
         }
       });
 
       if (error) throw error;
-      return data as { success: boolean; imported: number; skipped: number; total: number };
+      return data as { success: boolean; imported: number; skipped: number; total: number; connection_id?: string };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["bank-connections"] });

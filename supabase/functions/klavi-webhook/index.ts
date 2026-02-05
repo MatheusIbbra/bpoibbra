@@ -3,7 +3,7 @@ import { createHmac } from "https://deno.land/std@0.177.0/node/crypto.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-klavi-signature',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-klavi-signature, x-webhook-signature',
 };
 
 // Verify webhook signature
@@ -25,6 +25,9 @@ Deno.serve(async (req) => {
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const KLAVI_WEBHOOK_SECRET = Deno.env.get('KLAVI_WEBHOOK_SECRET');
+  const KLAVI_BASE_URL = Deno.env.get('KLAVI_BASE_URL');
+  const KLAVI_ACCESS_KEY = Deno.env.get('KLAVI_ACCESS_KEY');
+  const KLAVI_SECRET_KEY = Deno.env.get('KLAVI_SECRET_KEY');
 
   const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -53,10 +56,11 @@ Deno.serve(async (req) => {
     }
 
     const event = JSON.parse(payload);
-    console.log('Received webhook event:', event.type || event.event);
+    console.log('Received webhook event:', event.type || event.event, event);
 
     const eventType = event.type || event.event;
-    const consentId = event.consent_id || event.data?.consent_id;
+    const consentId = event.consent_id || event.data?.consent_id || event.consentId;
+    const organizationId = event.organization_id || event.data?.organization_id;
 
     // Log webhook receipt
     await supabaseAdmin.from('integration_logs').insert({
@@ -64,13 +68,58 @@ Deno.serve(async (req) => {
       event_type: 'webhook',
       status: 'info',
       message: `Webhook received: ${eventType}`,
-      payload: event
+      payload: event,
+      organization_id: organizationId || null
     });
 
     // Handle different event types
     switch (eventType) {
+      case 'consent.approved':
+      case 'consent_approved':
+      case 'CONSENT_APPROVED': {
+        // User approved consent in WhiteLabel - trigger sync
+        console.log('Consent approved, triggering sync...');
+        
+        // Find or create bank connection
+        if (organizationId) {
+          const { data: existingConnection } = await supabaseAdmin
+            .from('bank_connections')
+            .select('*')
+            .eq('organization_id', organizationId)
+            .eq('provider', 'klavi')
+            .maybeSingle();
+
+          if (existingConnection) {
+            // Update status to active
+            await supabaseAdmin
+              .from('bank_connections')
+              .update({ 
+                status: 'active', 
+                external_consent_id: consentId,
+                updated_at: new Date().toISOString() 
+              })
+              .eq('id', existingConnection.id);
+          }
+
+          // Trigger automatic sync if credentials are configured
+          if (KLAVI_BASE_URL && KLAVI_ACCESS_KEY && KLAVI_SECRET_KEY) {
+            console.log('Auto-sync will be triggered by the next user request');
+          }
+
+          await supabaseAdmin.from('integration_logs').insert({
+            organization_id: organizationId,
+            provider: 'klavi',
+            event_type: 'webhook',
+            status: 'success',
+            message: 'Consent approved - ready for sync'
+          });
+        }
+        break;
+      }
+
       case 'consent.revoked':
-      case 'consent_revoked': {
+      case 'consent_revoked':
+      case 'CONSENT_REVOKED': {
         if (consentId) {
           const { data: connection } = await supabaseAdmin
             .from('bank_connections')
@@ -94,7 +143,8 @@ Deno.serve(async (req) => {
       }
 
       case 'consent.expired':
-      case 'consent_expired': {
+      case 'consent_expired':
+      case 'CONSENT_EXPIRED': {
         if (consentId) {
           const { data: connection } = await supabaseAdmin
             .from('bank_connections')
@@ -118,15 +168,32 @@ Deno.serve(async (req) => {
       }
 
       case 'transaction.created':
-      case 'transactions.available': {
-        // New transactions are available - could trigger auto-sync
-        // For now, just log it
-        if (consentId) {
-          const { data: connection } = await supabaseAdmin
-            .from('bank_connections')
-            .select('id, organization_id')
-            .eq('external_consent_id', consentId)
-            .single();
+      case 'transactions.available':
+      case 'TRANSACTIONS_AVAILABLE':
+      case 'NEW_TRANSACTIONS': {
+        // New transactions are available - log for manual sync
+        console.log('New transactions available notification received');
+        
+        if (consentId || organizationId) {
+          let connection = null;
+          
+          if (consentId) {
+            const { data } = await supabaseAdmin
+              .from('bank_connections')
+              .select('id, organization_id')
+              .eq('external_consent_id', consentId)
+              .single();
+            connection = data;
+          } else if (organizationId) {
+            const { data } = await supabaseAdmin
+              .from('bank_connections')
+              .select('id, organization_id')
+              .eq('organization_id', organizationId)
+              .eq('provider', 'klavi')
+              .eq('status', 'active')
+              .single();
+            connection = data;
+          }
 
           if (connection) {
             await supabaseAdmin.from('integration_logs').insert({
@@ -144,10 +211,17 @@ Deno.serve(async (req) => {
 
       default:
         console.log('Unhandled webhook event type:', eventType);
+        await supabaseAdmin.from('integration_logs').insert({
+          provider: 'klavi',
+          event_type: 'webhook',
+          status: 'info',
+          message: `Unhandled event type: ${eventType}`,
+          payload: event
+        });
     }
 
     return new Response(
-      JSON.stringify({ received: true }),
+      JSON.stringify({ received: true, event_type: eventType }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

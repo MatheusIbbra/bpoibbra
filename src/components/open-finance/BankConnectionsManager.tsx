@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,19 +12,21 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
-  Loader2
+  Loader2,
+  ExternalLink
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
   useBankConnections, 
-  useInitiateKlaviConnection, 
+  useOpenWhiteLabelConnection, 
   useSyncBankConnection,
   useDisconnectBank,
   BankConnection
 } from "@/hooks/useBankConnections";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,10 +46,13 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
   error: { label: "Erro", variant: "destructive", icon: AlertCircle },
 };
 
+// WhiteLabel URL from Klavi (Basic Links)
+const WHITELABEL_URL = "https://open-sandbox.klavi.ai/data/v1/basic-links/CB71gRISGm";
+
 export function BankConnectionsManager() {
   const { requiresBaseSelection, getRequiredOrganizationId, selectedOrganization } = useBaseFilter();
-  const { data: connections, isLoading } = useBankConnections();
-  const initiateConnection = useInitiateKlaviConnection();
+  const { data: connections, isLoading, refetch } = useBankConnections();
+  const openWhiteLabel = useOpenWhiteLabelConnection();
   const syncConnection = useSyncBankConnection();
   const disconnectBank = useDisconnectBank();
   
@@ -55,21 +60,64 @@ export function BankConnectionsManager() {
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState<BankConnection | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  // Check if user is returning from WhiteLabel authorization
+  useEffect(() => {
+    const pendingOrg = localStorage.getItem('pending_openfinance_org');
+    const returnPath = localStorage.getItem('pending_openfinance_return');
+    
+    if (pendingOrg && window.location.pathname.includes('/open-finance')) {
+      // Clear the pending state
+      localStorage.removeItem('pending_openfinance_org');
+      localStorage.removeItem('pending_openfinance_return');
+      
+      // Trigger a sync to check for new connections/transactions
+      toast.info("Verificando conexão bancária...");
+      
+      // Refetch connections after a short delay
+      setTimeout(() => {
+        refetch();
+      }, 1000);
+    }
+  }, [refetch]);
 
   const handleConnect = async () => {
     const organizationId = getRequiredOrganizationId();
     if (!organizationId) return;
 
+    setIsConnecting(true);
+    
     try {
-      const result = await initiateConnection.mutateAsync({ 
-        organizationId,
-        redirectPath: window.location.pathname
-      });
+      // Store organization context before redirecting
+      localStorage.setItem('pending_openfinance_org', organizationId);
+      localStorage.setItem('pending_openfinance_return', window.location.pathname);
       
-      // Redirect to Klavi authorization page
-      window.location.href = result.authorization_url;
+      // Open WhiteLabel URL in a new tab (user will authorize there)
+      window.open(WHITELABEL_URL, '_blank');
+      
+      toast.info(
+        "Autorize o acesso no Open Finance e depois clique em 'Sincronizar' para importar suas transações.",
+        { duration: 8000 }
+      );
     } catch (error) {
       console.error("Failed to initiate connection:", error);
+      toast.error("Erro ao iniciar conexão");
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const handleFirstSync = async () => {
+    const organizationId = getRequiredOrganizationId();
+    if (!organizationId) return;
+
+    setSyncingId('new');
+    try {
+      await syncConnection.mutateAsync({ organizationId });
+      refetch();
+    } finally {
+      setSyncingId(null);
     }
   };
 
@@ -159,17 +207,31 @@ export function BankConnectionsManager() {
                 )}
               </CardDescription>
             </div>
-            <Button 
-              onClick={handleConnect}
-              disabled={initiateConnection.isPending}
-            >
-              {initiateConnection.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Plus className="h-4 w-4 mr-2" />
-              )}
-              Conectar Banco
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={handleFirstSync}
+                disabled={syncingId === 'new'}
+              >
+                {syncingId === 'new' ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Sincronizar
+              </Button>
+              <Button 
+                onClick={handleConnect}
+                disabled={isConnecting}
+              >
+                {isConnecting ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                )}
+                Conectar Conta Bancária
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -177,7 +239,10 @@ export function BankConnectionsManager() {
             <div className="text-center py-8 text-muted-foreground">
               <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Nenhuma conexão bancária encontrada</p>
-              <p className="text-sm">Clique em "Conectar Banco" para começar</p>
+              <p className="text-sm mt-2">
+                1. Clique em "Conectar Conta Bancária" para autorizar<br />
+                2. Depois clique em "Sincronizar" para importar as transações
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
