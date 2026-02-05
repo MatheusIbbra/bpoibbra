@@ -158,7 +158,7 @@ export default function OpenFinance() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Open Finance</h1>
           <p className="text-muted-foreground">
-            Conecte suas contas bancárias e importe transações automaticamente via Klavi
+            Conecte suas contas bancárias e importe transações automaticamente via Open Finance
           </p>
         </div>
 
