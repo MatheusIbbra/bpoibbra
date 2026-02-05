@@ -19,7 +19,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { useTransactions, useCreateTransaction, useUpdateTransaction, Transaction, TransactionType } from "@/hooks/useTransactions";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 
 const transactionSchema = z.object({
   description: z.string().min(1, "Descrição é obrigatória"),
@@ -144,10 +144,10 @@ export function TransactionDialog({
         account_id: transaction.account_id,
         destination_account_id: undefined,
         cost_center_id: transaction.cost_center_id || undefined,
-        date: new Date(transaction.date),
-        accrual_date: transaction.accrual_date ? new Date(transaction.accrual_date) : undefined,
-        due_date: transaction.due_date ? new Date(transaction.due_date) : undefined,
-        payment_date: transaction.payment_date ? new Date(transaction.payment_date) : undefined,
+        date: parseLocalDate(transaction.date),
+        accrual_date: transaction.accrual_date ? parseLocalDate(transaction.accrual_date) : undefined,
+        due_date: transaction.due_date ? parseLocalDate(transaction.due_date) : undefined,
+        payment_date: transaction.payment_date ? parseLocalDate(transaction.payment_date) : undefined,
         payment_method: transaction.payment_method || undefined,
         notes: transaction.notes || "",
         status: transaction.status,
@@ -397,7 +397,7 @@ export function TransactionDialog({
                                   <div className="flex flex-col">
                                     <span>{t.description}</span>
                                     <span className="text-xs text-muted-foreground">
-                                      {formatCurrency(Number(t.amount))} • {format(new Date(t.date), "dd/MM/yyyy")}
+                                      {formatCurrency(Number(t.amount))} • {format(parseLocalDate(t.date), "dd/MM/yyyy")}
                                     </span>
                                   </div>
                                 </SelectItem>

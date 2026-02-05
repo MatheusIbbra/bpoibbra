@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,21 +7,21 @@ import {
   Building2, 
   RefreshCw, 
   Unlink, 
-  Plus, 
   AlertCircle,
   CheckCircle2,
   Clock,
   XCircle,
   Loader2,
-  ExternalLink
+  Plus
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
   useBankConnections, 
-  useOpenWhiteLabelConnection, 
+  useOpenPluggyConnect,
   useSyncBankConnection,
   useDisconnectBank,
+  useSavePluggyItem,
   BankConnection
 } from "@/hooks/useBankConnections";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
@@ -43,44 +43,89 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
   pending: { label: "Pendente", variant: "secondary", icon: Clock },
   expired: { label: "Expirado", variant: "destructive", icon: AlertCircle },
   revoked: { label: "Revogado", variant: "destructive", icon: XCircle },
+  disconnected: { label: "Desconectado", variant: "secondary", icon: Unlink },
   error: { label: "Erro", variant: "destructive", icon: AlertCircle },
 };
-
-// WhiteLabel URL from Klavi (Basic Links)
-const WHITELABEL_URL = "https://open-sandbox.klavi.ai/data/v1/basic-links/CB71gRISGm";
 
 export function BankConnectionsManager() {
   const { requiresBaseSelection, getRequiredOrganizationId, selectedOrganization } = useBaseFilter();
   const { data: connections, isLoading, refetch } = useBankConnections();
-  const openWhiteLabel = useOpenWhiteLabelConnection();
+  const openPluggyConnect = useOpenPluggyConnect();
   const syncConnection = useSyncBankConnection();
   const disconnectBank = useDisconnectBank();
+  const savePluggyItem = useSavePluggyItem();
   
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState<BankConnection | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [pluggyToken, setPluggyToken] = useState<string | null>(null);
 
-  // Check if user is returning from WhiteLabel authorization
-  useEffect(() => {
-    const pendingOrg = localStorage.getItem('pending_openfinance_org');
-    const returnPath = localStorage.getItem('pending_openfinance_return');
-    
-    if (pendingOrg && window.location.pathname.includes('/open-finance')) {
-      // Clear the pending state
-      localStorage.removeItem('pending_openfinance_org');
-      localStorage.removeItem('pending_openfinance_return');
-      
-      // Trigger a sync to check for new connections/transactions
-      toast.info("Verificando conexão bancária...");
-      
-      // Refetch connections after a short delay
-      setTimeout(() => {
-        refetch();
-      }, 1000);
+  // Handle Pluggy widget success
+  const handlePluggySuccess = useCallback(async (data: { item: { id: string }; connector?: { name?: string } }) => {
+    const organizationId = getRequiredOrganizationId();
+    if (!organizationId) return;
+
+    try {
+      // Save the item to database
+      await savePluggyItem.mutateAsync({
+        organizationId,
+        itemId: data.item.id,
+        connectorName: data.connector?.name
+      });
+
+      // Trigger sync
+      await syncConnection.mutateAsync({
+        organizationId,
+        itemId: data.item.id
+      });
+
+      refetch();
+    } catch (error) {
+      console.error('Failed to save Pluggy item:', error);
+    } finally {
+      setPluggyToken(null);
+      setIsConnecting(false);
     }
-  }, [refetch]);
+  }, [getRequiredOrganizationId, savePluggyItem, syncConnection, refetch]);
+
+  // Handle Pluggy widget error
+  const handlePluggyError = useCallback((error: { message?: string }) => {
+    console.error('Pluggy error:', error);
+    toast.error("Erro na conexão: " + (error.message || 'Erro desconhecido'));
+    setPluggyToken(null);
+    setIsConnecting(false);
+  }, []);
+
+  // Load Pluggy Connect widget dynamically
+  useEffect(() => {
+    if (!pluggyToken) return;
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.pluggy.ai/pluggy-connect/v2.js';
+    script.async = true;
+    script.onload = () => {
+      const PluggyConnect = (window as any).PluggyConnect;
+      if (PluggyConnect) {
+        const connect = new PluggyConnect({
+          connectToken: pluggyToken,
+          onSuccess: handlePluggySuccess,
+          onError: handlePluggyError,
+          onClose: () => {
+            setPluggyToken(null);
+            setIsConnecting(false);
+          }
+        });
+        connect.init();
+      }
+    };
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, [pluggyToken, handlePluggySuccess, handlePluggyError]);
 
   const handleConnect = async () => {
     const organizationId = getRequiredOrganizationId();
@@ -89,21 +134,12 @@ export function BankConnectionsManager() {
     setIsConnecting(true);
     
     try {
-      // Store organization context before redirecting
-      localStorage.setItem('pending_openfinance_org', organizationId);
-      localStorage.setItem('pending_openfinance_return', window.location.pathname);
-      
-      // Open WhiteLabel URL in a new tab (user will authorize there)
-      window.open(WHITELABEL_URL, '_blank');
-      
-      toast.info(
-        "Autorize o acesso no Open Finance e depois clique em 'Sincronizar' para importar suas transações.",
-        { duration: 8000 }
-      );
+      const result = await openPluggyConnect.mutateAsync({ organizationId });
+      if (result.accessToken) {
+        setPluggyToken(result.accessToken);
+      }
     } catch (error) {
-      console.error("Failed to initiate connection:", error);
-      toast.error("Erro ao iniciar conexão");
-    } finally {
+      console.error("Failed to get connect token:", error);
       setIsConnecting(false);
     }
   };
@@ -121,10 +157,13 @@ export function BankConnectionsManager() {
     }
   };
 
-  const handleSync = async (connectionId: string) => {
+  const handleSync = async (connectionId: string, itemId?: string | null) => {
     setSyncingId(connectionId);
     try {
-      await syncConnection.mutateAsync({ bankConnectionId: connectionId });
+      await syncConnection.mutateAsync({ 
+        bankConnectionId: connectionId,
+        itemId: itemId || undefined
+      });
     } finally {
       setSyncingId(null);
     }
@@ -199,7 +238,7 @@ export function BankConnectionsManager() {
                 Open Finance
               </CardTitle>
               <CardDescription>
-                Conecte suas contas bancárias via Open Finance
+                Conecte suas contas bancárias via Open Finance (Pluggy)
                 {selectedOrganization && (
                   <span className="block mt-1 text-xs">
                     Base: {selectedOrganization.name}
@@ -227,7 +266,7 @@ export function BankConnectionsManager() {
                 {isConnecting ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : (
-                  <ExternalLink className="h-4 w-4 mr-2" />
+                  <Plus className="h-4 w-4 mr-2" />
                 )}
                 Conectar Conta Bancária
               </Button>
@@ -240,8 +279,7 @@ export function BankConnectionsManager() {
               <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Nenhuma conexão bancária encontrada</p>
               <p className="text-sm mt-2">
-                1. Clique em "Conectar Conta Bancária" para autorizar<br />
-                2. Depois clique em "Sincronizar" para importar as transações
+                Clique em "Conectar Conta Bancária" para conectar seu banco via Open Finance
               </p>
             </div>
           ) : (
@@ -253,7 +291,7 @@ export function BankConnectionsManager() {
                     <ConnectionCard
                       key={connection.id}
                       connection={connection}
-                      onSync={() => handleSync(connection.id)}
+                      onSync={() => handleSync(connection.id, connection.external_account_id)}
                       onDisconnect={() => handleDisconnectClick(connection)}
                       isSyncing={syncingId === connection.id}
                       isDisconnecting={disconnectingId === connection.id}
@@ -269,7 +307,7 @@ export function BankConnectionsManager() {
                     <ConnectionCard
                       key={connection.id}
                       connection={connection}
-                      onSync={() => handleSync(connection.id)}
+                      onSync={() => handleSync(connection.id, connection.external_account_id)}
                       onDisconnect={() => handleDisconnectClick(connection)}
                       isSyncing={syncingId === connection.id}
                       isDisconnecting={disconnectingId === connection.id}
@@ -287,7 +325,7 @@ export function BankConnectionsManager() {
           <AlertDialogHeader>
             <AlertDialogTitle>Desconectar banco?</AlertDialogTitle>
             <AlertDialogDescription>
-              Isso irá revogar o acesso ao banco {selectedConnection?.provider_name || 'selecionado'}. 
+              Isso irá desconectar o banco {selectedConnection?.provider_name || 'selecionado'}. 
               As transações já importadas serão mantidas, mas você não poderá sincronizar novas transações
               até reconectar.
             </AlertDialogDescription>

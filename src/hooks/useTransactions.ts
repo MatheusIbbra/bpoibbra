@@ -310,7 +310,10 @@ export function useUpdateTransaction() {
 
   return useMutation({
     mutationFn: async ({ id, ...transaction }: { id: string } & Partial<CreateTransactionInput>) => {
-      const updateData: TransactionUpdate = transaction;
+      // Remove fields that don't exist in the transactions table
+      const { destination_account_id, linked_existing_id, ...validFields } = transaction;
+      
+      const updateData: TransactionUpdate = validFields;
       
       const { data, error } = await supabase
         .from("transactions")

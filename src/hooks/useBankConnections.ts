@@ -11,6 +11,7 @@ export interface BankConnection {
   provider: string;
   provider_name: string | null;
   external_consent_id: string | null;
+  external_account_id: string | null;
   status: string;
   last_sync_at: string | null;
   sync_error: string | null;
@@ -47,51 +48,71 @@ export function useBankConnections() {
   });
 }
 
-// Get the WhiteLabel URL from environment or return the configured one
+// Get Pluggy connect token for the widget
+export function usePluggyConnectToken() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ organizationId }: { organizationId: string }) => {
+      const { data, error } = await supabase.functions.invoke('pluggy-connect', {
+        body: { organization_id: organizationId }
+      });
+
+      if (error) throw error;
+      return data as { accessToken: string };
+    },
+    onError: (error) => {
+      toast.error("Erro ao obter token Pluggy: " + error.message);
+    },
+  });
+}
+
+// Open Pluggy Connect widget
+export function useOpenPluggyConnect() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ organizationId }: { organizationId: string }) => {
+      // Get the connect token from the edge function
+      const { data, error } = await supabase.functions.invoke('pluggy-connect', {
+        body: { organization_id: organizationId }
+      });
+
+      if (error) throw error;
+      
+      // Store the organization context for when user returns
+      localStorage.setItem('pending_openfinance_org', organizationId);
+      localStorage.setItem('pending_openfinance_return', window.location.pathname);
+      
+      return data as { accessToken: string };
+    },
+    onSuccess: (data) => {
+      // The component will handle opening the Pluggy Connect widget
+      toast.info("Token obtido. Abrindo widget de conexão...");
+    },
+    onError: (error) => {
+      toast.error("Erro ao iniciar conexão: " + error.message);
+    },
+  });
+}
+
+// Legacy aliases for backward compatibility
+export function useOpenWhiteLabelConnection() {
+  return useOpenPluggyConnect();
+}
+
 export function useWhiteLabelUrl() {
   return useQuery({
-    queryKey: ["klavi-whitelabel-url"],
+    queryKey: ["pluggy-info"],
     queryFn: async () => {
-      // The WhiteLabel URL is stored as a secret and accessed server-side
-      // We return a placeholder that the component will use to call the edge function
-      return {
-        // This is the Basic WhiteLabel URL from Klavi
-        url: "https://open-sandbox.klavi.ai/data/v1/basic-links/CB71gRISGm"
-      };
+      return { url: null }; // No longer used - Pluggy uses widget
     },
     staleTime: Infinity,
   });
 }
 
-// Open WhiteLabel connection (direct redirect - no OAuth flow)
-export function useOpenWhiteLabelConnection() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ organizationId }: { organizationId: string }) => {
-      // For Basic WhiteLabel, we redirect directly to the Klavi URL
-      // The WhiteLabel URL is configured in the secrets
-      const whiteLabelUrl = "https://open-sandbox.klavi.ai/data/v1/basic-links/CB71gRISGm";
-      
-      // Store the organization context in localStorage for when user returns
-      localStorage.setItem('pending_openfinance_org', organizationId);
-      localStorage.setItem('pending_openfinance_return', window.location.pathname);
-      
-      return { redirect_url: whiteLabelUrl };
-    },
-    onSuccess: (data) => {
-      // Redirect to WhiteLabel
-      window.location.href = data.redirect_url;
-    },
-    onError: (error) => {
-      toast.error("Erro ao abrir conexão: " + error.message);
-    },
-  });
-}
-
-// Legacy: Keep for backward compatibility, but now just redirects to WhiteLabel
 export function useInitiateKlaviConnection() {
-  return useOpenWhiteLabelConnection();
+  return useOpenPluggyConnect();
 }
 
 export function useExchangeKlaviToken() {
@@ -99,24 +120,11 @@ export function useExchangeKlaviToken() {
 
   return useMutation({
     mutationFn: async ({ code, state }: { code: string; state: string }) => {
-      const { data, error } = await supabase.functions.invoke('klavi-exchange-token', {
-        body: { code, state }
-      });
-
-      if (error) throw error;
-      return data as { 
-        success: boolean; 
-        connection_id: string; 
-        provider_name: string;
-        redirect_path: string;
-      };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bank-connections"] });
-      toast.success("Banco conectado com sucesso!");
+      // Legacy - no longer used for Pluggy
+      throw new Error("Klavi não está mais ativo. Use Pluggy.");
     },
     onError: (error) => {
-      toast.error("Erro ao conectar banco: " + error.message);
+      toast.error("Erro: " + error.message);
     },
   });
 }
@@ -128,11 +136,13 @@ export function useSyncBankConnection() {
     mutationFn: async ({ 
       bankConnectionId,
       organizationId,
+      itemId,
       fromDate, 
       toDate 
     }: { 
       bankConnectionId?: string;
       organizationId?: string;
+      itemId?: string;
       fromDate?: string; 
       toDate?: string;
     }) => {
@@ -142,10 +152,11 @@ export function useSyncBankConnection() {
         throw new Error("Você precisa estar logado");
       }
 
-      const { data, error } = await supabase.functions.invoke('klavi-sync', {
+      const { data, error } = await supabase.functions.invoke('pluggy-sync', {
         body: { 
           bank_connection_id: bankConnectionId,
           organization_id: organizationId,
+          item_id: itemId,
           from_date: fromDate,
           to_date: toDate
         }
@@ -171,18 +182,15 @@ export function useDisconnectBank() {
 
   return useMutation({
     mutationFn: async (bankConnectionId: string) => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.access_token) {
-        throw new Error("Você precisa estar logado");
-      }
-
-      const { data, error } = await supabase.functions.invoke('klavi-disconnect', {
-        body: { bank_connection_id: bankConnectionId }
-      });
+      // For Pluggy, we just mark as disconnected in DB
+      // The actual disconnection happens in Pluggy dashboard
+      const { error } = await supabase
+        .from('bank_connections')
+        .update({ status: 'disconnected', updated_at: new Date().toISOString() })
+        .eq('id', bankConnectionId);
 
       if (error) throw error;
-      return data;
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bank-connections"] });
@@ -190,6 +198,76 @@ export function useDisconnectBank() {
     },
     onError: (error) => {
       toast.error("Erro ao desconectar: " + error.message);
+    },
+  });
+}
+
+// Save Pluggy item after connection completes
+export function useSavePluggyItem() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      organizationId, 
+      itemId, 
+      connectorName 
+    }: { 
+      organizationId: string; 
+      itemId: string;
+      connectorName?: string;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("Você precisa estar logado");
+      }
+
+      // Check if connection already exists for this item
+      const { data: existing } = await supabase
+        .from('bank_connections')
+        .select('id')
+        .eq('external_account_id', itemId)
+        .eq('provider', 'pluggy')
+        .maybeSingle();
+
+      if (existing) {
+        // Update existing
+        const { error } = await supabase
+          .from('bank_connections')
+          .update({
+            status: 'active',
+            sync_error: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existing.id);
+
+        if (error) throw error;
+        return { connection_id: existing.id };
+      }
+
+      // Create new connection
+      const { data, error } = await supabase
+        .from('bank_connections')
+        .insert({
+          organization_id: organizationId,
+          user_id: user.id,
+          provider: 'pluggy',
+          provider_name: connectorName || 'Open Finance (Pluggy)',
+          external_account_id: itemId,
+          status: 'active'
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+      return { connection_id: data.id };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bank-connections"] });
+      toast.success("Banco conectado com sucesso!");
+    },
+    onError: (error) => {
+      toast.error("Erro ao salvar conexão: " + error.message);
     },
   });
 }

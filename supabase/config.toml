@@ -1,1 +1,52 @@
 project_id = "umqehhhpedwqdfjmdjqv"
+
+[functions.klavi-authorize]
+verify_jwt = false
+
+[functions.klavi-exchange-token]
+verify_jwt = false
+
+[functions.klavi-sync]
+verify_jwt = false
+
+[functions.klavi-disconnect]
+verify_jwt = false
+
+[functions.klavi-webhook]
+verify_jwt = false
+
+[functions.pluggy-sync]
+verify_jwt = false
+
+[functions.pluggy-connect]
+verify_jwt = false
+
+[functions.pluggy-webhook]
+verify_jwt = false
+
+[functions.process-import]
+verify_jwt = false
+
+[functions.classify-transaction]
+verify_jwt = false
+
+[functions.classify-transactions]
+verify_jwt = false
+
+[functions.delete-user]
+verify_jwt = false
+
+[functions.generate-ai-insights]
+verify_jwt = false
+
+[functions.get-user-emails]
+verify_jwt = false
+
+[functions.manage-user-access]
+verify_jwt = false
+
+[functions.seed-categories]
+verify_jwt = false
+
+[functions.seed-reconciliation-rules]
+verify_jwt = false
