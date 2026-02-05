@@ -19,7 +19,18 @@ Deno.serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!KLAVI_CLIENT_ID || !KLAVI_BASE_URL || !KLAVI_REDIRECT_URI) {
-      throw new Error('Missing Klavi configuration');
+      console.error('Missing Open Finance configuration', { 
+        hasClientId: !!KLAVI_CLIENT_ID, 
+        hasBaseUrl: !!KLAVI_BASE_URL, 
+        hasRedirectUri: !!KLAVI_REDIRECT_URI 
+      });
+      throw new Error('Configuração Open Finance incompleta. Verifique as variáveis de ambiente.');
+    }
+
+    // Validate that KLAVI_BASE_URL is a valid URL
+    if (!KLAVI_BASE_URL.startsWith('http://') && !KLAVI_BASE_URL.startsWith('https://')) {
+      console.error('Invalid KLAVI_BASE_URL format:', KLAVI_BASE_URL.substring(0, 10) + '...');
+      throw new Error('KLAVI_BASE_URL deve ser uma URL válida (ex: https://api.klavi.com). Verifique a configuração dos secrets.');
     }
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
