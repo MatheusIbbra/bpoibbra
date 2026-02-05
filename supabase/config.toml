@@ -1,1 +1,16 @@
 project_id = "umqehhhpedwqdfjmdjqv"
+
+[functions.klavi-authorize]
+verify_jwt = false
+
+[functions.klavi-exchange-token]
+verify_jwt = false
+
+[functions.klavi-sync]
+verify_jwt = false
+
+[functions.klavi-disconnect]
+verify_jwt = false
+
+[functions.klavi-webhook]
+verify_jwt = false
