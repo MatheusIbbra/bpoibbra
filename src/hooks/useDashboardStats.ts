@@ -84,11 +84,13 @@ export function useDashboardStats() {
         if (!data) return { income: 0, expenses: 0 };
         return data.reduce(
           (acc, t) => {
+            // Only count income and expense types - exclude transfer, investment, redemption
             if (t.type === "income") {
               acc.income += Number(t.amount);
-            } else {
+            } else if (t.type === "expense") {
               acc.expenses += Number(t.amount);
             }
+            // Other types (transfer, investment, redemption) are not included
             return acc;
           },
           { income: 0, expenses: 0 }
