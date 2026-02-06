@@ -13,13 +13,6 @@ import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
-interface AccountGroup {
-  label: string;
-  icon: React.ReactNode;
-  total: number;
-  count: number;
-}
-
 export function ConsolidatedBalanceSection() {
   const { data: accounts, isLoading: accountsLoading } = useAccounts();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
@@ -36,49 +29,53 @@ export function ConsolidatedBalanceSection() {
     );
   }
 
-  // Group accounts by type
-  const groups: Record<string, AccountGroup> = {};
-  let totalPatrimony = 0;
+  // Separate accounts by type
+  let availableBalance = 0; // checking + savings + cash
+  let investmentBalance = 0;
+  let creditCardDebt = 0;
+  let availableCount = 0;
+  let investmentCount = 0;
+  let creditCardCount = 0;
 
   (accounts || []).forEach((acc) => {
-    const type = acc.account_type;
-    if (!groups[type]) {
-      groups[type] = {
-        label: getTypeLabel(type),
-        icon: getTypeIcon(type),
-        total: 0,
-        count: 0,
-      };
+    const balance = acc.current_balance ?? 0;
+    switch (acc.account_type) {
+      case "checking":
+      case "savings":
+      case "cash":
+        availableBalance += balance;
+        availableCount++;
+        break;
+      case "investment":
+        investmentBalance += balance;
+        investmentCount++;
+        break;
+      case "credit_card":
+        // Credit card balance is typically negative (debt)
+        creditCardDebt += Math.abs(balance);
+        creditCardCount++;
+        break;
     }
-    groups[type].total += acc.current_balance;
-    groups[type].count++;
-    totalPatrimony += acc.current_balance;
   });
-
-  const orderedTypes = ["checking", "savings", "investment", "credit_card", "cash"];
-  const sortedGroups = orderedTypes
-    .filter((t) => groups[t])
-    .map((t) => groups[t]);
 
   const monthlyVariation = stats
     ? stats.monthlyIncome - stats.monthlyExpenses
     : 0;
-  const variationPercent = stats?.incomeChange || 0;
 
   return (
     <Card className="card-executive overflow-hidden">
       <CardContent className="p-4">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          {/* Main balance */}
+          {/* Main available balance */}
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Wallet className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Patrimônio Total
+                Saldo Disponível
               </span>
             </div>
             <p className="text-3xl font-bold tracking-tight">
-              {formatCurrency(totalPatrimony)}
+              {formatCurrency(availableBalance)}
             </p>
             {monthlyVariation !== 0 && (
               <div className="flex items-center gap-1 mt-1">
@@ -100,53 +97,46 @@ export function ConsolidatedBalanceSection() {
             )}
           </div>
 
-          {/* Account type breakdown */}
-          <div className="flex flex-wrap gap-4">
-            {sortedGroups.map((group) => (
-              <div key={group.label} className="text-right min-w-[100px]">
+          {/* Breakdown: Investments + Credit Cards */}
+          <div className="flex flex-wrap gap-5">
+            {investmentCount > 0 && (
+              <div className="text-right min-w-[110px]">
                 <div className="flex items-center gap-1.5 justify-end text-muted-foreground mb-0.5">
-                  {group.icon}
-                  <span className="text-[11px]">{group.label}</span>
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  <span className="text-[11px]">Investimentos</span>
                 </div>
-                <p className="text-sm font-semibold">{formatCurrency(group.total)}</p>
+                <p className="text-sm font-semibold text-success">
+                  {formatCurrency(investmentBalance)}
+                </p>
               </div>
-            ))}
+            )}
+
+            {creditCardCount > 0 && (
+              <div className="text-right min-w-[110px]">
+                <div className="flex items-center gap-1.5 justify-end text-muted-foreground mb-0.5">
+                  <CreditCard className="h-3.5 w-3.5" />
+                  <span className="text-[11px]">Cartões a Pagar</span>
+                </div>
+                <p className="text-sm font-semibold text-destructive">
+                  {creditCardDebt > 0 ? `-${formatCurrency(creditCardDebt)}` : formatCurrency(0)}
+                </p>
+              </div>
+            )}
+
+            {availableCount > 0 && (
+              <div className="text-right min-w-[100px]">
+                <div className="flex items-center gap-1.5 justify-end text-muted-foreground mb-0.5">
+                  <Landmark className="h-3.5 w-3.5" />
+                  <span className="text-[11px]">Contas</span>
+                </div>
+                <p className="text-sm font-semibold">
+                  {availableCount} ativa{availableCount !== 1 ? "s" : ""}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
     </Card>
   );
-}
-
-function getTypeLabel(type: string): string {
-  switch (type) {
-    case "checking":
-      return "Corrente";
-    case "savings":
-      return "Poupança";
-    case "investment":
-      return "Investimentos";
-    case "credit_card":
-      return "Cartões";
-    case "cash":
-      return "Caixa";
-    default:
-      return type;
-  }
-}
-
-function getTypeIcon(type: string): React.ReactNode {
-  const cls = "h-3.5 w-3.5";
-  switch (type) {
-    case "checking":
-      return <Landmark className={cls} />;
-    case "savings":
-      return <PiggyBank className={cls} />;
-    case "investment":
-      return <TrendingUp className={cls} />;
-    case "credit_card":
-      return <CreditCard className={cls} />;
-    default:
-      return <Wallet className={cls} />;
-  }
 }
