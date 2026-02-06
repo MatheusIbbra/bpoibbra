@@ -82,10 +82,8 @@ function EditOrganizationDialog({
   open, 
   onOpenChange,
   organization,
-  kamUsers,
-  loadingKams,
   onRefresh
-}: { 
+}: {
   open: boolean; 
   onOpenChange: (open: boolean) => void;
   organization: ClientOrganization | null;
@@ -635,6 +633,19 @@ export function ClientManagementTab() {
   });
 
 
+  // Filtered organizations
+  const filteredOrgs = (clientOrgs || []).filter(org => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      org.name.toLowerCase().includes(q) ||
+      org.slug.toLowerCase().includes(q) ||
+      (org.client_name && org.client_name.toLowerCase().includes(q)) ||
+      (org.kam_name && org.kam_name.toLowerCase().includes(q)) ||
+      (org.cpf_cnpj && org.cpf_cnpj.includes(q))
+    );
+  });
+
   // Block/Unblock mutation
   const toggleBlockMutation = useMutation({
     mutationFn: async ({ orgId, block, reason }: { orgId: string; block: boolean; reason?: string }) => {
@@ -660,6 +671,24 @@ export function ClientManagementTab() {
       toast.error("Erro: " + error.message);
     },
   });
+
+  // Block/Unblock handlers
+  const handleBlock = (org: ClientOrganization) => {
+    setBlockDialog({ open: true, org, action: "block" });
+  };
+
+  const handleUnblock = (org: ClientOrganization) => {
+    setBlockDialog({ open: true, org, action: "unblock" });
+  };
+
+  const confirmBlockAction = () => {
+    if (!blockDialog.org) return;
+    toggleBlockMutation.mutate({
+      orgId: blockDialog.org.id,
+      block: blockDialog.action === "block",
+      reason: blockReason || undefined,
+    });
+  };
 
 
   const getInitials = (name: string | null): string => {
