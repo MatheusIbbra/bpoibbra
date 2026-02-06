@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { format, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, parseISO } from "date-fns";
 import { getLegacyInitialBalanceAdjustment } from "@/lib/legacy-initial-balance";
+import { parseLocalDate } from "@/lib/formatters";
 
 export type ReportBasis = "cash" | "accrual";
 export type Granularity = "daily" | "weekly" | "monthly";
@@ -133,7 +134,7 @@ export function useCashFlowReport(
         const periodEnd = nextPeriod ? nextPeriod.start : endDate;
         
         const periodTransactions = transactions?.filter((tx) => {
-          const txDate = new Date(tx.date);
+          const txDate = parseLocalDate(tx.date);
           return txDate >= period.start && txDate < periodEnd;
         }) || [];
 

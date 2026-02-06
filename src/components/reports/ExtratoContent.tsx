@@ -57,7 +57,7 @@ import { useCostCenters } from "@/hooks/useCostCenters";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 
 type SortField = "date" | "amount" | "category";
 type SortDirection = "asc" | "desc";
@@ -89,7 +89,7 @@ export function ExtratoContent() {
       let cmp = 0;
       switch (sortField) {
         case "date":
-          cmp = new Date(a.date).getTime() - new Date(b.date).getTime();
+          cmp = parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime();
           break;
         case "amount":
           cmp = Number(a.amount) - Number(b.amount);
@@ -274,7 +274,7 @@ export function ExtratoContent() {
                   {transactions.map((transaction) => (
                     <TableRow key={transaction.id} className="text-xs">
                       <TableCell className="font-medium py-1.5">
-                        {format(new Date(transaction.date), "dd/MM/yy", { locale: ptBR })}
+                        {format(parseLocalDate(transaction.date), "dd/MM/yy", { locale: ptBR })}
                       </TableCell>
                       <TableCell className="max-w-[180px] truncate py-1.5">
                         {transaction.description || "-"}

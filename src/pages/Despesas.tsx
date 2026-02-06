@@ -39,7 +39,7 @@ import { useTransactions, useDeleteTransaction, Transaction } from "@/hooks/useT
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
 import { useNavigate } from "react-router-dom";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 
 export default function Despesas() {
   const { requiresBaseSelection } = useBaseFilter();
@@ -186,7 +186,7 @@ export default function Despesas() {
                         <span>{transaction.categories?.name || "Sem categoria"}</span>
                         <span>•</span>
                         <span>
-                          {format(new Date(transaction.date), "dd/MM/yyyy", { locale: ptBR })}
+                          {format(parseLocalDate(transaction.date), "dd/MM/yyyy", { locale: ptBR })}
                         </span>
                       </div>
                     </div>

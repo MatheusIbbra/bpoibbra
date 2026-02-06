@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { parseLocalDate } from "@/lib/formatters";
 import { AlertCircle, Check, X, ChevronLeft, ChevronRight, Filter, Sparkles, Loader2, ArrowLeftRight, TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowRight, Building2, BookOpen, Brain, Zap, Search, Calendar, RefreshCw } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -229,169 +230,149 @@ export default function Pendencias() {
 
   return (
     <AppLayout title="Pendências">
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col gap-4">
-              <CardTitle className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-warning" />
-                Transações Pendentes de Validação ({pendingTransactions.length})
-              </CardTitle>
-              
-              {/* Filters */}
-              <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
-                {/* Search */}
-                <div className="relative flex-1 min-w-[200px]">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar descrição..."
-                    value={searchTerm}
-                    onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                    className="pl-9"
-                  />
-                </div>
-                
-                {/* Account Filter */}
-                <Select value={accountFilter} onValueChange={(v) => { setAccountFilter(v); setCurrentPage(1); }}>
-                  <SelectTrigger className="w-[180px]">
-                    <Building2 className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Conta" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas as contas</SelectItem>
-                    {accounts?.map((acc) => (
-                      <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                
-                {/* Type Filter */}
-                <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setCurrentPage(1); }}>
-                  <SelectTrigger className="w-[160px]">
-                    <Filter className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os tipos</SelectItem>
-                    <SelectItem value="income">Receita</SelectItem>
-                    <SelectItem value="expense">Despesa</SelectItem>
-                    <SelectItem value="transfer">Transferência</SelectItem>
-                    <SelectItem value="investment">Aplicação</SelectItem>
-                    <SelectItem value="redemption">Resgate</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                {/* Date Range Filter */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-[200px] justify-start text-left font-normal", !dateRange?.from && "text-muted-foreground")}>
-                      <Calendar className="mr-2 h-4 w-4" />
-                      {dateRange?.from ? (
-                        dateRange.to ? (
-                          <>
-                            {format(dateRange.from, "dd/MM", { locale: ptBR })} - {format(dateRange.to, "dd/MM", { locale: ptBR })}
-                          </>
-                        ) : (
-                          format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })
-                        )
-                      ) : (
-                        "Período"
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CalendarComponent
-                      initialFocus
-                      mode="range"
-                      defaultMonth={dateRange?.from}
-                      selected={dateRange}
-                      onSelect={(range) => { setDateRange(range); setCurrentPage(1); }}
-                      numberOfMonths={2}
-                      locale={ptBR}
-                    />
-                  </PopoverContent>
-                </Popover>
-                
-                {/* Clear Filters */}
-                {hasActiveFilters && (
-                  <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">
-                    <X className="h-4 w-4" />
-                    Limpar
-                  </Button>
-                )}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : pendingTransactions.length === 0 ? (
-              <div className="text-center py-12">
-                <Check className="h-12 w-12 mx-auto text-success mb-4" />
-                <p className="text-lg font-medium">Nenhuma transação pendente!</p>
-                <p className="text-muted-foreground">
-                  {hasActiveFilters 
-                    ? "Nenhuma transação encontrada com os filtros aplicados." 
-                    : "Todas as transações foram validadas."}
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-sm font-semibold flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-warning" />
+              Pendentes de Validação
+              {pendingTransactions.length > 0 && (
+                <Badge variant="secondary" className="text-xs">{pendingTransactions.length}</Badge>
+              )}
+            </h2>
+          </div>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 h-7 text-xs">
+              <X className="h-3 w-3" />
+              Limpar filtros
+            </Button>
+          )}
+        </div>
+
+        {/* Compact Filters */}
+        <div className="flex flex-wrap gap-2">
+          <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar..."
+              value={searchTerm}
+              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+              className="pl-8 h-8 text-sm"
+            />
+          </div>
+          <Select value={accountFilter} onValueChange={(v) => { setAccountFilter(v); setCurrentPage(1); }}>
+            <SelectTrigger className="w-[150px] h-8 text-xs">
+              <SelectValue placeholder="Conta" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as contas</SelectItem>
+              {accounts?.map((acc) => (
+                <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setCurrentPage(1); }}>
+            <SelectTrigger className="w-[130px] h-8 text-xs">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="income">Receita</SelectItem>
+              <SelectItem value="expense">Despesa</SelectItem>
+              <SelectItem value="transfer">Transferência</SelectItem>
+            </SelectContent>
+          </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("h-8 text-xs", !dateRange?.from && "text-muted-foreground")}>
+                <Calendar className="mr-1.5 h-3 w-3" />
+                {dateRange?.from ? (
+                  dateRange.to ? (
+                    <>{format(dateRange.from, "dd/MM", { locale: ptBR })} - {format(dateRange.to, "dd/MM", { locale: ptBR })}</>
+                  ) : format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })
+                ) : "Período"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarComponent
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={(range) => { setDateRange(range); setCurrentPage(1); }}
+                numberOfMonths={2}
+                locale={ptBR}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {/* Content */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : pendingTransactions.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+              <Check className="h-10 w-10 text-success mb-3" />
+              <p className="text-sm font-semibold">Tudo validado!</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {hasActiveFilters ? "Nenhuma transação com os filtros aplicados." : "Todas as transações foram validadas."}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {paginatedTransactions.map((transaction) => (
+              <TransactionPendingCard
+                key={transaction.id}
+                transaction={transaction}
+                categories={categories || []}
+                costCenters={costCenters || []}
+                accounts={accounts || []}
+                organizationName={getOrganizationName(transaction.organization_id)}
+                onValidate={handleValidate}
+                onReject={handleReject}
+                onClassifyWithAI={handleClassifyWithAI}
+                isClassifying={classifyingId === transaction.id}
+              />
+            ))}
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-3 border-t border-border/50">
+                <p className="text-[11px] text-muted-foreground">
+                  {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, pendingTransactions.length)} de {pendingTransactions.length}
                 </p>
-                {hasActiveFilters && (
-                  <Button variant="outline" className="mt-4" onClick={clearFilters}>
-                    Limpar filtros
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
                   </Button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {paginatedTransactions.map((transaction) => (
-                  <TransactionPendingCard
-                    key={transaction.id}
-                    transaction={transaction}
-                    categories={categories || []}
-                    costCenters={costCenters || []}
-                    accounts={accounts || []}
-                    organizationName={getOrganizationName(transaction.organization_id)}
-                    onValidate={handleValidate}
-                    onReject={handleReject}
-                    onClassifyWithAI={handleClassifyWithAI}
-                    isClassifying={classifyingId === transaction.id}
-                  />
-                ))}
-                
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between pt-4 border-t">
-                    <p className="text-sm text-muted-foreground">
-                      Mostrando {startIndex + 1}-{Math.min(startIndex + ITEMS_PER_PAGE, pendingTransactions.length)} de {pendingTransactions.length}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <span className="text-sm">
-                        Página {currentPage} de {totalPages}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                  <span className="text-xs text-muted-foreground">
+                    {currentPage}/{totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        )}
       </div>
     </AppLayout>
   );
@@ -509,7 +490,7 @@ function TransactionPendingCard({
   };
 
   return (
-    <div className="border rounded-lg p-4 space-y-3 hover:bg-muted/30 transition-colors">
+    <div className="border rounded-lg px-3 py-3 space-y-2.5 hover:bg-muted/20 transition-colors">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
@@ -607,7 +588,7 @@ function TransactionPendingCard({
             )}
           </div>
           <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-            <span>{format(new Date(transaction.date), "dd/MM/yyyy", { locale: ptBR })}</span>
+            <span>{format(parseLocalDate(transaction.date), "dd/MM/yyyy", { locale: ptBR })}</span>
             <TransactionTypeBadge type={transaction.type} />
             {currentAccount && (
               <Badge variant="outline" className="text-xs">

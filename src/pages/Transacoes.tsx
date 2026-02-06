@@ -49,7 +49,7 @@ import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 
 export default function Transacoes() {
   const { requiresBaseSelection } = useBaseFilter();
@@ -248,7 +248,7 @@ export default function Transacoes() {
                         <span>{transaction.accounts?.name || "Conta"}</span>
                         <span>•</span>
                         <span>
-                          {format(new Date(transaction.date), "dd/MM/yyyy", { locale: ptBR })}
+                          {format(parseLocalDate(transaction.date), "dd/MM/yyyy", { locale: ptBR })}
                         </span>
                       </div>
                     </div>

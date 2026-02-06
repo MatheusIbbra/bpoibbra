@@ -37,7 +37,8 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAccounts, useDeleteAccount, AccountType } from "@/hooks/useAccounts";
-import { useCategoriesHierarchy, useCategories, Category } from "@/hooks/useCategories";
+import { useCategoriesHierarchy, useCategories, Category, useCreateCategory } from "@/hooks/useCategories";
+import { useSeedCategories } from "@/hooks/useSeedCategories";
 import { useCostCenters, useDeleteCostCenter } from "@/hooks/useCostCenters";
 import { useReconciliationRules, useDeleteReconciliationRule } from "@/hooks/useReconciliationRules";
 import { useSeedReconciliationRules } from "@/hooks/useSeedReconciliationRules";
@@ -102,6 +103,7 @@ export default function Cadastros() {
   const deleteRule = useDeleteReconciliationRule();
   const seedRules = useSeedReconciliationRules();
   const clearRules = useClearReconciliationRules();
+  const seedCategories = useSeedCategories();
   const { canCreate } = useCanCreate();
   const { selectedOrganization } = useBaseFilter();
 
@@ -232,10 +234,25 @@ export default function Cadastros() {
               </div>
             )}
             {activeTab === "categorias" && (
-              <Button size="sm" onClick={() => navigate("/categorias")}>
-                <Tags className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Ver Categorias</span>
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={() => seedCategories.mutate()}
+                  disabled={seedCategories.isPending}
+                >
+                  {seedCategories.isPending ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3 w-3 mr-1" />
+                  )}
+                  <span className="hidden sm:inline">Criar Iniciais</span>
+                </Button>
+                <Button size="sm" onClick={() => setCategoryDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">Nova Categoria</span>
+                </Button>
+              </div>
             )}
             {activeTab === "centros" && (
               <Button size="sm" onClick={() => { setSelectedCostCenter(null); setCostCenterDialogOpen(true); }}>
@@ -349,31 +366,72 @@ export default function Cadastros() {
             </div>
           </TabsContent>
 
-          {/* Categorias Tab */}
+          {/* Categorias Tab - same layout as Categorias page */}
           <TabsContent value="categorias" className="mt-4">
-            <Card>
-              <CardHeader className="py-3 px-4">
-                <CardTitle className="text-sm font-medium">
-                  {loadingCategories ? "Carregando..." : `${hierarchyCategories?.length || 0} categorias`}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-3 space-y-2">
-                {loadingCategories ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            {loadingCategories ? (
+              <Card>
+                <CardContent className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </CardContent>
+              </Card>
+            ) : hierarchyCategories?.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-8">
+                  <Tags className="h-10 w-10 text-muted-foreground mb-3" />
+                  <p className="text-sm text-muted-foreground">Nenhuma categoria cadastrada</p>
+                </CardContent>
+              </Card>
+            ) : (
+              (() => {
+                const sortedCategories = [...(hierarchyCategories || [])].sort((a, b) =>
+                  a.name.localeCompare(b.name, 'pt-BR')
+                );
+                const categoriesWithSortedChildren = sortedCategories.map(cat => ({
+                  ...cat,
+                  children: cat.children
+                    ? [...cat.children].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+                    : []
+                }));
+                const incomeCategories = categoriesWithSortedChildren.filter(c => c.type === 'income');
+                const expenseCategories = categoriesWithSortedChildren.filter(c => c.type === 'expense');
+
+                return (
+                  <div className="space-y-4">
+                    {incomeCategories.length > 0 && (
+                      <Card>
+                        <CardHeader className="py-2.5 px-4">
+                          <CardTitle className="flex items-center gap-2 text-sm">
+                            <div className="h-2.5 w-2.5 rounded-full bg-primary" />
+                            Receitas ({incomeCategories.length})
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="px-3 pb-3 pt-0 space-y-0.5">
+                          {incomeCategories.map((category) => (
+                            <CategoryItem key={category.id} category={category} />
+                          ))}
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {expenseCategories.length > 0 && (
+                      <Card>
+                        <CardHeader className="py-2.5 px-4">
+                          <CardTitle className="flex items-center gap-2 text-sm">
+                            <div className="h-2.5 w-2.5 rounded-full bg-destructive" />
+                            Despesas ({expenseCategories.length})
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="px-3 pb-3 pt-0 space-y-0.5">
+                          {expenseCategories.map((category) => (
+                            <CategoryItem key={category.id} category={category} />
+                          ))}
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
-                ) : hierarchyCategories?.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8">
-                    <Tags className="h-10 w-10 text-muted-foreground mb-3" />
-                    <p className="text-sm text-muted-foreground">Nenhuma categoria cadastrada</p>
-                  </div>
-                ) : (
-                  hierarchyCategories?.map((category) => (
-                    <CategoryItem key={category.id} category={category} />
-                  ))
-                )}
-              </CardContent>
-            </Card>
+                );
+              })()
+            )}
           </TabsContent>
 
           {/* Centros de Custo Tab */}

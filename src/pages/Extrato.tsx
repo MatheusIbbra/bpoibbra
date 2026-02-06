@@ -53,7 +53,7 @@ import { useTransactions, useDeleteTransaction, Transaction } from "@/hooks/useT
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 
 export default function Extrato() {
   const { requiresBaseSelection } = useBaseFilter();
@@ -215,7 +215,7 @@ export default function Extrato() {
                     {transactions.map((transaction) => (
                       <TableRow key={transaction.id} className="text-sm">
                         <TableCell className="font-medium text-xs">
-                          {format(new Date(transaction.date), "dd/MM/yy", { locale: ptBR })}
+                          {format(parseLocalDate(transaction.date), "dd/MM/yy", { locale: ptBR })}
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate">
                           {transaction.description || "-"}

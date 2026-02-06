@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTransactions } from "@/hooks/useTransactions";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
 interface TransactionsDetailModalProps {
@@ -38,7 +38,7 @@ export function TransactionsDetailModal({
   const currentYear = new Date().getFullYear();
   
   const filteredTransactions = transactions?.filter(t => {
-    const transactionDate = new Date(t.date);
+    const transactionDate = parseLocalDate(t.date);
     return (
       transactionDate.getMonth() === currentMonth &&
       transactionDate.getFullYear() === currentYear &&
@@ -119,7 +119,7 @@ export function TransactionsDetailModal({
                       {isIncome ? "+" : "-"}{formatCurrency(Number(transaction.amount))}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {format(new Date(transaction.date), "dd/MM/yy", { locale: ptBR })}
+                      {format(parseLocalDate(transaction.date), "dd/MM/yy", { locale: ptBR })}
                     </p>
                   </div>
                 </div>
