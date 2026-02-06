@@ -61,16 +61,13 @@ const Index = () => {
   return (
     <AppLayout title="Home">
       <div className="space-y-3">
-        {/* Bloco 1: Contas Conectadas */}
-        <ConnectedAccountsSection />
-
-        {/* Bloco 2: Saldo Consolidado / Patrimônio */}
+        {/* Bloco 1: Saldo Consolidado / Patrimônio */}
         <ConsolidatedBalanceSection />
 
         {/* Alertas de Orçamento */}
         <BudgetAlerts showNotifications={true} />
 
-        {/* Bloco 3: Movimentações + Gráficos */}
+        {/* Bloco 2: Movimentações + Gráficos */}
         <div className="grid gap-3 grid-cols-1 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <FintechTransactionsList />
@@ -92,6 +89,9 @@ const Index = () => {
           <ImportCard />
           <BudgetProgress />
         </div>
+
+        {/* Contas Conectadas (Open Finance) */}
+        <ConnectedAccountsSection />
       </div>
 
       <AIAssistantChat isPaidUser={false} />
