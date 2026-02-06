@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
     }
 
     const authData = await authResponse.json();
-    const accessToken = authData.accessToken;
+    const accessToken = authData.apiKey;
 
     // Create a connect token for the Pluggy Connect widget
     console.log('Creating Pluggy connect token...');

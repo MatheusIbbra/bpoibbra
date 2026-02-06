@@ -79,6 +79,7 @@ export function EditUserAccessDialog({
   const [addingOrg, setAddingOrg] = useState(false);
   const [removingOrgId, setRemovingOrgId] = useState<string | null>(null);
   const [selectedOrgToAdd, setSelectedOrgToAdd] = useState("");
+  const [orgSearchQuery, setOrgSearchQuery] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -183,6 +184,9 @@ export function EditUserAccessDialog({
   };
 
   const availableOrgs = allOrgs.filter(o => !userOrgs.some(uo => uo.id === o.id));
+  const filteredAvailableOrgs = availableOrgs.filter(o => 
+    !orgSearchQuery || o.name.toLowerCase().includes(orgSearchQuery.toLowerCase())
+  );
 
   const handleUpdateEmail = async () => {
     if (!user || !email.trim()) return;
@@ -387,33 +391,48 @@ export function EditUserAccessDialog({
 
                 {/* Add new base */}
                 {availableOrgs.length > 0 && (
-                  <div className="flex gap-2">
-                    <Select
-                      value={selectedOrgToAdd}
-                      onValueChange={setSelectedOrgToAdd}
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Selecionar base..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableOrgs.map((org) => (
-                          <SelectItem key={org.id} value={org.id}>
-                            {org.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      size="sm"
-                      onClick={handleAddOrg}
-                      disabled={!selectedOrgToAdd || addingOrg}
-                    >
-                      {addingOrg ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Plus className="h-4 w-4" />
-                      )}
-                    </Button>
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Input
+                        placeholder="Pesquisar base pelo nome..."
+                        value={orgSearchQuery}
+                        onChange={(e) => setOrgSearchQuery(e.target.value)}
+                        className="text-sm"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Select
+                        value={selectedOrgToAdd}
+                        onValueChange={setSelectedOrgToAdd}
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Selecionar base..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filteredAvailableOrgs.map((org) => (
+                            <SelectItem key={org.id} value={org.id}>
+                              {org.name}
+                            </SelectItem>
+                          ))}
+                          {filteredAvailableOrgs.length === 0 && (
+                            <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                              Nenhuma base encontrada
+                            </div>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        size="sm"
+                        onClick={handleAddOrg}
+                        disabled={!selectedOrgToAdd || addingOrg}
+                      >
+                        {addingOrg ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Plus className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
