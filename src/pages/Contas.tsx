@@ -98,8 +98,12 @@ export default function Contas() {
     }).format(value);
   };
 
-  const totalBalance = accounts?.reduce((sum, acc) => sum + (acc.current_balance || 0), 0) || 0;
+  // Exclude credit cards from total available balance (they are liabilities)
   const activeAccounts = accounts?.filter((a) => a.status === "active") || [];
+  const availableAccounts = activeAccounts.filter(a => a.account_type !== "credit_card");
+  const creditCardAccounts = activeAccounts.filter(a => a.account_type === "credit_card");
+  const totalBalance = availableAccounts.reduce((sum, acc) => sum + (acc.current_balance || 0), 0);
+  const totalCreditCardDebt = creditCardAccounts.reduce((sum, acc) => sum + Math.abs(acc.current_balance || 0), 0);
 
   const handleEdit = (account: any) => {
     setSelectedAccount(account);
@@ -151,14 +155,27 @@ export default function Contas() {
         {/* Summary Card */}
         <Card className="responsive-card">
           <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">Saldo Total Consolidado</p>
-              <p className={`text-3xl md:text-4xl font-bold ${totalBalance >= 0 ? "text-green-600" : "text-destructive"}`}>
-                {formatCurrency(totalBalance)}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {activeAccounts.length} conta(s) ativa(s)
-              </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">Saldo Disponível</p>
+                <p className={`text-3xl md:text-4xl font-bold ${totalBalance >= 0 ? "text-green-600" : "text-destructive"}`}>
+                  {formatCurrency(totalBalance)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {availableAccounts.length} conta(s)
+                </p>
+              </div>
+              {creditCardAccounts.length > 0 && (
+                <div className="text-center border-l border-border pl-6 sm:pl-10">
+                  <p className="text-sm text-muted-foreground">Cartões a Pagar</p>
+                  <p className="text-2xl md:text-3xl font-bold text-destructive">
+                    -{formatCurrency(totalCreditCardDebt)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {creditCardAccounts.length} cartão(ões)
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

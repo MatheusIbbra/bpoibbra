@@ -56,10 +56,10 @@ export function useDashboardStats() {
       // Last month transactions
       const { data: lastMonthData } = await buildTransactionQuery(startOfLastMonth, endOfLastMonth);
       
-      // Get total balance from accounts
+      // Get total balance from accounts (excluding credit cards)
       let accountsQuery = supabase
         .from("accounts")
-        .select("id, initial_balance");
+        .select("id, initial_balance, account_type");
       
       // Aplicar filtro de organização
       if (orgFilter.type === 'single') {
@@ -73,6 +73,9 @@ export function useDashboardStats() {
       let totalAccountBalance = 0;
       if (accountsData) {
         for (const account of accountsData) {
+          // Credit cards are liabilities, exclude from available balance
+          if (account.account_type === 'credit_card') continue;
+          
           const { data: balanceData } = await supabase.rpc("calculate_account_balance", {
             account_uuid: account.id,
           });

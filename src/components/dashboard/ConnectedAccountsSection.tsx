@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building2,
@@ -18,7 +17,6 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useBankConnections, useSyncBankConnection, BankConnection } from "@/hooks/useBankConnections";
 import { formatCurrency } from "@/lib/formatters";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface PluggyAccountMeta {
@@ -76,22 +74,15 @@ function getAccountTypeLabel(type: string) {
   }
 }
 
+function isCreditCardType(type: string): boolean {
+  return ["CREDIT", "CREDIT_CARD"].includes(type?.toUpperCase());
+}
+
 function maskAccountNumber(number: string | null | undefined): string {
   if (!number) return "••••";
   const clean = number.replace(/\D/g, "");
   if (clean.length <= 4) return `••${clean}`;
   return `••••${clean.slice(-4)}`;
-}
-
-function getStatusColor(status: string) {
-  switch (status) {
-    case "active":
-      return "bg-success/10 text-success border-success/20";
-    case "syncing":
-      return "bg-warning/10 text-warning border-warning/20";
-    default:
-      return "bg-destructive/10 text-destructive border-destructive/20";
-  }
 }
 
 function getStatusDot(status: string) {
@@ -149,7 +140,14 @@ export function ConnectedAccountsSection() {
           const pluggyAccounts = meta?.pluggy_accounts || [];
           const bankName = meta?.bank_name || connection.provider_name || "Banco";
           const bankLogo = meta?.bank_logo_url;
-          const totalBalance = meta?.last_balance ?? null;
+
+          // Separate bank accounts from credit card accounts
+          const bankAccounts = pluggyAccounts.filter(a => !isCreditCardType(a.type));
+          const creditCards = pluggyAccounts.filter(a => isCreditCardType(a.type));
+          
+          // Total balance excludes credit cards (they are liabilities)
+          const totalBalance = bankAccounts.reduce((sum, a) => sum + (a.balance ?? 0), 0);
+          const totalCreditDebt = creditCards.reduce((sum, a) => sum + Math.abs(a.balance ?? 0), 0);
 
           return (
             <Card
@@ -176,10 +174,10 @@ export function ConnectedAccountsSection() {
                     )}
                     <div>
                       <p className="text-sm font-semibold leading-tight">{bankName}</p>
-                      {pluggyAccounts.length > 0 && (
+                      {bankAccounts.length > 0 && (
                         <p className="text-[11px] text-muted-foreground">
-                          {pluggyAccounts[0].agency && `Ag. ${pluggyAccounts[0].agency} · `}
-                          {maskAccountNumber(pluggyAccounts[0].number)}
+                          {bankAccounts[0].agency && `Ag. ${bankAccounts[0].agency} · `}
+                          {maskAccountNumber(bankAccounts[0].number)}
                         </p>
                       )}
                     </div>
@@ -202,8 +200,8 @@ export function ConnectedAccountsSection() {
                   </div>
                 </div>
 
-                {/* Balance */}
-                {totalBalance !== null && (
+                {/* Balance — only non-credit-card accounts */}
+                {bankAccounts.length > 0 && (
                   <div className="mb-2">
                     <p className="text-[11px] text-muted-foreground">Saldo</p>
                     <p className="text-xl font-bold tracking-tight">
@@ -212,10 +210,10 @@ export function ConnectedAccountsSection() {
                   </div>
                 )}
 
-                {/* Sub-accounts list */}
-                {pluggyAccounts.length > 1 && (
+                {/* Sub-accounts list (non-credit-card) */}
+                {bankAccounts.length > 1 && (
                   <div className="space-y-1 mb-2">
-                    {pluggyAccounts.map((acc) => (
+                    {bankAccounts.map((acc) => (
                       <div
                         key={acc.id}
                         className="flex items-center justify-between text-xs"
@@ -231,6 +229,37 @@ export function ConnectedAccountsSection() {
                         </span>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* Credit card debt — shown as liability */}
+                {creditCards.length > 0 && (
+                  <div className="space-y-1 mb-2 pt-2 border-t border-border/50">
+                    {creditCards.map((acc) => {
+                      const debt = Math.abs(acc.balance ?? 0);
+                      const availableCredit = acc.available_balance ?? null;
+                      return (
+                        <div key={acc.id}>
+                          <div className="flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <CreditCard className="h-4 w-4" />
+                              <span>{acc.name || "Cartão"}</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-medium text-destructive">
+                                {formatCurrency(debt)}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground ml-1">fatura</span>
+                            </div>
+                          </div>
+                          {availableCredit !== null && (
+                            <div className="flex justify-end text-[10px] text-muted-foreground mt-0.5">
+                              Limite disponível: {formatCurrency(availableCredit)}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
