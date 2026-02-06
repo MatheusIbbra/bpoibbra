@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { BaseSelectorEnhanced } from "./BaseSelectorEnhanced";
+import { InsightsHeaderButton } from "./InsightsHeaderButton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -98,6 +99,11 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Insights button */}
+        <div className="hidden md:block">
+          <InsightsHeaderButton />
+        </div>
+
         {/* Theme toggle */}
         <Button 
           variant="ghost" 

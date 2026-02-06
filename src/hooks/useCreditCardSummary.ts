@@ -14,6 +14,10 @@ export interface CreditCardSummary {
   amountDue: number;
 }
 
+// CREDIT CARD RULE:
+// credit_card accounts are liabilities (passivo).
+// Never include in available balance calculations.
+// Purchases affect DRE only. Payments affect cash flow only.
 export function useCreditCardSummary() {
   const { user } = useAuth();
   const { getOrganizationFilter } = useBaseFilter();
@@ -70,9 +74,9 @@ export function useCreditCardSummary() {
           }
         });
 
-        // Balance from RPC (negative = owed)
+        // CREDIT CARD RULE: Balance is always treated as debt (absolute negative = liability)
         const balance = Number(account.current_balance) || 0;
-        const amountDue = Math.abs(Math.min(balance, 0));
+        const amountDue = Math.abs(balance);
 
         return {
           accountId: account.id,

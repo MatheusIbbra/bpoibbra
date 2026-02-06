@@ -78,7 +78,10 @@ export function useCashFlowReport(
       let openingBalance = 0;
       priorTransactions?.forEach((tx) => {
         const accountType = (tx.accounts as any)?.account_type;
-        // Skip credit card account transactions for cash flow opening balance
+        // CREDIT CARD RULE:
+        // credit_card accounts are liabilities (passivo).
+        // Never include in available balance calculations.
+        // Purchases affect DRE only, not cash flow.
         if (accountType === 'credit_card') return;
 
         const amount = parseFloat(String(tx.amount));
@@ -144,7 +147,9 @@ export function useCashFlowReport(
         periodTransactions.forEach((tx) => {
           const accountType = (tx.accounts as any)?.account_type;
           
-          // Skip credit card account transactions (purchases don't affect cash)
+          // CREDIT CARD RULE:
+          // credit_card accounts are liabilities (passivo).
+          // Purchases don't affect cash flow, only DRE.
           if (accountType === 'credit_card') return;
 
           const amount = Number(tx.amount);

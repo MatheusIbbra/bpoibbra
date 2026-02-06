@@ -9,7 +9,7 @@ import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
 import { CategoryDonutChart } from "@/components/dashboard/CategoryDonutChart";
 import { BudgetProgress } from "@/components/dashboard/BudgetProgress";
 import { ReconciliationMetricsCard } from "@/components/dashboard/ReconciliationMetricsCard";
-import { StrategicInsightsCard } from "@/components/dashboard/StrategicInsightsCard";
+
 import { StatCard } from "@/components/dashboard/StatCard";
 import { StatCardHoverTransactions } from "@/components/dashboard/StatCardHoverTransactions";
 import { CreditCardSummary } from "@/components/dashboard/CreditCardSummary";
@@ -105,9 +105,6 @@ const Index = () => {
 
         {/* Últimas Movimentações */}
         <FintechTransactionsList />
-
-        {/* Insights Estratégicos */}
-        <StrategicInsightsCard />
 
         {/* Cards menores */}
         <div className="grid gap-3 grid-cols-1 md:grid-cols-2">
