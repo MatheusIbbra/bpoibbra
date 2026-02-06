@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAccounts, useDeleteAccount, AccountType } from "@/hooks/useAccounts";
+import { useBankConnections } from "@/hooks/useBankConnections";
 import { AccountDialog } from "@/components/accounts/AccountDialog";
 import { TransferDialog } from "@/components/transfers/TransferDialog";
 import { useTransfers, useDeleteTransfer } from "@/hooks/useTransfers";
@@ -51,6 +52,16 @@ export default function Contas() {
 
   const { data: accounts, isLoading: loadingAccounts } = useAccounts();
   const { data: transfers, isLoading: loadingTransfers } = useTransfers();
+  const { data: bankConnections } = useBankConnections();
+
+  // Build a map of bank_name -> logo_url from connections metadata
+  const bankLogoMap = new Map<string, string>();
+  bankConnections?.forEach((conn) => {
+    const meta = (conn as any).metadata as { bank_name?: string; bank_logo_url?: string | null } | null;
+    if (meta?.bank_name && meta?.bank_logo_url) {
+      bankLogoMap.set(meta.bank_name, meta.bank_logo_url);
+    }
+  });
   const deleteAccount = useDeleteAccount();
   const deleteTransfer = useDeleteTransfer();
   const { canCreate } = useCanCreate();
@@ -174,6 +185,7 @@ export default function Contas() {
           ) : (
             accounts?.map((account) => {
               const Icon = ACCOUNT_TYPE_ICONS[account.account_type] || Building2;
+              const bankLogo = account.bank_name ? bankLogoMap.get(account.bank_name) : undefined;
               return (
                 <Card key={account.id} className="relative">
                   <div className="absolute top-3 right-3 flex gap-1">
@@ -186,12 +198,21 @@ export default function Contas() {
                   </div>
                   <CardHeader className="pb-2">
                     <div className="flex items-center gap-3">
-                      <div
-                        className="h-10 w-10 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: account.color || "#3b82f6" }}
-                      >
-                        <Icon className="h-5 w-5 text-white" />
-                      </div>
+                      {bankLogo ? (
+                        <img
+                          src={bankLogo}
+                          alt={account.bank_name || ""}
+                          className="h-10 w-10 rounded-lg object-contain bg-muted p-0.5"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      ) : (
+                        <div
+                          className="h-10 w-10 rounded-lg flex items-center justify-center"
+                          style={{ backgroundColor: account.color || "#3b82f6" }}
+                        >
+                          <Icon className="h-5 w-5 text-white" />
+                        </div>
+                      )}
                       <div>
                         <CardTitle className="text-base">{account.name}</CardTitle>
                         <p className="text-sm text-muted-foreground">{account.bank_name}</p>

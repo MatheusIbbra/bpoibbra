@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
-import { format, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, parseISO } from "date-fns";
+import { format, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval } from "date-fns";
 import { getLegacyInitialBalanceAdjustment } from "@/lib/legacy-initial-balance";
 import { parseLocalDate } from "@/lib/formatters";
 
@@ -44,19 +44,14 @@ export function useCashFlowReport(
   return useQuery({
     queryKey: ["cashflow-report", user?.id, orgFilter.type, orgFilter.ids, format(startDate, "yyyy-MM-dd"), format(endDate, "yyyy-MM-dd"), basis, granularity],
     queryFn: async (): Promise<CashFlowData> => {
-      // Initial balance from accounts is now handled as a transaction,
-      // so we don't need to fetch initial_balance separately anymore.
-      // This prevents double-counting.
-
-      // Get transactions for the period
+      // Get transactions for the period - join accounts to get account_type
       let transactionsQuery = supabase
         .from("transactions")
-        .select("id, amount, type, date")
+        .select("id, amount, type, date, accounts(account_type)")
         .gte(dateField, format(startDate, "yyyy-MM-dd"))
         .lte(dateField, format(endDate, "yyyy-MM-dd"))
         .order("date", { ascending: true });
 
-      // Aplicar filtro de organização
       if (orgFilter.type === 'single') {
         transactionsQuery = transactionsQuery.eq("organization_id", orgFilter.ids[0]);
       } else if (orgFilter.type === 'multiple' && orgFilter.ids.length > 0) {
@@ -64,16 +59,14 @@ export function useCashFlowReport(
       }
 
       const { data: transactions, error } = await transactionsQuery;
-
       if (error) throw error;
 
       // Get opening balance (sum of transactions before start date)
       let priorQuery = supabase
         .from("transactions")
-        .select("amount, type")
+        .select("amount, type, accounts(account_type)")
         .lt(dateField, format(startDate, "yyyy-MM-dd"));
 
-      // Aplicar filtro de organização
       if (orgFilter.type === 'single') {
         priorQuery = priorQuery.eq("organization_id", orgFilter.ids[0]);
       } else if (orgFilter.type === 'multiple' && orgFilter.ids.length > 0) {
@@ -82,19 +75,24 @@ export function useCashFlowReport(
 
       const { data: priorTransactions } = await priorQuery;
 
-      // Opening balance is now calculated purely from prior transactions
-      // (initial balances are already recorded as transactions)
       let openingBalance = 0;
       priorTransactions?.forEach((tx) => {
+        const accountType = (tx.accounts as any)?.account_type;
+        // Skip credit card account transactions for cash flow opening balance
+        if (accountType === 'credit_card') return;
+
         const amount = parseFloat(String(tx.amount));
         if (tx.type === "income" || tx.type === "redemption") {
           openingBalance += amount;
         } else if (tx.type === "expense" || tx.type === "investment") {
           openingBalance -= amount;
+        } else if (tx.type === "transfer") {
+          // Bill payments (transfer type) are cash outflows
+          openingBalance -= amount;
         }
       });
 
-      // Add legacy account initial balances (accounts without initial tx)
+      // Add legacy account initial balances
       openingBalance += await getLegacyInitialBalanceAdjustment({
         orgFilter: orgFilter as any,
         beforeDate: format(startDate, "yyyy-MM-dd"),
@@ -144,6 +142,11 @@ export function useCashFlowReport(
         let redemptions = 0;
 
         periodTransactions.forEach((tx) => {
+          const accountType = (tx.accounts as any)?.account_type;
+          
+          // Skip credit card account transactions (purchases don't affect cash)
+          if (accountType === 'credit_card') return;
+
           const amount = Number(tx.amount);
           switch (tx.type) {
             case "income":
@@ -151,6 +154,11 @@ export function useCashFlowReport(
               totalInflows += amount;
               break;
             case "expense":
+              outflows += amount;
+              totalOutflows += amount;
+              break;
+            case "transfer":
+              // Bill payments (reclassified from expense) are cash outflows
               outflows += amount;
               totalOutflows += amount;
               break;

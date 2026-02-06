@@ -558,7 +558,7 @@ Deno.serve(async (req) => {
 
       const rawAmount = tx.amount || 0;
       const amount = Math.abs(rawAmount);
-      const type = tx.type === 'CREDIT' || rawAmount > 0 ? 'income' : 'expense';
+      let type = tx.type === 'CREDIT' || rawAmount > 0 ? 'income' : 'expense';
       const txDate = tx.date ? tx.date.split('T')[0] : new Date().toISOString().split('T')[0];
       const description = tx.description || tx.descriptionRaw || 'Movimentação via Open Finance';
 
@@ -568,6 +568,27 @@ Deno.serve(async (req) => {
         console.warn(`[TX] No local account for Pluggy account ${tx.pluggyAccountId}, skipping transaction`);
         skipped++;
         continue;
+      }
+
+      // ========================================
+      // CREDIT CARD PAYMENT DETECTION
+      // ========================================
+      const accountForTx = accounts.find((a: any) => a.id === tx.pluggyAccountId);
+      const pluggyAccountType = accountForTx ? mapPluggyAccountType(accountForTx.type || accountForTx.subtype || 'BANK') : 'checking';
+      
+      if (pluggyAccountType === 'credit_card' && type === 'income') {
+        // Income on credit card = bill payment received → mark as transfer
+        type = 'transfer';
+        console.log(`[CC] TX on credit_card marked as transfer (payment received): ${description}`);
+      } else if (pluggyAccountType !== 'credit_card' && type === 'expense') {
+        // Check if this looks like a credit card bill payment from checking/savings
+        const descLower = (description || '').toLowerCase();
+        const paymentPatterns = ['pagamento', 'fatura', 'pgto cartao', 'pgto cartão', 'pag fatura', 'pag cartao', 'pag cartão'];
+        const isCardPayment = paymentPatterns.some(p => descLower.includes(p));
+        if (isCardPayment) {
+          type = 'transfer';
+          console.log(`[CC] TX on checking marked as transfer (bill payment): ${description}`);
+        }
       }
 
       const { data: inserted, error: insertError } = await supabaseAdmin

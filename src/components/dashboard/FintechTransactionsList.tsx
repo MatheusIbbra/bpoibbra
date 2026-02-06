@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,6 +9,8 @@ import {
   TrendingUp,
   TrendingDown,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { format, isToday, isYesterday, differenceInDays, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -96,10 +98,11 @@ function getIconBg(type: string) {
 export function FintechTransactionsList() {
   const navigate = useNavigate();
   const { data: transactions, isLoading } = useTransactions({});
+  const [isExpanded, setIsExpanded] = useState(true);
 
-  // Take the last 20 transactions
+  // Take the last 10 transactions (smaller)
   const recentTransactions = useMemo(
-    () => (transactions || []).slice(0, 20),
+    () => (transactions || []).slice(0, 10),
     [transactions]
   );
 
@@ -128,9 +131,13 @@ export function FintechTransactionsList() {
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between px-1">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors"
+        >
+          {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
           Últimas Movimentações
-        </h3>
+        </button>
         <Button
           variant="ghost"
           size="sm"
@@ -141,8 +148,8 @@ export function FintechTransactionsList() {
           <ChevronRight className="h-3 w-3 ml-0.5" />
         </Button>
       </div>
-      {grouped.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-6">
+      {!isExpanded ? null : grouped.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-4">
           Nenhuma movimentação encontrada
         </p>
       ) : (
@@ -158,28 +165,25 @@ export function FintechTransactionsList() {
                 {group.transactions.map((tx) => (
                   <div
                     key={tx.id}
-                    className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer"
+                    className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer"
                     onClick={() => navigate("/movimentacoes")}
                   >
                     <div
                       className={cn(
-                        "flex h-7 w-7 items-center justify-center rounded-full shrink-0",
+                        "flex h-6 w-6 items-center justify-center rounded-full shrink-0",
                         getIconBg(tx.type)
                       )}
                     >
                       {getTransactionIcon(tx.type, tx.categories?.icon)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate leading-tight">
+                      <p className="text-xs font-medium truncate leading-tight">
                         {tx.description || "Movimentação"}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground/70 truncate">
-                        {tx.categories?.name || "Sem categoria"}
                       </p>
                     </div>
                     <p
                       className={cn(
-                        "text-sm font-semibold tabular-nums shrink-0",
+                        "text-xs font-semibold tabular-nums shrink-0",
                         tx.type === "income" && "text-success",
                         tx.type === "expense" && "text-destructive",
                         tx.type !== "income" && tx.type !== "expense" && "text-muted-foreground"
