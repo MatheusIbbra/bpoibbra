@@ -12,7 +12,7 @@ import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
-const ITEMS_PER_PAGE = 6;
+const ITEMS_PER_PAGE = 8;
 
 export function RecentTransactions() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -23,7 +23,6 @@ export function RecentTransactions() {
   const { data: categories } = useCategories();
   const updateTransaction = useUpdateTransaction();
   
-  // Calculate date range based on period filter
   const getDateRange = () => {
     const now = new Date();
     switch (periodFilter) {
@@ -49,30 +48,21 @@ export function RecentTransactions() {
     categoryId: categoryFilter !== "all" ? categoryFilter : undefined,
   });
 
-  // Pagination
   const totalItems = transactions?.length || 0;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedTransactions = transactions?.slice(startIndex, startIndex + ITEMS_PER_PAGE) || [];
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString), "dd MMM", { locale: ptBR });
-  };
+  const formatDate = (dateString: string) =>
+    format(new Date(dateString), "dd MMM", { locale: ptBR });
 
   const handleQuickClassify = async (transactionId: string, categoryId: string) => {
     setClassifyingId(transactionId);
     try {
-      await updateTransaction.mutateAsync({
-        id: transactionId,
-        category_id: categoryId,
-      });
+      await updateTransaction.mutateAsync({ id: transactionId, category_id: categoryId });
       toast.success("Categoria atualizada!");
     } catch (error) {
       toast.error("Erro ao atualizar categoria");
@@ -81,34 +71,25 @@ export function RecentTransactions() {
     }
   };
 
-  // Reset page when filters change
-  const handlePeriodChange = (value: string) => {
-    setPeriodFilter(value);
-    setCurrentPage(1);
-  };
-
-  const handleCategoryChange = (value: string) => {
-    setCategoryFilter(value);
-    setCurrentPage(1);
-  };
+  const handlePeriodChange = (value: string) => { setPeriodFilter(value); setCurrentPage(1); };
+  const handleCategoryChange = (value: string) => { setCategoryFilter(value); setCurrentPage(1); };
 
   return (
     <Card>
-      <CardHeader className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <CardTitle className="text-lg font-semibold">Transações Recentes</CardTitle>
+      <CardHeader className="pb-2 pt-3 px-4">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-semibold">Transações Recentes</CardTitle>
           <Link to="/transacoes">
-            <Badge variant="outline" className="cursor-pointer hover:bg-secondary">
+            <Badge variant="outline" className="cursor-pointer hover:bg-secondary text-[10px]">
               Ver todas
             </Badge>
           </Link>
         </div>
         
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
+        {/* Compact Filters */}
+        <div className="flex items-center gap-1.5 mt-2">
           <Select value={periodFilter} onValueChange={handlePeriodChange}>
-            <SelectTrigger className="w-[140px] h-8 text-xs">
+            <SelectTrigger className="w-[120px] h-7 text-[11px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -120,7 +101,7 @@ export function RecentTransactions() {
           </Select>
           
           <Select value={categoryFilter} onValueChange={handleCategoryChange}>
-            <SelectTrigger className="w-[140px] h-8 text-xs">
+            <SelectTrigger className="w-[120px] h-7 text-[11px]">
               <SelectValue placeholder="Categoria" />
             </SelectTrigger>
             <SelectContent>
@@ -133,104 +114,96 @@ export function RecentTransactions() {
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-1">
+      <CardContent className="px-4 pb-3 pt-1">
         {isLoading ? (
-          <div className="flex h-40 items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <div className="flex h-32 items-center justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : paginatedTransactions.length === 0 ? (
-          <div className="flex h-40 items-center justify-center text-muted-foreground">
+          <div className="flex h-32 items-center justify-center text-muted-foreground text-sm">
             Nenhuma transação encontrada
           </div>
         ) : (
           <>
-            {paginatedTransactions.map((transaction) => (
-              <div
-                key={transaction.id}
-                className="flex items-center gap-3 rounded-lg p-3 transition-colors hover:bg-muted/50 group"
-              >
+            <div className="divide-y divide-border/50">
+              {paginatedTransactions.map((transaction) => (
                 <div
-                  className={cn(
-                    "flex h-9 w-9 items-center justify-center rounded-full shrink-0",
+                  key={transaction.id}
+                  className="flex items-center gap-2.5 py-2 first:pt-0"
+                >
+                  <div className={cn(
+                    "flex h-7 w-7 items-center justify-center rounded-full shrink-0",
                     transaction.type === "income"
                       ? "bg-success/10 text-success"
                       : "bg-destructive/10 text-destructive"
-                  )}
-                >
-                  {transaction.type === "income" ? (
-                    <ArrowUpRight className="h-4 w-4" />
-                  ) : (
-                    <ArrowDownLeft className="h-4 w-4" />
-                  )}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium leading-none truncate">
-                    {transaction.description}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    {transaction.categories ? (
-                      <Badge variant="secondary" className="text-xs">
-                        {transaction.categories.name}
-                      </Badge>
+                  )}>
+                    {transaction.type === "income" ? (
+                      <ArrowUpRight className="h-3.5 w-3.5" />
                     ) : (
-                      <QuickCategorySelect
-                        transactionId={transaction.id}
-                        transactionType={transaction.type}
-                        categories={categories || []}
-                        isLoading={classifyingId === transaction.id}
-                        onSelect={handleQuickClassify}
-                      />
+                      <ArrowDownLeft className="h-3.5 w-3.5" />
                     )}
                   </div>
-                </div>
 
-                <div className="flex flex-col items-end gap-1 shrink-0">
-                  <span
-                    className={cn(
-                      "text-sm font-semibold",
-                      transaction.type === "income"
-                        ? "text-success"
-                        : "text-foreground"
-                    )}
-                  >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium leading-none truncate">
+                      {transaction.description}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {transaction.categories ? (
+                        <span className="text-[10px] text-muted-foreground">
+                          {transaction.categories.name}
+                        </span>
+                      ) : (
+                        <QuickCategorySelect
+                          transactionId={transaction.id}
+                          transactionType={transaction.type}
+                          categories={categories || []}
+                          isLoading={classifyingId === transaction.id}
+                          onSelect={handleQuickClassify}
+                        />
+                      )}
+                      <span className="text-[10px] text-muted-foreground">
+                        · {formatDate(transaction.date)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <span className={cn(
+                    "text-xs font-semibold shrink-0",
+                    transaction.type === "income" ? "text-success" : "text-foreground"
+                  )}>
                     {transaction.type === "income" ? "+" : "-"}
                     {formatCurrency(transaction.amount)}
                   </span>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDate(transaction.date)}
-                  </p>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
             
-            {/* Pagination */}
+            {/* Compact Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between pt-3 border-t">
-                <p className="text-xs text-muted-foreground">
+              <div className="flex items-center justify-between pt-2 mt-1 border-t">
+                <p className="text-[10px] text-muted-foreground">
                   {startIndex + 1}-{Math.min(startIndex + ITEMS_PER_PAGE, totalItems)} de {totalItems}
                 </p>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 w-7 p-0"
+                    className="h-6 w-6 p-0"
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="h-3.5 w-3.5" />
                   </Button>
-                  <span className="text-xs px-2">
-                    {currentPage}/{totalPages}
-                  </span>
+                  <span className="text-[10px] px-1.5">{currentPage}/{totalPages}</span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 w-7 p-0"
+                    className="h-6 w-6 p-0"
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
                   >
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
@@ -270,8 +243,8 @@ function QuickCategorySelect({ transactionId, transactionType, categories, isLoa
         setIsOpen(false);
       }}
     >
-      <SelectTrigger className="h-6 text-xs w-auto border-dashed">
-        <SelectValue placeholder="+ Categoria" />
+      <SelectTrigger className="h-5 text-[10px] w-auto border-dashed px-1.5">
+        <SelectValue placeholder="+ Cat." />
       </SelectTrigger>
       <SelectContent>
         {filteredCategories.map((cat) => (

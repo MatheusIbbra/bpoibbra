@@ -13,6 +13,7 @@ import { ImportCard } from "@/components/import/ImportCard";
 import { ReconciliationMetricsCard } from "@/components/dashboard/ReconciliationMetricsCard";
 import { StrategicInsightsCard } from "@/components/dashboard/StrategicInsightsCard";
 import { TransactionsDetailModal } from "@/components/dashboard/TransactionsDetailModal";
+import { CategoryDonutChart } from "@/components/dashboard/CategoryDonutChart";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useTransactions } from "@/hooks/useTransactions";
@@ -195,6 +196,7 @@ const Index = () => {
             <RecentTransactions />
           </div>
           <div className="space-y-3">
+            <CategoryDonutChart />
             <ReconciliationMetricsCard />
             <ImportCard />
             <BudgetProgress />
