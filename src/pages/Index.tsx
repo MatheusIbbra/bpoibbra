@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ConnectedAccountsSection } from "@/components/dashboard/ConnectedAccountsSection";
 import { FintechTransactionsList } from "@/components/dashboard/FintechTransactionsList";
@@ -11,11 +11,10 @@ import { BudgetProgress } from "@/components/dashboard/BudgetProgress";
 import { ReconciliationMetricsCard } from "@/components/dashboard/ReconciliationMetricsCard";
 import { StrategicInsightsCard } from "@/components/dashboard/StrategicInsightsCard";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { ImportCard } from "@/components/import/ImportCard";
+import { TransactionsDetailModal } from "@/components/dashboard/TransactionsDetailModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { formatCurrency } from "@/lib/formatters";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw, Wallet, ArrowUpRight, ArrowDownRight, PiggyBank } from "lucide-react";
 
@@ -23,6 +22,10 @@ const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { data: stats, error } = useDashboardStats();
+  const [detailModal, setDetailModal] = useState<{ open: boolean; type: "income" | "expense" }>({
+    open: false,
+    type: "income",
+  });
 
   useEffect(() => {
     if (!loading && !user) {
@@ -76,6 +79,7 @@ const Index = () => {
             icon={<ArrowUpRight className="h-4 w-4" />}
             variant="success"
             trend={stats?.incomeChange ? { value: stats.incomeChange, isPositive: stats.incomeChange >= 0 } : undefined}
+            onClick={() => setDetailModal({ open: true, type: "income" })}
           />
           <StatCard
             title="Despesas do Mês"
@@ -83,6 +87,7 @@ const Index = () => {
             icon={<ArrowDownRight className="h-4 w-4" />}
             variant="destructive"
             trend={stats?.expenseChange ? { value: stats.expenseChange, isPositive: stats.expenseChange <= 0 } : undefined}
+            onClick={() => setDetailModal({ open: true, type: "expense" })}
           />
           <StatCard
             title="Economia do Mês"
@@ -95,32 +100,36 @@ const Index = () => {
         {/* Alertas de Orçamento */}
         <BudgetAlerts showNotifications={true} />
 
-        {/* Movimentações + Gráficos */}
-        <div className="grid gap-3 grid-cols-1 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <FintechTransactionsList />
-          </div>
-          <div className="lg:col-span-1">
-            <CategoryDonutChart />
-          </div>
-        </div>
+        {/* Movimentações Recentes */}
+        <FintechTransactionsList />
 
-        {/* Evolução Mensal */}
-        <MonthlyEvolutionChart />
+        {/* Distribuição por Categoria + Evolução Financeira lado a lado */}
+        <div className="grid gap-3 grid-cols-1 lg:grid-cols-2">
+          <CategoryDonutChart />
+          <MonthlyEvolutionChart />
+        </div>
 
         {/* Insights Estratégicos */}
         <StrategicInsightsCard />
 
         {/* Cards menores */}
-        <div className="grid gap-3 grid-cols-1 md:grid-cols-3">
+        <div className="grid gap-3 grid-cols-1 md:grid-cols-2">
           <ReconciliationMetricsCard />
-          <ImportCard />
           <BudgetProgress />
         </div>
 
         {/* Contas Conectadas (Open Finance) */}
         <ConnectedAccountsSection />
       </div>
+
+      {/* Modal de detalhes de Receitas/Despesas */}
+      <TransactionsDetailModal
+        open={detailModal.open}
+        onOpenChange={(open) => setDetailModal((prev) => ({ ...prev, open }))}
+        type={detailModal.type}
+        title={detailModal.type === "income" ? "Receitas do Mês" : "Despesas do Mês"}
+        totalValue={detailModal.type === "income" ? (stats?.monthlyIncome ?? 0) : (stats?.monthlyExpenses ?? 0)}
+      />
 
       <AIAssistantChat isPaidUser={false} />
     </AppLayout>
