@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { PluggyConnect } from "react-pluggy-connect";
 import { 
   useBankConnections, 
   useOpenPluggyConnect,
@@ -60,102 +61,94 @@ export function BankConnectionsManager() {
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState<BankConnection | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
-
-  // Listen for messages from the Pluggy popup
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (!event.data?.type?.startsWith('pluggy-')) return;
-      
-      const organizationId = localStorage.getItem('pending_openfinance_org');
-      
-      switch (event.data.type) {
-        case 'pluggy-success':
-          console.log('Pluggy success:', event.data.data);
-          if (organizationId && event.data.data) {
-            const itemData = event.data.data;
-            savePluggyItem.mutateAsync({
-              organizationId,
-              itemId: itemData.item?.id || itemData.id,
-              connectorName: itemData.connector?.name
-            }).then(() => {
-              return syncConnection.mutateAsync({
-                organizationId,
-                itemId: itemData.item?.id || itemData.id
-              });
-            }).then(() => {
-              refetch();
-            }).catch((err) => {
-              console.error('Failed to save/sync Pluggy item:', err);
-            });
-          }
-          setIsConnecting(false);
-          break;
-        case 'pluggy-error':
-          console.error('Pluggy error:', event.data.error);
-          toast.error("Erro na conexão: " + (event.data.error?.message || 'Erro desconhecido'));
-          setIsConnecting(false);
-          break;
-        case 'pluggy-close':
-          setIsConnecting(false);
-          break;
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [savePluggyItem, syncConnection, refetch]);
+  
+  // Pluggy Connect widget state
+  const [connectToken, setConnectToken] = useState<string | null>(null);
+  const [showPluggyWidget, setShowPluggyWidget] = useState(false);
+  const [pendingOrgId, setPendingOrgId] = useState<string | null>(null);
 
   const handleConnect = async () => {
     const organizationId = getRequiredOrganizationId();
     if (!organizationId) return;
 
     setIsConnecting(true);
-    localStorage.setItem('pending_openfinance_org', organizationId);
+    setPendingOrgId(organizationId);
     
     try {
       const result = await openPluggyConnect.mutateAsync({ organizationId });
       
       if (!result.accessToken) {
-        console.error("Backend returned no accessToken:", result);
+        console.error("[OpenFinance] Backend returned no accessToken:", result);
         toast.error("Token de conexão inválido. Verifique a configuração do provedor.");
         setIsConnecting(false);
         return;
       }
 
       console.log(`[OpenFinance] Connect token received (${result.accessToken.length} chars)`);
-
-      // Open the static HTML page in a popup, passing the token via hash
-      const popup = window.open(
-        `/pluggy-connect.html#${result.accessToken}`,
-        'pluggy-connect',
-        'width=500,height=700,scrollbars=yes,resizable=yes,left=200,top=100'
-      );
-
-      if (!popup) {
-        toast.error('Popup bloqueado pelo navegador. Permita popups para este site.');
-        setIsConnecting(false);
-        return;
-      }
-
-      // Monitor popup close
-      const checkClosed = setInterval(() => {
-        try {
-          if (popup.closed) {
-            clearInterval(checkClosed);
-            setIsConnecting(false);
-          }
-        } catch(e) {
-          // Cross-origin errors when popup navigates
-          clearInterval(checkClosed);
-          setIsConnecting(false);
-        }
-      }, 500);
+      setConnectToken(result.accessToken);
+      setShowPluggyWidget(true);
     } catch (error: any) {
       console.error("[OpenFinance] Failed to get connect token:", error);
-      const msg = error?.message || 'Erro desconhecido';
-      toast.error("Falha ao conectar: " + msg);
+      toast.error("Falha ao conectar: " + (error?.message || 'Erro desconhecido'));
       setIsConnecting(false);
     }
+  };
+
+  const handlePluggySuccess = async (itemData: any) => {
+    console.log("[OpenFinance] Pluggy success:", itemData);
+    setShowPluggyWidget(false);
+    setConnectToken(null);
+
+    if (pendingOrgId && itemData) {
+      try {
+        const itemId = itemData.item?.id || itemData.id;
+        const connectorName = itemData.connector?.name;
+
+        await savePluggyItem.mutateAsync({
+          organizationId: pendingOrgId,
+          itemId,
+          connectorName
+        });
+
+        await syncConnection.mutateAsync({
+          organizationId: pendingOrgId,
+          itemId
+        });
+
+        refetch();
+      } catch (err) {
+        console.error("[OpenFinance] Failed to save/sync Pluggy item:", err);
+      }
+    }
+
+    setIsConnecting(false);
+    setPendingOrgId(null);
+  };
+
+  const handlePluggyError = (error: any) => {
+    console.error("[OpenFinance] Pluggy error:", error);
+    toast.error("Erro na conexão: " + (error?.message || 'Erro desconhecido'));
+    setShowPluggyWidget(false);
+    setConnectToken(null);
+    setIsConnecting(false);
+    setPendingOrgId(null);
+  };
+
+  const handlePluggyClose = () => {
+    console.log("[OpenFinance] Pluggy widget closed");
+    setShowPluggyWidget(false);
+    setConnectToken(null);
+    setIsConnecting(false);
+    setPendingOrgId(null);
+  };
+
+  const handlePluggyLoadError = (error: Error) => {
+    console.error("[OpenFinance] Pluggy widget load error:", error);
+    toast.error("Erro ao carregar widget de conexão. Tente novamente.");
+    setShowPluggyWidget(false);
+    setConnectToken(null);
+    setIsConnecting(false);
+    setPendingOrgId(null);
   };
 
   const handleFirstSync = async () => {
@@ -316,6 +309,17 @@ export function BankConnectionsManager() {
           )}
         </CardContent>
       </Card>
+
+      {/* Pluggy Connect React Widget - renders as modal overlay */}
+      {showPluggyWidget && connectToken && (
+        <PluggyConnect
+          connectToken={connectToken}
+          onSuccess={handlePluggySuccess}
+          onError={handlePluggyError}
+          onClose={handlePluggyClose}
+          onLoadError={handlePluggyLoadError}
+        />
+      )}
 
       <AlertDialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
         <AlertDialogContent>
