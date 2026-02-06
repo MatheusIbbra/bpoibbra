@@ -96,6 +96,8 @@ export function CategoryDonutChart() {
 }
 
 function DonutSection({ title, data, type }: { title: string; data: DonutData[]; type: "income" | "expense" }) {
+  const total = data.reduce((s, d) => s + d.value, 0);
+
   if (data.length === 0) {
     return (
       <div className="text-center py-3">
@@ -110,23 +112,26 @@ function DonutSection({ title, data, type }: { title: string; data: DonutData[];
 
   return (
     <div>
-      <p className={cn(
-        "text-xs font-semibold mb-2",
-        type === "income" ? "text-success" : "text-destructive"
-      )}>
-        {title}
-      </p>
-      <div className="flex items-start gap-3">
-        <div className="h-[90px] w-[90px] shrink-0">
+      <div className="flex items-center justify-between mb-2">
+        <p className={cn(
+          "text-xs font-semibold",
+          type === "income" ? "text-success" : "text-destructive"
+        )}>
+          {title}
+        </p>
+        <span className="text-xs font-bold tabular-nums">{formatCurrency(total)}</span>
+      </div>
+      <div className="flex items-start gap-4">
+        <div className="h-[100px] w-[100px] shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={data}
                 cx="50%"
                 cy="50%"
-                innerRadius={22}
-                outerRadius={40}
-                paddingAngle={3}
+                innerRadius={26}
+                outerRadius={45}
+                paddingAngle={2}
                 dataKey="value"
                 strokeWidth={0}
               >
@@ -146,12 +151,15 @@ function DonutSection({ title, data, type }: { title: string; data: DonutData[];
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <div className="space-y-1 flex-1 min-w-0 pt-1">
-          {data.slice(0, 5).map((item, i) => (
-            <div key={i} className="flex items-center gap-1.5 text-[11px]">
-              <div className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: item.color }} />
+        <div className="space-y-1.5 flex-1 min-w-0 pt-0.5">
+          {data.slice(0, 6).map((item, i) => (
+            <div key={i} className="flex items-center gap-2 text-[11px]">
+              <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
               <span className="truncate flex-1">{item.name}</span>
-              <span className="text-muted-foreground tabular-nums shrink-0">{item.percentage.toFixed(0)}%</span>
+              <span className="font-medium tabular-nums shrink-0">{formatCurrency(item.value)}</span>
+              <span className="text-muted-foreground tabular-nums shrink-0 w-[32px] text-right">
+                {item.percentage.toFixed(0)}%
+              </span>
             </div>
           ))}
         </div>
