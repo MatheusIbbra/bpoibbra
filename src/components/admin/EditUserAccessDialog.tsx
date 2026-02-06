@@ -13,6 +13,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   Mail, 
   KeyRound, 
@@ -21,7 +28,10 @@ import {
   Loader2, 
   AlertTriangle,
   User,
-  Send
+  Send,
+  Building2,
+  Plus,
+  X
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +44,12 @@ interface UserToEdit {
   role: AppRole | null;
   is_blocked?: boolean;
   blocked_reason?: string | null;
+}
+
+interface UserOrg {
+  id: string;
+  name: string;
+  org_member_id: string;
 }
 
 interface EditUserAccessDialogProps {
@@ -56,6 +72,14 @@ export function EditUserAccessDialog({
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isTogglingBlock, setIsTogglingBlock] = useState(false);
 
+  // Base access state
+  const [userOrgs, setUserOrgs] = useState<UserOrg[]>([]);
+  const [allOrgs, setAllOrgs] = useState<{ id: string; name: string }[]>([]);
+  const [loadingOrgs, setLoadingOrgs] = useState(false);
+  const [addingOrg, setAddingOrg] = useState(false);
+  const [removingOrgId, setRemovingOrgId] = useState<string | null>(null);
+  const [selectedOrgToAdd, setSelectedOrgToAdd] = useState("");
+
   useEffect(() => {
     if (user) {
       setEmail(user.email || "");
@@ -63,6 +87,102 @@ export function EditUserAccessDialog({
       setBlockedReason(user.blocked_reason || "");
     }
   }, [user]);
+
+  // Fetch user's organizations and all organizations when dialog opens
+  useEffect(() => {
+    if (user && open) {
+      fetchUserOrgs();
+      fetchAllOrgs();
+    }
+  }, [user?.id, open]);
+
+  const fetchUserOrgs = async () => {
+    if (!user) return;
+    setLoadingOrgs(true);
+    try {
+      const { data: members } = await supabase
+        .from("organization_members")
+        .select("id, organization_id")
+        .eq("user_id", user.id);
+
+      if (members && members.length > 0) {
+        const orgIds = members.map(m => m.organization_id);
+        const { data: orgs } = await supabase
+          .from("organizations")
+          .select("id, name")
+          .in("id", orgIds)
+          .order("name");
+
+        setUserOrgs((orgs || []).map(o => ({
+          ...o,
+          org_member_id: members.find(m => m.organization_id === o.id)!.id
+        })));
+      } else {
+        setUserOrgs([]);
+      }
+    } catch (error) {
+      console.error("Error fetching user orgs:", error);
+    } finally {
+      setLoadingOrgs(false);
+    }
+  };
+
+  const fetchAllOrgs = async () => {
+    try {
+      const { data } = await supabase
+        .from("organizations")
+        .select("id, name")
+        .order("name");
+      setAllOrgs(data || []);
+    } catch (error) {
+      console.error("Error fetching all orgs:", error);
+    }
+  };
+
+  const handleAddOrg = async () => {
+    if (!user || !selectedOrgToAdd) return;
+    setAddingOrg(true);
+    try {
+      const { error } = await supabase
+        .from("organization_members")
+        .insert({
+          user_id: user.id,
+          organization_id: selectedOrgToAdd,
+          role: (user.role as AppRole) || "user"
+        });
+      if (error) throw error;
+      toast.success("Base adicionada com sucesso!");
+      setSelectedOrgToAdd("");
+      fetchUserOrgs();
+    } catch (error: any) {
+      if (error.code === '23505') {
+        toast.error("Usuário já tem acesso a esta base");
+      } else {
+        toast.error("Erro ao adicionar base: " + error.message);
+      }
+    } finally {
+      setAddingOrg(false);
+    }
+  };
+
+  const handleRemoveOrg = async (orgMemberId: string) => {
+    setRemovingOrgId(orgMemberId);
+    try {
+      const { error } = await supabase
+        .from("organization_members")
+        .delete()
+        .eq("id", orgMemberId);
+      if (error) throw error;
+      toast.success("Acesso à base removido!");
+      fetchUserOrgs();
+    } catch (error: any) {
+      toast.error("Erro ao remover base: " + error.message);
+    } finally {
+      setRemovingOrgId(null);
+    }
+  };
+
+  const availableOrgs = allOrgs.filter(o => !userOrgs.some(uo => uo.id === o.id));
 
   const handleUpdateEmail = async () => {
     if (!user || !email.trim()) return;
@@ -190,10 +310,11 @@ export function EditUserAccessDialog({
   if (!user) return null;
 
   const isClientRole = user.role === "cliente";
+  const showBaseAccess = !isClientRole; // Bases for internal users only
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
@@ -212,6 +333,94 @@ export function EditUserAccessDialog({
               <Badge variant="outline">{ROLE_LABELS[user.role]}</Badge>
             )}
           </div>
+
+          {/* Bases de Acesso Section - Only for internal users */}
+          {showBaseAccess && (
+            <>
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Bases de Acesso
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Configure quais bases (clientes) este usuário pode acessar.
+                </p>
+
+                {/* Current bases */}
+                {loadingOrgs ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : userOrgs.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground border border-dashed rounded-lg">
+                    <Building2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Nenhuma base vinculada</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {userOrgs.map((org) => (
+                      <div
+                        key={org.id}
+                        className="flex items-center justify-between p-2 border rounded-lg bg-card"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">{org.name}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveOrg(org.org_member_id)}
+                          disabled={removingOrgId === org.org_member_id}
+                          className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          {removingOrgId === org.org_member_id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <X className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add new base */}
+                {availableOrgs.length > 0 && (
+                  <div className="flex gap-2">
+                    <Select
+                      value={selectedOrgToAdd}
+                      onValueChange={setSelectedOrgToAdd}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Selecionar base..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableOrgs.map((org) => (
+                          <SelectItem key={org.id} value={org.id}>
+                            {org.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm"
+                      onClick={handleAddOrg}
+                      disabled={!selectedOrgToAdd || addingOrg}
+                    >
+                      {addingOrg ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Plus className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+            </>
+          )}
 
           {/* Email Section */}
           <div className="space-y-3">

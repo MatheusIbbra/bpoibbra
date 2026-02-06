@@ -89,8 +89,6 @@ function EditOrganizationDialog({
   open: boolean; 
   onOpenChange: (open: boolean) => void;
   organization: ClientOrganization | null;
-  kamUsers?: KamUser[];
-  loadingKams?: boolean;
   onRefresh?: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -99,7 +97,6 @@ function EditOrganizationDialog({
     cpf_cnpj: "",
     phone: "",
     address: "",
-    kam_id: ""
   });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -144,7 +141,6 @@ function EditOrganizationDialog({
         cpf_cnpj: organization.cpf_cnpj || "",
         phone: organization.phone || "",
         address: organization.address || "",
-        kam_id: organization.kam_id || ""
       });
       setLogoPreview(organization.logo_url);
       setLogoFile(null);
@@ -230,7 +226,6 @@ function EditOrganizationDialog({
           phone: formData.phone.trim() || null,
           address: formData.address.trim() || null,
           logo_url: logoUrl,
-          kam_id: formData.kam_id || null
         })
         .eq("id", organization.id)
         .select();
@@ -341,7 +336,7 @@ function EditOrganizationDialog({
     }
   };
 
-  const currentKamName = kamUsers?.find(k => k.user_id === formData.kam_id)?.full_name;
+  
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -415,41 +410,6 @@ function EditOrganizationDialog({
             />
           </div>
 
-          {/* Seleção de KAM */}
-          <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
-            <Label htmlFor="edit-kam" className="flex items-center gap-2">
-              <UserCheck className="h-4 w-4 text-primary" />
-              KAM Responsável *
-            </Label>
-            <Select
-              value={formData.kam_id}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, kam_id: value === "none" ? "" : value }))}
-            >
-              <SelectTrigger className={!formData.kam_id ? "border-destructive" : ""}>
-                <SelectValue placeholder={loadingKams ? "Carregando..." : "Selecione um KAM"}>
-                  {currentKamName || (formData.kam_id ? "KAM não encontrado" : "Selecione um KAM")}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">
-                  <span className="text-muted-foreground">Nenhum</span>
-                </SelectItem>
-                {kamUsers?.map((kam) => (
-                  <SelectItem key={kam.user_id} value={kam.user_id}>
-                    {kam.full_name || `KAM ${kam.user_id.slice(0, 8)}`}
-                  </SelectItem>
-                ))}
-                {(!kamUsers || kamUsers.length === 0) && !loadingKams && (
-                  <div className="p-2 text-sm text-muted-foreground text-center">
-                    Nenhum KAM cadastrado
-                  </div>
-                )}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              <strong>Obrigatório:</strong> Todo cliente deve ter um KAM responsável.
-            </p>
-          </div>
           
           <div className="space-y-2">
             <Label htmlFor="edit-cpf" className="flex items-center gap-2">
@@ -674,29 +634,6 @@ export function ClientManagementTab() {
     enabled: !!user,
   });
 
-  // Fetch KAM users
-  const { data: kamUsers, isLoading: loadingKams } = useQuery({
-    queryKey: ["kam-users-list"],
-    queryFn: async () => {
-      const { data: roles, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "kam");
-
-      if (rolesError) throw rolesError;
-
-      const kamUserIds = roles?.map(r => r.user_id) || [];
-      if (kamUserIds.length === 0) return [];
-
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", kamUserIds);
-
-      return profiles as KamUser[];
-    },
-    enabled: !!user,
-  });
 
   // Block/Unblock mutation
   const toggleBlockMutation = useMutation({
@@ -724,60 +661,6 @@ export function ClientManagementTab() {
     },
   });
 
-  // Assign KAM mutation
-  const assignKamMutation = useMutation({
-    mutationFn: async ({ orgId, kamId }: { orgId: string; kamId: string | null }) => {
-      const { error } = await supabase
-        .from("organizations")
-        .update({ kam_id: kamId })
-        .eq("id", orgId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["client-organizations-full"] });
-      queryClient.invalidateQueries({ queryKey: ["organizations-with-kam"] });
-      queryClient.invalidateQueries({ queryKey: ["viewable-organizations"] });
-      toast.success("KAM atribuído com sucesso!");
-    },
-    onError: (error) => {
-      toast.error("Erro ao atribuir KAM: " + error.message);
-    },
-  });
-
-  const filteredOrgs = clientOrgs?.filter(org => {
-    const query = searchQuery.toLowerCase();
-    return (
-      org.name.toLowerCase().includes(query) ||
-      org.slug.toLowerCase().includes(query) ||
-      (org.client_name?.toLowerCase().includes(query) || false) ||
-      (org.kam_name?.toLowerCase().includes(query) || false)
-    );
-  }) || [];
-
-  const handleBlock = (org: ClientOrganization) => {
-    setBlockDialog({ open: true, org, action: "block" });
-  };
-
-  const handleUnblock = (org: ClientOrganization) => {
-    setBlockDialog({ open: true, org, action: "unblock" });
-  };
-
-  const confirmBlockAction = () => {
-    if (!blockDialog.org) return;
-    toggleBlockMutation.mutate({
-      orgId: blockDialog.org.id,
-      block: blockDialog.action === "block",
-      reason: blockDialog.action === "block" ? blockReason : undefined,
-    });
-  };
-
-  const handleKamChange = (orgId: string, kamId: string) => {
-    assignKamMutation.mutate({
-      orgId,
-      kamId: kamId === "none" ? null : kamId,
-    });
-  };
 
   const getInitials = (name: string | null): string => {
     if (!name) return "C";
@@ -826,21 +709,12 @@ export function ClientManagementTab() {
             </div>
           ) : (
             <>
-              {(!kamUsers || kamUsers.length === 0) && (
-                <div className="bg-warning/10 border-b border-warning/20 p-4">
-                  <p className="text-sm text-warning-foreground flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4" />
-                    Nenhum KAM cadastrado. Atribua o perfil "KAM" a algum usuário primeiro.
-                  </p>
-                </div>
-              )}
               
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/30 hover:bg-muted/30">
                       <TableHead className="min-w-[200px]">Base (Organização)</TableHead>
-                      <TableHead className="min-w-[180px]">KAM Responsável</TableHead>
                       <TableHead className="min-w-[120px]">Status</TableHead>
                       <TableHead className="text-right min-w-[200px]">Ações</TableHead>
                     </TableRow>
@@ -874,30 +748,6 @@ export function ClientManagementTab() {
                               )}
                             </div>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={org.kam_id || "none"}
-                            onValueChange={(value) => handleKamChange(org.id, value)}
-                            disabled={assignKamMutation.isPending || !kamUsers || kamUsers.length === 0}
-                          >
-                            <SelectTrigger className={`w-44 ${!org.kam_id && !org.is_blocked ? "border-warning" : ""}`}>
-                              <SelectValue placeholder="Selecionar KAM" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">
-                                <span className="text-muted-foreground">Nenhum</span>
-                              </SelectItem>
-                              {kamUsers?.map((kam) => (
-                                <SelectItem key={kam.user_id} value={kam.user_id}>
-                                  <div className="flex items-center gap-2">
-                                    <UserCheck className="h-3.5 w-3.5" />
-                                    {kam.full_name || `Usuário ${kam.user_id.slice(0, 8)}`}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
                         </TableCell>
                         <TableCell>
                           {org.is_blocked ? (
@@ -957,7 +807,7 @@ export function ClientManagementTab() {
 
                     {filteredOrgs.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center py-16 text-muted-foreground">
+                        <TableCell colSpan={3} className="text-center py-16 text-muted-foreground">
                           <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
                           <p className="font-medium">
                             {searchQuery ? "Nenhuma base encontrada" : "Nenhuma base cadastrada"}
@@ -1064,8 +914,6 @@ export function ClientManagementTab() {
         open={!!editOrg}
         onOpenChange={(open) => !open && setEditOrg(null)}
         organization={editOrg}
-        kamUsers={kamUsers}
-        loadingKams={loadingKams}
         onRefresh={() => queryClient.invalidateQueries({ queryKey: ["client-organizations-full"] })}
       />
 

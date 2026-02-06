@@ -225,7 +225,6 @@ export function BankConnectionsManager() {
   }
 
   const activeConnections = connections?.filter(c => c.status === 'active') || [];
-  const inactiveConnections = connections?.filter(c => c.status !== 'active') || [];
 
   return (
     <>
@@ -238,7 +237,7 @@ export function BankConnectionsManager() {
                 Open Finance
               </CardTitle>
               <CardDescription>
-                Conecte suas contas bancárias via Open Finance (Pluggy)
+                Conecte suas contas bancárias via Open Finance
                 {selectedOrganization && (
                   <span className="block mt-1 text-xs">
                     Base: {selectedOrganization.name}
@@ -300,21 +299,6 @@ export function BankConnectionsManager() {
                 </div>
               )}
               
-              {inactiveConnections.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-sm font-medium text-muted-foreground">Conexões Inativas</h4>
-                  {inactiveConnections.map((connection) => (
-                    <ConnectionCard
-                      key={connection.id}
-                      connection={connection}
-                      onSync={() => handleSync(connection.id, connection.external_account_id)}
-                      onDisconnect={() => handleDisconnectClick(connection)}
-                      isSyncing={syncingId === connection.id}
-                      isDisconnecting={disconnectingId === connection.id}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
           )}
         </CardContent>
