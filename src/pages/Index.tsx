@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ConnectedAccountsSection } from "@/components/dashboard/ConnectedAccountsSection";
+import { CreditCardsAdvancedSummary } from "@/components/dashboard/CreditCardsAdvancedSummary";
 import { FintechTransactionsList } from "@/components/dashboard/FintechTransactionsList";
 import { MonthlyEvolutionChart } from "@/components/dashboard/MonthlyEvolutionChart";
 import { AIAssistantChat } from "@/components/ai/AIAssistantChat";
@@ -115,7 +116,10 @@ const Index = () => {
         {/* Contas Conectadas (Open Finance) */}
         <ConnectedAccountsSection />
 
-        {/* Cartões de Crédito */}
+        {/* Visão Consolidada Avançada de Cartões de Crédito */}
+        <CreditCardsAdvancedSummary />
+
+        {/* Cartões de Crédito (resumo existente) */}
         <CreditCardSummary />
       </div>
 
