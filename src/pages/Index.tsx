@@ -12,6 +12,7 @@ import { ReconciliationMetricsCard } from "@/components/dashboard/Reconciliation
 import { StrategicInsightsCard } from "@/components/dashboard/StrategicInsightsCard";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { StatCardHoverTransactions } from "@/components/dashboard/StatCardHoverTransactions";
+import { CreditCardSummary } from "@/components/dashboard/CreditCardSummary";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { formatCurrency } from "@/lib/formatters";
@@ -116,6 +117,9 @@ const Index = () => {
 
         {/* Contas Conectadas (Open Finance) */}
         <ConnectedAccountsSection />
+
+        {/* Cartões de Crédito */}
+        <CreditCardSummary />
       </div>
 
       <AIAssistantChat isPaidUser={false} />

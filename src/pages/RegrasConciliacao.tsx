@@ -133,7 +133,7 @@ export default function RegrasConciliacao() {
     <AppLayout title="Regras de Conciliação">
       <div className="space-y-3">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold flex items-center gap-2">
               <Scale className="h-4 w-4 text-muted-foreground" />
@@ -144,18 +144,17 @@ export default function RegrasConciliacao() {
             </p>
           </div>
           
-          <div className="flex gap-1.5 flex-wrap">
+          <div className="flex gap-2 flex-wrap">
             <Button 
               variant="outline"
               size="sm"
-              className="h-7 text-xs"
               onClick={() => seedRules.mutate()}
               disabled={seedRules.isPending}
             >
               {seedRules.isPending ? (
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
               ) : (
-                <Sparkles className="h-3 w-3 mr-1" />
+                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
               )}
               Criar Iniciais
             </Button>
@@ -163,16 +162,16 @@ export default function RegrasConciliacao() {
             <Button 
               variant="outline"
               size="sm"
-              className="h-7 text-xs text-destructive hover:text-destructive"
+              className="text-destructive hover:text-destructive"
               onClick={() => setShowClearConfirmation(true)}
               disabled={clearRules.isPending || !rules || rules.length === 0}
             >
-              <Trash2 className="h-3 w-3 mr-1" />
+              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
               Limpar
             </Button>
             
-            <Button size="sm" className="h-7 text-xs" onClick={() => handleOpenDialog()}>
-              <Plus className="h-3 w-3 mr-1" />
+            <Button onClick={() => handleOpenDialog()}>
+              <Plus className="h-4 w-4 mr-1.5" />
               Nova Regra
             </Button>
           </div>
