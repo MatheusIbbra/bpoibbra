@@ -1,12 +1,13 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { parseLocalDate } from "@/lib/formatters";
-import { AlertCircle, Check, X, ChevronLeft, ChevronRight, Filter, Sparkles, Loader2, ArrowLeftRight, TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowRight, Building2, BookOpen, Brain, Zap, Search, Calendar, RefreshCw } from "lucide-react";
+import { AlertCircle, Check, X, ChevronLeft, ChevronRight, Filter, Sparkles, Loader2, ArrowLeftRight, TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowRight, Building2, BookOpen, Brain, Zap, Search, Calendar, RefreshCw, Trash2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -74,6 +75,7 @@ export default function Pendencias() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [classifyingId, setClassifyingId] = useState<string | null>(null);
+  const [isClearingAll, setIsClearingAll] = useState(false);
   
   const { data: allTransactions, isLoading, refetch } = useTransactions();
   const { data: categories } = useCategories();
@@ -226,6 +228,33 @@ export default function Pendencias() {
     setCurrentPage(1);
   };
 
+  const handleClearAllPending = useCallback(async () => {
+    if (pendingTransactions.length === 0) return;
+    setIsClearingAll(true);
+    try {
+      const ids = pendingTransactions.map(t => t.id);
+      // Batch update in chunks of 50
+      for (let i = 0; i < ids.length; i += 50) {
+        const chunk = ids.slice(i, i + 50);
+        const { error } = await supabase
+          .from("transactions")
+          .update({
+            validation_status: "validated",
+            validated_at: new Date().toISOString(),
+          })
+          .in("id", chunk);
+        if (error) throw error;
+      }
+      toast.success(`${ids.length} pendência(s) validada(s) com sucesso!`);
+      refetch();
+    } catch (error) {
+      console.error("Error clearing pending:", error);
+      toast.error("Erro ao limpar pendências");
+    } finally {
+      setIsClearingAll(false);
+    }
+  }, [pendingTransactions, refetch]);
+
   const hasActiveFilters = searchTerm || accountFilter !== "all" || typeFilter !== "all" || dateRange?.from;
 
   return (
@@ -242,12 +271,38 @@ export default function Pendencias() {
               )}
             </h2>
           </div>
-          {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 h-7 text-xs">
-              <X className="h-3 w-3" />
-              Limpar filtros
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 h-7 text-xs">
+                <X className="h-3 w-3" />
+                Limpar filtros
+              </Button>
+            )}
+            {pendingTransactions.length > 0 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" className="gap-1.5 h-7 text-xs" disabled={isClearingAll}>
+                    {isClearingAll ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                    Limpar todas ({pendingTransactions.length})
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Limpar todas as pendências?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Isso irá validar automaticamente {pendingTransactions.length} transação(ões) pendente(s) com a classificação atual. Esta ação não pode ser desfeita.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleClearAllPending}>
+                      Confirmar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
         </div>
 
         {/* Compact Filters */}
