@@ -52,38 +52,38 @@ export function BudgetAnalysisCard({ item }: BudgetAnalysisCardProps) {
   const StatusIcon = config.icon;
 
   return (
-    <Card className={cn("transition-all hover:shadow-md", item.status === "over" && "border-destructive/50")}>
-      <CardHeader className="pb-2">
+    <Card className={cn("transition-all hover:shadow-sm", item.status === "over" && "border-destructive/50")}>
+      <CardContent className="py-3 px-3.5 space-y-2">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <div
-              className="h-3 w-3 rounded-full"
+              className="h-2.5 w-2.5 rounded-full shrink-0"
               style={{ backgroundColor: item.category_color }}
             />
-            <CardTitle className="text-base font-medium">
+            <span className="text-sm font-medium truncate">
               {item.category_name}
-            </CardTitle>
+            </span>
           </div>
-          <Badge className={cn("gap-1", config.bgColor, config.color, "border-0")}>
+          <Badge className={cn("gap-1 text-[10px] px-1.5 py-0 shrink-0", config.bgColor, config.color, "border-0")}>
             <StatusIcon className="h-3 w-3" />
             {config.label}
           </Badge>
         </div>
+
         {item.cost_center_name && (
-          <p className="text-xs text-muted-foreground">
-            Centro de custo: {item.cost_center_name}
+          <p className="text-[10px] text-muted-foreground -mt-1">
+            CC: {item.cost_center_name}
           </p>
         )}
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="grid grid-cols-2 gap-4 text-sm">
+
+        <div className="grid grid-cols-2 gap-2 text-xs">
           <div>
             <p className="text-muted-foreground">Planejado</p>
-            <p className="font-semibold">{formatCurrency(item.budget_amount)}</p>
+            <p className="font-semibold text-sm">{formatCurrency(item.budget_amount)}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Realizado</p>
-            <p className={cn("font-semibold", item.status === "over" && "text-destructive")}>
+            <p className={cn("font-semibold text-sm", item.status === "over" && "text-destructive")}>
               {formatCurrency(item.actual_amount)}
             </p>
           </div>
@@ -91,19 +91,18 @@ export function BudgetAnalysisCard({ item }: BudgetAnalysisCardProps) {
 
         <Progress
           value={Math.min(item.variance_percentage, 100)}
-          className={cn("h-2", config.progressColor)}
+          className={cn("h-1.5", config.progressColor)}
         />
 
-        <div className="flex items-center justify-between text-sm">
+        <div className="flex items-center justify-between text-xs">
           <span className="text-muted-foreground">
-            {item.variance_percentage.toFixed(1)}% utilizado
+            {item.variance_percentage.toFixed(1)}%
           </span>
           <span className={cn(
             "font-medium",
             item.variance >= 0 ? "text-success" : "text-destructive"
           )}>
-            {item.variance >= 0 ? "Saldo: " : "Excedido: "}
-            {formatCurrency(Math.abs(item.variance))}
+            {item.variance >= 0 ? "+" : "-"}{formatCurrency(Math.abs(item.variance))}
           </span>
         </div>
       </CardContent>

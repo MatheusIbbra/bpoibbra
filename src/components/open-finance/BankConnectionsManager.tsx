@@ -60,167 +60,81 @@ export function BankConnectionsManager() {
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState<BankConnection | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [pluggyToken, setPluggyToken] = useState<string | null>(null);
 
-  // Handle Pluggy widget success
-  const handlePluggySuccess = useCallback(async (data: { item: { id: string }; connector?: { name?: string } }) => {
-    const organizationId = getRequiredOrganizationId();
-    if (!organizationId) return;
-
-    try {
-      // Save the item to database
-      await savePluggyItem.mutateAsync({
-        organizationId,
-        itemId: data.item.id,
-        connectorName: data.connector?.name
-      });
-
-      // Trigger sync
-      await syncConnection.mutateAsync({
-        organizationId,
-        itemId: data.item.id
-      });
-
-      refetch();
-    } catch (error) {
-      console.error('Failed to save Pluggy item:', error);
-    } finally {
-      setPluggyToken(null);
-      setIsConnecting(false);
-    }
-  }, [getRequiredOrganizationId, savePluggyItem, syncConnection, refetch]);
-
-  // Handle Pluggy widget error
-  const handlePluggyError = useCallback((error: { message?: string }) => {
-    console.error('Pluggy error:', error);
-    toast.error("Erro na conexão: " + (error.message || 'Erro desconhecido'));
-    setPluggyToken(null);
-    setIsConnecting(false);
-  }, []);
-
-  // Open Pluggy Connect widget in a popup to avoid iframe CORS blocking
+  // Listen for messages from the Pluggy popup
   useEffect(() => {
-    if (!pluggyToken) return;
-
-    // Build a minimal HTML page for the popup that loads the Pluggy SDK
-    const popupHtml = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <title>Conectando ao banco...</title>
-  <style>
-    body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f5f5f5; }
-    .loading { text-align: center; color: #555; }
-    .loading p { margin-top: 12px; font-size: 14px; }
-    .spinner { width: 40px; height: 40px; border: 4px solid #ddd; border-top-color: #333; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-  </style>
-</head>
-<body>
-  <div class="loading" id="loading-state">
-    <div class="spinner"></div>
-    <p>Carregando...</p>
-  </div>
-  <script src="https://cdn.pluggy.ai/pluggy-connect/v2.7.0/pluggy-connect.js"><\/script>
-  <script>
-    (function() {
-      try {
-        if (typeof PluggyConnect === 'undefined') {
-          document.getElementById('loading-state').innerHTML = '<p>Erro: SDK nao carregou. Verifique sua conexao.</p>';
-          setTimeout(function() { window.close(); }, 5000);
-          return;
-        }
-        var connect = new PluggyConnect({
-          connectToken: '${pluggyToken}',
-          onSuccess: function(itemData) {
-            window.opener.postMessage({ type: 'pluggy-success', data: itemData }, '*');
-            window.close();
-          },
-          onError: function(error) {
-            window.opener.postMessage({ type: 'pluggy-error', error: error }, '*');
-            window.close();
-          },
-          onClose: function() {
-            window.opener.postMessage({ type: 'pluggy-close' }, '*');
-            window.close();
-          }
-        });
-        connect.init();
-      } catch(e) {
-        document.getElementById('loading-state').innerHTML = '<p>Erro: ' + e.message + '</p>';
-        setTimeout(function() { window.close(); }, 5000);
-      }
-    })();
-  <\/script>
-</body>
-</html>`;
-
-    const blob = new Blob([popupHtml], { type: 'text/html' });
-    const popupUrl = URL.createObjectURL(blob);
-    
-    const popup = window.open(
-      popupUrl,
-      'pluggy-connect',
-      'width=500,height=700,scrollbars=yes,resizable=yes,left=200,top=100'
-    );
-
-    if (!popup) {
-      toast.error('Popup bloqueado pelo navegador. Permita popups para este site.');
-      setIsConnecting(false);
-      setPluggyToken(null);
-      URL.revokeObjectURL(popupUrl);
-      return;
-    }
-
-    // Listen for messages from the popup
     const handleMessage = (event: MessageEvent) => {
       if (!event.data?.type?.startsWith('pluggy-')) return;
       
+      const organizationId = localStorage.getItem('pending_openfinance_org');
+      
       switch (event.data.type) {
         case 'pluggy-success':
-          console.log('Pluggy success from popup:', event.data.data);
-          handlePluggySuccess({ item: event.data.data, connector: event.data.data?.connector });
+          console.log('Pluggy success:', event.data.data);
+          if (organizationId && event.data.data) {
+            const itemData = event.data.data;
+            savePluggyItem.mutateAsync({
+              organizationId,
+              itemId: itemData.item?.id || itemData.id,
+              connectorName: itemData.connector?.name
+            }).then(() => {
+              return syncConnection.mutateAsync({
+                organizationId,
+                itemId: itemData.item?.id || itemData.id
+              });
+            }).then(() => {
+              refetch();
+            }).catch((err) => {
+              console.error('Failed to save/sync Pluggy item:', err);
+            });
+          }
+          setIsConnecting(false);
           break;
         case 'pluggy-error':
-          console.error('Pluggy error from popup:', event.data.error);
-          handlePluggyError(event.data.error || { message: 'Erro desconhecido' });
+          console.error('Pluggy error:', event.data.error);
+          toast.error("Erro na conexão: " + (event.data.error?.message || 'Erro desconhecido'));
+          setIsConnecting(false);
           break;
         case 'pluggy-close':
-          console.log('Pluggy popup closed');
-          setPluggyToken(null);
           setIsConnecting(false);
           break;
       }
     };
 
     window.addEventListener('message', handleMessage);
-
-    // Check if popup was closed manually
-    const checkClosed = setInterval(() => {
-      if (popup.closed) {
-        clearInterval(checkClosed);
-        setPluggyToken(null);
-        setIsConnecting(false);
-      }
-    }, 500);
-
-    return () => {
-      window.removeEventListener('message', handleMessage);
-      clearInterval(checkClosed);
-      URL.revokeObjectURL(popupUrl);
-    };
-  }, [pluggyToken, handlePluggySuccess, handlePluggyError]);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [savePluggyItem, syncConnection, refetch]);
 
   const handleConnect = async () => {
     const organizationId = getRequiredOrganizationId();
     if (!organizationId) return;
 
     setIsConnecting(true);
+    localStorage.setItem('pending_openfinance_org', organizationId);
     
     try {
       const result = await openPluggyConnect.mutateAsync({ organizationId });
       if (result.accessToken) {
-        setPluggyToken(result.accessToken);
+        // Open the static HTML page in a popup, passing the token via hash
+        const popup = window.open(
+          `/pluggy-connect.html#${result.accessToken}`,
+          'pluggy-connect',
+          'width=500,height=700,scrollbars=yes,resizable=yes,left=200,top=100'
+        );
+
+        if (!popup) {
+          toast.error('Popup bloqueado pelo navegador. Permita popups para este site.');
+          setIsConnecting(false);
+          return;
+        }
+
+        // Monitor popup close
+        const checkClosed = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(checkClosed);
+            setIsConnecting(false);
+          }
+        }, 500);
       }
     } catch (error) {
       console.error("Failed to get connect token:", error);
@@ -382,7 +296,6 @@ export function BankConnectionsManager() {
                   ))}
                 </div>
               )}
-              
             </div>
           )}
         </CardContent>

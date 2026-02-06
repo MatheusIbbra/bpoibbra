@@ -232,9 +232,9 @@ export default function Cadastros() {
               </div>
             )}
             {activeTab === "categorias" && (
-              <Button size="sm" onClick={() => setCategoryDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Gerenciar</span>
+              <Button size="sm" onClick={() => navigate("/categorias")}>
+                <Tags className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Ver Categorias</span>
               </Button>
             )}
             {activeTab === "centros" && (
