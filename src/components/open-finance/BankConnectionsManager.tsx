@@ -356,15 +356,28 @@ function ConnectionCard({ connection, onSync, onDisconnect, isSyncing, isDisconn
   const StatusIcon = status.icon;
   const isActive = connection.status === 'active';
 
+  const meta = (connection as any).metadata as { bank_name?: string; bank_logo_url?: string | null } | null;
+  const bankName = meta?.bank_name || connection.provider_name || 'Banco via Open Finance';
+  const bankLogo = meta?.bank_logo_url;
+
   return (
     <div className="flex items-center justify-between p-4 border rounded-lg bg-card">
       <div className="flex items-center gap-4">
-        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <Building2 className="h-5 w-5 text-primary" />
-        </div>
+        {bankLogo ? (
+          <img
+            src={bankLogo}
+            alt={bankName}
+            className="h-10 w-10 rounded-lg object-contain bg-muted p-0.5"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+        ) : (
+          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <Building2 className="h-5 w-5 text-primary" />
+          </div>
+        )}
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-medium">{connection.provider_name || 'Banco via Open Finance'}</span>
+            <span className="font-medium">{bankName}</span>
             <Badge variant={status.variant} className="text-xs">
               <StatusIcon className="h-3 w-3 mr-1" />
               {status.label}

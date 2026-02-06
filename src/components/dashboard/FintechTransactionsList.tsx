@@ -126,76 +126,75 @@ export function FintechTransactionsList() {
   }
 
   return (
-    <Card className="card-executive">
-      <CardHeader className="flex flex-row items-center justify-between pb-2 px-4 pt-4">
-        <CardTitle className="text-sm font-semibold">Últimas Movimentações</CardTitle>
+    <div className="space-y-1">
+      <div className="flex items-center justify-between px-1">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          Últimas Movimentações
+        </h3>
         <Button
           variant="ghost"
           size="sm"
-          className="text-xs h-7 text-muted-foreground"
+          className="text-xs h-6 text-muted-foreground hover:text-foreground"
           onClick={() => navigate("/movimentacoes")}
         >
           Ver todas
-          <ChevronRight className="h-3.5 w-3.5 ml-1" />
+          <ChevronRight className="h-3 w-3 ml-0.5" />
         </Button>
-      </CardHeader>
-      <CardContent className="px-0 pb-2">
-        {grouped.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-6">
-            Nenhuma movimentação encontrada
-          </p>
-        ) : (
-          <div className="space-y-1">
-            {grouped.map((group) => (
-              <div key={group.label}>
-                <div className="px-4 py-1.5">
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                    {group.label}
-                  </p>
-                </div>
-                <div>
-                  {group.transactions.map((tx) => (
-                    <div
-                      key={tx.id}
-                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors cursor-pointer"
-                      onClick={() => navigate("/movimentacoes")}
-                    >
-                      <div
-                        className={cn(
-                          "flex h-8 w-8 items-center justify-center rounded-full shrink-0",
-                          getIconBg(tx.type)
-                        )}
-                      >
-                        {getTransactionIcon(tx.type, tx.categories?.icon)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate leading-tight">
-                          {tx.description || "Movimentação"}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground truncate">
-                          {tx.categories?.name || tx.accounts?.name || "Sem categoria"}
-                        </p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p
-                          className={cn(
-                            "text-sm font-semibold tabular-nums",
-                            tx.type === "income" && "text-success",
-                            tx.type === "expense" && "text-destructive"
-                          )}
-                        >
-                          {tx.type === "income" ? "+" : tx.type === "expense" ? "-" : ""}
-                          {formatCurrency(tx.amount)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+      </div>
+      {grouped.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-6">
+          Nenhuma movimentação encontrada
+        </p>
+      ) : (
+        <div>
+          {grouped.map((group) => (
+            <div key={group.label}>
+              <div className="px-1 pt-2 pb-1">
+                <p className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-widest">
+                  {group.label}
+                </p>
               </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              <div className="space-y-px">
+                {group.transactions.map((tx) => (
+                  <div
+                    key={tx.id}
+                    className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer"
+                    onClick={() => navigate("/movimentacoes")}
+                  >
+                    <div
+                      className={cn(
+                        "flex h-7 w-7 items-center justify-center rounded-full shrink-0",
+                        getIconBg(tx.type)
+                      )}
+                    >
+                      {getTransactionIcon(tx.type, tx.categories?.icon)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate leading-tight">
+                        {tx.description || "Movimentação"}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground/70 truncate">
+                        {tx.categories?.name || "Sem categoria"}
+                      </p>
+                    </div>
+                    <p
+                      className={cn(
+                        "text-sm font-semibold tabular-nums shrink-0",
+                        tx.type === "income" && "text-success",
+                        tx.type === "expense" && "text-destructive",
+                        tx.type !== "income" && tx.type !== "expense" && "text-muted-foreground"
+                      )}
+                    >
+                      {tx.type === "income" ? "+" : tx.type === "expense" ? "−" : ""}
+                      {formatCurrency(tx.amount)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

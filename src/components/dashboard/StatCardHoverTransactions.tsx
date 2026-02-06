@@ -2,7 +2,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Loader2 } from "lucide-react";
 import { useTransactions } from "@/hooks/useTransactions";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
 interface StatCardHoverTransactionsProps {
@@ -17,10 +17,10 @@ export function StatCardHoverTransactions({ type }: StatCardHoverTransactionsPro
 
   const filtered = transactions
     ?.filter((t) => {
-      const d = new Date(t.date);
+      const d = parseLocalDate(t.date);
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     })
-    ?.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    ?.sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime())
     ?.slice(0, 8) || [];
 
   const isIncome = type === "income";
@@ -55,7 +55,7 @@ export function StatCardHoverTransactions({ type }: StatCardHoverTransactionsPro
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium truncate">{tx.description || "—"}</p>
               <p className="text-[10px] text-muted-foreground truncate">
-                {tx.categories?.name || "Sem categoria"} · {format(new Date(tx.date), "dd/MM", { locale: ptBR })}
+                {tx.categories?.name || "Sem categoria"} · {format(parseLocalDate(tx.date), "dd/MM", { locale: ptBR })}
               </p>
             </div>
             <span
