@@ -313,27 +313,27 @@ export default function DemonstrativoFinanceiro() {
           </div>
         ) : (
           <>
-            {/* Summary Cards */}
+            {/* Summary Cards - Compact */}
             <div className="grid gap-2 md:grid-cols-3">
               <Card className="border-l-2 border-l-green-500">
-                <CardContent className="py-2.5 px-3">
+                <CardContent className="py-2 px-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">Total Receitas</p>
-                    <TrendingUp className="h-3.5 w-3.5 text-success" />
+                    <p className="text-[11px] text-muted-foreground">Receitas</p>
+                    <TrendingUp className="h-3 w-3 text-success" />
                   </div>
-                  <p className="text-lg font-bold text-success mt-0.5">
+                  <p className="text-base font-bold text-success">
                     {formatCurrency(data?.incomeGroup.total || 0)}
                   </p>
                 </CardContent>
               </Card>
 
               <Card className="border-l-2 border-l-red-500">
-                <CardContent className="py-2.5 px-3">
+                <CardContent className="py-2 px-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">Total Despesas</p>
-                    <TrendingDown className="h-3.5 w-3.5 text-destructive" />
+                    <p className="text-[11px] text-muted-foreground">Despesas</p>
+                    <TrendingDown className="h-3 w-3 text-destructive" />
                   </div>
-                  <p className="text-lg font-bold text-destructive mt-0.5">
+                  <p className="text-base font-bold text-destructive">
                     {formatCurrency(data?.expenseGroup.total || 0)}
                   </p>
                 </CardContent>
@@ -343,13 +343,13 @@ export default function DemonstrativoFinanceiro() {
                 "border-l-2",
                 (data?.balance || 0) >= 0 ? "border-l-blue-500" : "border-l-orange-500"
               )}>
-                <CardContent className="py-2.5 px-3">
+                <CardContent className="py-2 px-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">Resultado</p>
-                    <DollarSign className="h-3.5 w-3.5 text-primary" />
+                    <p className="text-[11px] text-muted-foreground">Resultado</p>
+                    <DollarSign className="h-3 w-3 text-primary" />
                   </div>
                   <p className={cn(
-                    "text-lg font-bold mt-0.5",
+                    "text-base font-bold",
                     (data?.balance || 0) >= 0 ? "text-success" : "text-destructive"
                   )}>
                     {formatCurrency(data?.balance || 0)}
@@ -358,32 +358,34 @@ export default function DemonstrativoFinanceiro() {
               </Card>
             </div>
 
-            {/* Detailed Report */}
+            {/* Detailed Report - Clean table style */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <FileText className="h-5 w-5" />
-                  Demonstrativo por Categoria
-                  <Badge variant="secondary" className="ml-2">
-                    {basis === "cash" ? "Regime de Caixa" : "Regime de Competência"}
+              <CardHeader className="py-3 px-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Demonstrativo por Categoria
+                  </CardTitle>
+                  <Badge variant="secondary" className="text-[10px]">
+                    {basis === "cash" ? "Caixa" : "Competência"}
                   </Badge>
-                </CardTitle>
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
+              <CardContent className="px-4 pb-4 pt-0">
+                <div className="space-y-4">
                   {/* RECEITAS */}
                   <div>
-                    <div className="flex items-center justify-between py-3 px-4 bg-green-500/10 rounded-lg border border-green-200/50">
+                    <div className="flex items-center justify-between py-2 px-3 bg-success/5 rounded border border-success/20">
                       <div className="flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5 text-green-600" />
-                        <span className="font-bold text-green-700">RECEITAS</span>
+                        <TrendingUp className="h-4 w-4 text-success" />
+                        <span className="text-sm font-semibold text-success">RECEITAS</span>
                       </div>
-                      <span className="font-bold text-green-600 text-lg">
+                      <span className="text-sm font-bold text-success">
                         {formatCurrency(data?.incomeGroup.total || 0)}
                       </span>
                     </div>
                     
-                    <div className="mt-2 space-y-1 pl-4">
+                    <div className="mt-1 space-y-0.5 pl-3">
                       {data?.incomeGroup.categories.map((category) => (
                         <CategoryRow
                           key={category.id}
@@ -395,7 +397,7 @@ export default function DemonstrativoFinanceiro() {
                         />
                       ))}
                       {data?.incomeGroup.categories.length === 0 && (
-                        <p className="text-sm text-muted-foreground py-2 italic">
+                        <p className="text-xs text-muted-foreground py-2 italic">
                           Nenhuma receita no período
                         </p>
                       )}
@@ -404,17 +406,17 @@ export default function DemonstrativoFinanceiro() {
 
                   {/* DESPESAS */}
                   <div>
-                    <div className="flex items-center justify-between py-3 px-4 bg-red-500/10 rounded-lg border border-red-200/50">
+                    <div className="flex items-center justify-between py-2 px-3 bg-destructive/5 rounded border border-destructive/20">
                       <div className="flex items-center gap-2">
-                        <TrendingDown className="h-5 w-5 text-red-600" />
-                        <span className="font-bold text-red-700">DESPESAS</span>
+                        <TrendingDown className="h-4 w-4 text-destructive" />
+                        <span className="text-sm font-semibold text-destructive">DESPESAS</span>
                       </div>
-                      <span className="font-bold text-red-600 text-lg">
+                      <span className="text-sm font-bold text-destructive">
                         {formatCurrency(data?.expenseGroup.total || 0)}
                       </span>
                     </div>
                     
-                    <div className="mt-2 space-y-1 pl-4">
+                    <div className="mt-1 space-y-0.5 pl-3">
                       {data?.expenseGroup.categories.map((category) => (
                         <CategoryRow
                           key={category.id}
@@ -426,7 +428,7 @@ export default function DemonstrativoFinanceiro() {
                         />
                       ))}
                       {data?.expenseGroup.categories.length === 0 && (
-                        <p className="text-sm text-muted-foreground py-2 italic">
+                        <p className="text-xs text-muted-foreground py-2 italic">
                           Nenhuma despesa no período
                         </p>
                       )}
@@ -435,26 +437,26 @@ export default function DemonstrativoFinanceiro() {
 
                   {/* RESULTADO */}
                   <div className={cn(
-                    "flex items-center justify-between py-4 px-4 rounded-lg border-2",
+                    "flex items-center justify-between py-2.5 px-3 rounded border-2",
                     (data?.balance || 0) >= 0 
-                      ? "bg-blue-500/10 border-blue-300" 
-                      : "bg-orange-500/10 border-orange-300"
+                      ? "bg-primary/5 border-primary/30" 
+                      : "bg-destructive/5 border-destructive/30"
                   )}>
                     <div className="flex items-center gap-2">
                       <DollarSign className={cn(
-                        "h-5 w-5",
-                        (data?.balance || 0) >= 0 ? "text-blue-600" : "text-orange-600"
+                        "h-4 w-4",
+                        (data?.balance || 0) >= 0 ? "text-primary" : "text-destructive"
                       )} />
                       <span className={cn(
-                        "font-bold text-lg",
-                        (data?.balance || 0) >= 0 ? "text-blue-700" : "text-orange-700"
+                        "text-sm font-bold",
+                        (data?.balance || 0) >= 0 ? "text-primary" : "text-destructive"
                       )}>
                         RESULTADO DO PERÍODO
                       </span>
                     </div>
                     <span className={cn(
-                      "font-bold text-xl",
-                      (data?.balance || 0) >= 0 ? "text-blue-600" : "text-orange-600"
+                      "font-bold text-base",
+                      (data?.balance || 0) >= 0 ? "text-primary" : "text-destructive"
                     )}>
                       {formatCurrency(data?.balance || 0)}
                     </span>
@@ -479,59 +481,56 @@ interface CategoryRowProps {
 
 function CategoryRow({ category, isExpanded, onToggle, formatCurrency, type }: CategoryRowProps) {
   const hasChildren = category.children.length > 0;
-  const colorClass = type === "income" ? "text-green-600" : "text-red-600";
+  const colorClass = type === "income" ? "text-success" : "text-destructive";
 
   return (
     <div>
       <div
         className={cn(
-          "flex items-center justify-between py-2 px-3 rounded hover:bg-muted/50 transition-colors",
+          "flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors text-sm",
           hasChildren && "cursor-pointer"
         )}
         onClick={hasChildren ? onToggle : undefined}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {hasChildren ? (
             isExpanded ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
             ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
             )
           ) : (
-            <div className="w-4" />
+            <div className="w-3.5" />
           )}
           <div
-            className="h-2 w-2 rounded-full"
+            className="h-1.5 w-1.5 rounded-full"
             style={{ backgroundColor: category.color }}
           />
-          <span className="font-medium">{category.name}</span>
+          <span className="font-medium text-sm">{category.name}</span>
           {hasChildren && (
-            <Badge variant="outline" className="text-xs">
-              {category.children.length}
-            </Badge>
+            <span className="text-[10px] text-muted-foreground">({category.children.length})</span>
           )}
         </div>
-        <span className={cn("font-semibold tabular-nums", colorClass)}>
+        <span className={cn("font-semibold tabular-nums text-sm", colorClass)}>
           {formatCurrency(category.total)}
         </span>
       </div>
 
-      {/* Children */}
       {hasChildren && isExpanded && (
-        <div className="ml-6 border-l-2 border-muted pl-3 space-y-1">
+        <div className="ml-5 border-l border-muted pl-2 space-y-0.5">
           {category.children.map((child) => (
             <div
               key={child.id}
-              className="flex items-center justify-between py-1.5 px-3 rounded hover:bg-muted/30 transition-colors text-sm"
+              className="flex items-center justify-between py-1 px-2 rounded hover:bg-muted/30 transition-colors"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <div
-                  className="h-1.5 w-1.5 rounded-full"
+                  className="h-1 w-1 rounded-full"
                   style={{ backgroundColor: child.color }}
                 />
-                <span className="text-muted-foreground">{child.name}</span>
+                <span className="text-xs text-muted-foreground">{child.name}</span>
               </div>
-              <span className={cn("tabular-nums", colorClass)}>
+              <span className={cn("text-xs tabular-nums", colorClass)}>
                 {formatCurrency(child.total)}
               </span>
             </div>

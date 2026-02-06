@@ -69,7 +69,7 @@ export default function AnaliseOrcamento() {
 
   return (
     <AppLayout title="Análise Planejado vs Realizado">
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Base Selection Alert */}
         {requiresBaseSelection && <BaseRequiredAlert action="analisar orçamentos" />}
         
@@ -134,32 +134,28 @@ export default function AnaliseOrcamento() {
           </div>
         ) : (
           <>
-            {/* Summary Cards */}
-            <div className="grid gap-4 md:grid-cols-4">
+            {/* Summary Cards - Compact */}
+            <div className="grid gap-2 md:grid-cols-4">
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Planejado
-                  </CardTitle>
-                  <Target className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xl md:text-2xl font-bold">
+                <CardContent className="py-2.5 px-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">Total Planejado</p>
+                    <Target className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <p className="text-lg font-bold mt-0.5">
                     {formatCurrency(data?.totalBudget || 0)}
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Realizado
-                  </CardTitle>
-                  <TrendingDown className="h-4 w-4 text-destructive" />
-                </CardHeader>
-                <CardContent>
+                <CardContent className="py-2.5 px-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">Total Realizado</p>
+                    <TrendingDown className="h-3.5 w-3.5 text-destructive" />
+                  </div>
                   <p className={cn(
-                    "text-xl md:text-2xl font-bold",
+                    "text-lg font-bold mt-0.5",
                     (data?.totalActual || 0) > (data?.totalBudget || 0) && "text-destructive"
                   )}>
                     {formatCurrency(data?.totalActual || 0)}
@@ -168,18 +164,16 @@ export default function AnaliseOrcamento() {
               </Card>
 
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Saldo Disponível
-                  </CardTitle>
-                  <TrendingUp className={cn(
-                    "h-4 w-4",
-                    (data?.totalVariance || 0) >= 0 ? "text-success" : "text-destructive"
-                  )} />
-                </CardHeader>
-                <CardContent>
+                <CardContent className="py-2.5 px-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">Saldo Disponível</p>
+                    <TrendingUp className={cn(
+                      "h-3.5 w-3.5",
+                      (data?.totalVariance || 0) >= 0 ? "text-success" : "text-destructive"
+                    )} />
+                  </div>
                   <p className={cn(
-                    "text-xl md:text-2xl font-bold",
+                    "text-lg font-bold mt-0.5",
                     (data?.totalVariance || 0) >= 0 ? "text-success" : "text-destructive"
                   )}>
                     {formatCurrency(data?.totalVariance || 0)}
@@ -188,15 +182,13 @@ export default function AnaliseOrcamento() {
               </Card>
 
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    % Utilizado
-                  </CardTitle>
-                  <Target className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
+                <CardContent className="py-2.5 px-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">% Utilizado</p>
+                    <Target className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
                   <p className={cn(
-                    "text-xl md:text-2xl font-bold",
+                    "text-lg font-bold mt-0.5",
                     data?.totalBudget && (data.totalActual / data.totalBudget) > 1 
                       ? "text-destructive" 
                       : (data?.totalBudget && (data.totalActual / data.totalBudget) > 0.8 
@@ -219,9 +211,9 @@ export default function AnaliseOrcamento() {
 
             {/* Detail Cards */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">Detalhamento por Categoria</h3>
+              <h3 className="text-sm font-semibold mb-3">Detalhamento por Categoria</h3>
               {data?.items && data.items.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
                   {data.items.map((item) => (
                     <BudgetAnalysisCard key={item.category_id} item={item} />
                   ))}

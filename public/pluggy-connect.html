@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conectando ao banco...</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #f8f9fa; color: #333; }
+    .loading { text-align: center; }
+    .loading p { margin-top: 16px; font-size: 15px; color: #666; }
+    .error { color: #dc2626; }
+    .spinner { width: 44px; height: 44px; border: 4px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="loading" id="status">
+    <div class="spinner"></div>
+    <p>Carregando widget de conexão bancária...</p>
+  </div>
+
+  <script src="https://cdn.pluggy.ai/pluggy-connect/v2.12.0/pluggy-connect.js"></script>
+  <script>
+    (function() {
+      var statusEl = document.getElementById('status');
+
+      // Get the connect token from the URL hash
+      var token = window.location.hash.substring(1);
+      if (!token) {
+        statusEl.innerHTML = '<p class="error">Token não encontrado. Feche esta janela e tente novamente.</p>';
+        return;
+      }
+
+      // Wait a bit for the SDK script to load
+      function tryInit(attempts) {
+        if (typeof PluggyConnect !== 'undefined') {
+          initWidget(token);
+        } else if (attempts > 0) {
+          setTimeout(function() { tryInit(attempts - 1); }, 300);
+        } else {
+          statusEl.innerHTML = '<p class="error">Erro ao carregar o widget. Verifique sua conexão e tente novamente.</p>';
+          setTimeout(function() {
+            if (window.opener) {
+              window.opener.postMessage({ type: 'pluggy-error', error: { message: 'SDK não carregou' } }, '*');
+            }
+            window.close();
+          }, 3000);
+        }
+      }
+
+      function initWidget(connectToken) {
+        try {
+          var connect = new PluggyConnect({
+            connectToken: connectToken,
+            onSuccess: function(itemData) {
+              if (window.opener) {
+                window.opener.postMessage({ type: 'pluggy-success', data: itemData }, '*');
+              }
+              setTimeout(function() { window.close(); }, 500);
+            },
+            onError: function(error) {
+              if (window.opener) {
+                window.opener.postMessage({ type: 'pluggy-error', error: error || { message: 'Erro desconhecido' } }, '*');
+              }
+              setTimeout(function() { window.close(); }, 2000);
+            },
+            onClose: function() {
+              if (window.opener) {
+                window.opener.postMessage({ type: 'pluggy-close' }, '*');
+              }
+              setTimeout(function() { window.close(); }, 300);
+            }
+          });
+          connect.init();
+        } catch(e) {
+          statusEl.innerHTML = '<p class="error">Erro: ' + e.message + '</p>';
+          if (window.opener) {
+            window.opener.postMessage({ type: 'pluggy-error', error: { message: e.message } }, '*');
+          }
+          setTimeout(function() { window.close(); }, 3000);
+        }
+      }
+
+      // Start attempting to initialize
+      tryInit(15);
+    })();
+  </script>
+</body>
+</html>
