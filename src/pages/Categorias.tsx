@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,14 +36,15 @@ import {
   Loader2,
   ChevronRight,
   ChevronDown,
-  Tags,
   Sparkles,
 } from "lucide-react";
+import { icons } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSeedCategories } from "@/hooks/useSeedCategories";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
 import { DeleteCategoryDialog } from "@/components/categories/DeleteCategoryDialog";
+import { getAutoIcon } from "@/lib/category-icons";
 
 const DRE_GROUP_OPTIONS = [
   { value: "receita_operacional", label: "Receita Operacional" },
@@ -63,28 +64,6 @@ const EXPENSE_CLASSIFICATION_OPTIONS = [
   { value: "variavel_recorrente", label: "Despesa Variável Recorrente" },
 ];
 
-const ICON_OPTIONS = [
-  { value: "circle", label: "Círculo" },
-  { value: "briefcase", label: "Trabalho" },
-  { value: "shopping-cart", label: "Compras" },
-  { value: "home", label: "Casa" },
-  { value: "car", label: "Carro" },
-  { value: "utensils", label: "Alimentação" },
-  { value: "heart", label: "Saúde" },
-  { value: "book", label: "Educação" },
-  { value: "plane", label: "Viagem" },
-  { value: "gamepad-2", label: "Lazer" },
-  { value: "gift", label: "Presente" },
-  { value: "zap", label: "Energia" },
-  { value: "droplet", label: "Água" },
-  { value: "wifi", label: "Internet" },
-  { value: "smartphone", label: "Telefone" },
-  { value: "plus-circle", label: "Outros Ganhos" },
-  { value: "banknote", label: "Dinheiro" },
-  { value: "building-2", label: "Empresa" },
-  { value: "wallet", label: "Carteira" },
-];
-
 const COLOR_OPTIONS = [
   "#6366f1", "#8b5cf6", "#a855f7", "#d946ef", "#ec4899",
   "#f43f5e", "#ef4444", "#f97316", "#f59e0b", "#eab308",
@@ -101,6 +80,29 @@ interface CategoryFormData {
   description: string | null;
   dre_group: string | null;
   expense_classification: string | null;
+}
+
+// Render a lucide icon by kebab-case name
+function LucideIcon({ name, className, style }: { name: string; className?: string; style?: React.CSSProperties }) {
+  // Convert kebab-case to PascalCase
+  const pascalName = name
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("");
+  const IconComponent = (icons as any)[pascalName];
+  if (!IconComponent) return <icons.Tag className={className} style={style} />;
+  return <IconComponent className={className} style={style} />;
+}
+
+// Get effective icon for a category (child inherits from parent)
+function getEffectiveIcon(category: Category, allCategories?: Category[]): string {
+  if (category.parent_id && allCategories) {
+    const parent = allCategories.find(c => c.id === category.parent_id);
+    if (parent) {
+      return parent.icon || getAutoIcon(parent.name);
+    }
+  }
+  return category.icon || getAutoIcon(category.name);
 }
 
 export default function Categorias() {
@@ -122,12 +124,11 @@ export default function Categorias() {
   const { userRole } = useBaseFilter();
   const { canCreate } = useCanCreate();
 
-  // Users who can edit DRE mappings (everyone except 'cliente')
   const canEditDre = userRole && userRole !== 'cliente';
 
   const [formData, setFormData] = useState<CategoryFormData>({
     name: "",
-    icon: "circle",
+    icon: "",
     color: "#6366f1",
     type: "expense",
     parent_id: null,
@@ -166,7 +167,7 @@ export default function Categorias() {
   const resetForm = () => {
     setFormData({
       name: "",
-      icon: "circle",
+      icon: "",
       color: "#6366f1",
       type: "expense",
       parent_id: null,
@@ -186,6 +187,7 @@ export default function Categorias() {
         parent_id: parentId,
         type: parent?.type || "expense",
         color: parent?.color || "#6366f1",
+        icon: parent?.icon || getAutoIcon(parent?.name || ""),
       }));
     }
     setDialogOpen(true);
@@ -195,7 +197,7 @@ export default function Categorias() {
     setEditingCategory(category);
     setFormData({
       name: category.name,
-      icon: category.icon || "circle",
+      icon: category.icon || getAutoIcon(category.name),
       color: category.color || "#6366f1",
       type: category.type,
       parent_id: category.parent_id,
@@ -207,10 +209,10 @@ export default function Categorias() {
   };
 
   const handleSave = async () => {
-    // For child categories, dre_group should be null
-    // expense_classification is only for expense type categories
+    const autoIcon = formData.icon || getAutoIcon(formData.name);
     const dataToSave = {
       ...formData,
+      icon: autoIcon,
       dre_group: formData.parent_id ? null : formData.dre_group,
       expense_classification: formData.type === 'expense' ? formData.expense_classification : null,
     };
@@ -227,7 +229,6 @@ export default function Categorias() {
     resetForm();
   };
 
-  // Get the category to delete for the dialog
   const categoryToDelete = deleteId ? allCategories?.find(c => c.id === deleteId) || null : null;
 
   const getTypeLabel = (type: string) => {
@@ -262,16 +263,17 @@ export default function Categorias() {
   const CategoryItem = ({ category, isChild = false }: { category: Category; isChild?: boolean }) => {
     const hasChildren = category.children && category.children.length > 0;
     const isExpanded = expandedCategories.has(category.id);
+    const effectiveIcon = getEffectiveIcon(category, allCategories || []);
 
     return (
-      <div className={cn("space-y-1", isChild && "ml-6 border-l-2 border-muted pl-4")}>
+      <div className={cn("space-y-0.5", isChild && "ml-6 border-l-2 border-muted pl-3")}>
         <div
           className={cn(
-            "flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50",
-            isChild && "bg-muted/20"
+            "flex items-center justify-between rounded-lg border px-3 py-2 transition-colors hover:bg-muted/50",
+            isChild && "bg-muted/20 border-dashed"
           )}
         >
-          <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
             {hasChildren ? (
               <Button
                 variant="ghost"
@@ -280,9 +282,9 @@ export default function Categorias() {
                 onClick={(e) => toggleExpand(e, category.id)}
               >
                 {isExpanded ? (
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown className="h-3.5 w-3.5" />
                 ) : (
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-3.5 w-3.5" />
                 )}
               </Button>
             ) : (
@@ -290,73 +292,62 @@ export default function Categorias() {
             )}
             
             <div
-              className="h-8 w-8 rounded-full shrink-0 flex items-center justify-center"
-              style={{ backgroundColor: category.color }}
+              className="h-7 w-7 rounded-lg shrink-0 flex items-center justify-center"
+              style={{ backgroundColor: category.color || "#6366f1" }}
             >
-              <Tags className="h-4 w-4 text-white" />
+              <LucideIcon name={effectiveIcon} className="h-3.5 w-3.5 text-white" />
             </div>
             
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-medium truncate">{category.name}</p>
-                <Badge variant={getTypeBadgeVariant(category.type) as any} className="shrink-0 text-xs">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p className="font-medium text-sm truncate">{category.name}</p>
+                <Badge variant={getTypeBadgeVariant(category.type) as any} className="shrink-0 text-[10px] px-1.5 py-0">
                   {getTypeLabel(category.type)}
                 </Badge>
                 {(category as any).expense_classification && (
-                  <Badge variant="secondary" className="shrink-0 text-xs">
+                  <Badge variant="secondary" className="shrink-0 text-[10px] px-1.5 py-0">
                     {getExpenseClassificationLabel((category as any).expense_classification)}
                   </Badge>
                 )}
-                {category.dre_group && (
-                  <Badge variant="outline" className="shrink-0 text-xs bg-muted">
-                    DRE: {category.dre_group}
-                  </Badge>
-                )}
               </div>
-              {category.description && (
-                <p className="text-xs text-muted-foreground truncate">
-                  {category.description}
-                </p>
-              )}
             </div>
           </div>
 
-          {/* Only show action buttons if base is selected */}
           {canCreate && (
-            <div className="flex gap-1 shrink-0">
+            <div className="flex gap-0.5 shrink-0">
               {!isChild && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-7 w-7"
                   onClick={() => handleCreate(category.id)}
                   title="Adicionar subcategoria"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-3.5 w-3.5" />
                 </Button>
               )}
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                className="h-7 w-7"
                 onClick={() => handleEdit(category)}
               >
-                <Pencil className="h-4 w-4" />
+                <Pencil className="h-3.5 w-3.5" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-destructive hover:text-destructive"
+                className="h-7 w-7 text-destructive hover:text-destructive"
                 onClick={() => setDeleteId(category.id)}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>
           )}
         </div>
 
         {hasChildren && isExpanded && (
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {category.children!.map((child) => (
               <CategoryItem key={child.id} category={child} isChild />
             ))}
@@ -366,17 +357,16 @@ export default function Categorias() {
     );
   };
 
-  // Show base selection required state
   if (!canCreate) {
     return (
       <AppLayout title="Categorias">
-        <div className="space-y-6">
+        <div className="space-y-4">
           <BaseRequiredAlert action="gerenciar categorias" />
           <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <Tags className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold">Selecione uma base</h3>
-              <p className="text-muted-foreground">
+            <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+              <LucideIcon name="tag" className="h-10 w-10 text-muted-foreground mb-3" />
+              <h3 className="text-base font-semibold">Selecione uma base</h3>
+              <p className="text-sm text-muted-foreground">
                 Selecione uma base específica no menu superior para visualizar e gerenciar categorias.
               </p>
             </CardContent>
@@ -388,196 +378,207 @@ export default function Categorias() {
 
   return (
     <AppLayout title="Categorias">
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Filtrar tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os tipos</SelectItem>
-                <SelectItem value="income">Receitas</SelectItem>
-                <SelectItem value="expense">Despesas</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[140px] h-8 text-sm">
+              <SelectValue placeholder="Filtrar tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="income">Receitas</SelectItem>
+              <SelectItem value="expense">Despesas</SelectItem>
+            </SelectContent>
+          </Select>
           <div className="flex gap-2">
             <Button 
-              variant="outline" 
+              variant="outline"
+              size="sm"
               onClick={() => seedCategories.mutate()}
               disabled={seedCategories.isPending}
             >
               {seedCategories.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
               ) : (
-                <Sparkles className="h-4 w-4 mr-2" />
+                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
               )}
-              Criar Categorias Iniciais
+              Criar Iniciais
             </Button>
-            <Button onClick={() => handleCreate()}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Categoria Pai
+            <Button size="sm" onClick={() => handleCreate()}>
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Nova Categoria
             </Button>
           </div>
         </div>
 
-        {/* Categories List - Grouped by Type */}
+        {/* Categories List */}
         {isLoading ? (
           <Card>
-            <CardContent className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <CardContent className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </CardContent>
           </Card>
         ) : hierarchyCategories?.length === 0 ? (
           <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <Tags className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold">Nenhuma categoria encontrada</h3>
-              <p className="text-muted-foreground">
+            <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+              <LucideIcon name="tag" className="h-10 w-10 text-muted-foreground mb-3" />
+              <h3 className="text-base font-semibold">Nenhuma categoria encontrada</h3>
+              <p className="text-sm text-muted-foreground">
                 Crie categorias para organizar suas transações.
               </p>
             </CardContent>
           </Card>
         ) : (
-          <>
-            {/* Group categories by type and sort alphabetically */}
-            {(() => {
-              // Sort parent categories alphabetically and group by type
-              const sortedCategories = [...(hierarchyCategories || [])].sort((a, b) => 
-                a.name.localeCompare(b.name, 'pt-BR')
-              );
-              
-              // Sort children alphabetically within each parent
-              const categoriesWithSortedChildren = sortedCategories.map(cat => ({
-                ...cat,
-                children: cat.children 
-                  ? [...cat.children].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
-                  : []
-              }));
-              
-              const incomeCategories = categoriesWithSortedChildren.filter(c => c.type === 'income');
-              const expenseCategories = categoriesWithSortedChildren.filter(c => c.type === 'expense');
-              
-              return (
-                <div className="space-y-6">
-                  {/* Income Categories */}
-                  {(typeFilter === 'all' || typeFilter === 'income') && incomeCategories.length > 0 && (
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <div className="h-3 w-3 rounded-full bg-primary" />
-                          Receitas ({incomeCategories.length} categorias)
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        {incomeCategories.map((category) => (
-                          <CategoryItem key={category.id} category={category} />
-                        ))}
-                      </CardContent>
-                    </Card>
-                  )}
-                  
-                  {/* Expense Categories */}
-                  {(typeFilter === 'all' || typeFilter === 'expense') && expenseCategories.length > 0 && (
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <div className="h-3 w-3 rounded-full bg-destructive" />
-                          Despesas ({expenseCategories.length} categorias)
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        {expenseCategories.map((category) => (
-                          <CategoryItem key={category.id} category={category} />
-                        ))}
-                      </CardContent>
-                    </Card>
-                  )}
-                  
-                  {/* Empty state for filtered views */}
-                  {typeFilter === 'income' && incomeCategories.length === 0 && (
-                    <Card>
-                      <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                        <Tags className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold">Nenhuma categoria de receita</h3>
-                      </CardContent>
-                    </Card>
-                  )}
-                  {typeFilter === 'expense' && expenseCategories.length === 0 && (
-                    <Card>
-                      <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                        <Tags className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold">Nenhuma categoria de despesa</h3>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              );
-            })()}
-          </>
+          (() => {
+            const sortedCategories = [...(hierarchyCategories || [])].sort((a, b) => 
+              a.name.localeCompare(b.name, 'pt-BR')
+            );
+            const categoriesWithSortedChildren = sortedCategories.map(cat => ({
+              ...cat,
+              children: cat.children 
+                ? [...cat.children].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+                : []
+            }));
+            const incomeCategories = categoriesWithSortedChildren.filter(c => c.type === 'income');
+            const expenseCategories = categoriesWithSortedChildren.filter(c => c.type === 'expense');
+
+            return (
+              <div className="space-y-4">
+                {(typeFilter === 'all' || typeFilter === 'income') && incomeCategories.length > 0 && (
+                  <Card>
+                    <CardHeader className="py-2.5 px-4">
+                      <CardTitle className="flex items-center gap-2 text-sm">
+                        <div className="h-2.5 w-2.5 rounded-full bg-primary" />
+                        Receitas ({incomeCategories.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-3 pb-3 pt-0 space-y-0.5">
+                      {incomeCategories.map((category) => (
+                        <CategoryItem key={category.id} category={category} />
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {(typeFilter === 'all' || typeFilter === 'expense') && expenseCategories.length > 0 && (
+                  <Card>
+                    <CardHeader className="py-2.5 px-4">
+                      <CardTitle className="flex items-center gap-2 text-sm">
+                        <div className="h-2.5 w-2.5 rounded-full bg-destructive" />
+                        Despesas ({expenseCategories.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-3 pb-3 pt-0 space-y-0.5">
+                      {expenseCategories.map((category) => (
+                        <CategoryItem key={category.id} category={category} />
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            );
+          })()
         )}
       </div>
 
-      {/* Create/Edit Dialog */}
+      {/* Simplified Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>
-              {editingCategory ? "Editar Categoria" : formData.parent_id ? "Nova Subcategoria" : "Nova Categoria Pai"}
+            <DialogTitle className="text-base">
+              {editingCategory ? "Editar Categoria" : formData.parent_id ? "Nova Subcategoria" : "Nova Categoria"}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
+            {/* Preview */}
+            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              <div
+                className="h-9 w-9 rounded-lg flex items-center justify-center"
+                style={{ backgroundColor: formData.color }}
+              >
+                <LucideIcon 
+                  name={formData.icon || getAutoIcon(formData.name)} 
+                  className="h-4 w-4 text-white" 
+                />
+              </div>
+              <div>
+                <p className="font-medium text-sm">{formData.name || "Nome da categoria"}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {formData.type === "income" ? "Receita" : "Despesa"}
+                  {formData.parent_id && " • Subcategoria"}
+                </p>
+              </div>
+            </div>
+
             <div>
-              <Label>Nome</Label>
+              <Label className="text-xs">Nome</Label>
               <Input
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value, icon: "" })}
                 placeholder="Nome da categoria"
+                className="h-8 text-sm"
               />
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Ícone é definido automaticamente pelo nome
+              </p>
             </div>
 
-            <div>
-              <Label>Descrição (opcional)</Label>
-              <Textarea
-                value={formData.description || ""}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value || null })}
-                placeholder="Descrição da categoria"
-                rows={2}
-              />
-            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Tipo</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value: CategoryType) =>
+                    setFormData({ ...formData, type: value })
+                  }
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="income">Receita</SelectItem>
+                    <SelectItem value="expense">Despesa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div>
-              <Label>Tipo</Label>
-              <Select
-                value={formData.type}
-                onValueChange={(value: CategoryType) =>
-                  setFormData({ ...formData, type: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="income">Receita</SelectItem>
-                  <SelectItem value="expense">Despesa</SelectItem>
-                </SelectContent>
-              </Select>
+              {formData.type === 'expense' && (
+                <div>
+                  <Label className="text-xs">Classificação <span className="text-destructive">*</span></Label>
+                  <Select
+                    value={formData.expense_classification || ""}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, expense_classification: value || null })
+                    }
+                  >
+                    <SelectTrigger className={cn("h-8 text-sm", !formData.expense_classification && "border-destructive/50")}>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EXPENSE_CLASSIFICATION_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             {!formData.parent_id && !editingCategory?.parent_id && (
               <div>
-                <Label>Categoria Pai (opcional)</Label>
+                <Label className="text-xs">Categoria Pai (opcional)</Label>
                 <Select
                   value={formData.parent_id || "none"}
                   onValueChange={(value) =>
                     setFormData({ ...formData, parent_id: value === "none" ? null : value })
                   }
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria pai" />
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Nenhuma" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Nenhuma (categoria pai)</SelectItem>
@@ -591,18 +592,17 @@ export default function Categorias() {
               </div>
             )}
 
-            {/* DRE Group - Only for parent categories and non-client users */}
             {canEditDre && !formData.parent_id && !editingCategory?.parent_id && (
               <div>
-                <Label>Grupo DRE</Label>
+                <Label className="text-xs">Grupo DRE</Label>
                 <Select
                   value={formData.dre_group || "none"}
                   onValueChange={(value) =>
                     setFormData({ ...formData, dre_group: value === "none" ? null : value })
                   }
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o grupo DRE" />
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Nenhum" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Nenhum</SelectItem>
@@ -613,68 +613,20 @@ export default function Categorias() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Usado para agrupar categorias no Demonstrativo de Resultados
-                </p>
               </div>
             )}
 
-            {/* Expense Classification - Required for expense type categories */}
-            {formData.type === 'expense' && (
-              <div>
-                <Label>Classificação da Despesa <span className="text-destructive">*</span></Label>
-                <Select
-                  value={formData.expense_classification || ""}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, expense_classification: value || null })
-                  }
-                >
-                  <SelectTrigger className={!formData.expense_classification ? "border-destructive/50" : ""}>
-                    <SelectValue placeholder="Selecione a classificação (obrigatório)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EXPENSE_CLASSIFICATION_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Fixa: recorrente e valor constante. Variável Programada: planejada, valor variável. Variável Recorrente: não planejada mas frequente.
-                </p>
-              </div>
-            )}
-
+            {/* Color picker - compact */}
             <div>
-              <Label>Ícone</Label>
-              <Select
-                value={formData.icon}
-                onValueChange={(value) => setFormData({ ...formData, icon: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ICON_OPTIONS.map((icon) => (
-                    <SelectItem key={icon.value} value={icon.value}>
-                      {icon.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Cor</Label>
-              <div className="mt-2 grid grid-cols-9 gap-2">
+              <Label className="text-xs">Cor</Label>
+              <div className="mt-1.5 grid grid-cols-9 gap-1.5">
                 {COLOR_OPTIONS.map((color) => (
                   <button
                     key={color}
                     type="button"
                     className={cn(
-                      "h-7 w-7 rounded-full transition-transform hover:scale-110",
-                      formData.color === color && "ring-2 ring-primary ring-offset-2"
+                      "h-6 w-6 rounded-full transition-transform hover:scale-110",
+                      formData.color === color && "ring-2 ring-primary ring-offset-1"
                     )}
                     style={{ backgroundColor: color }}
                     onClick={() => setFormData({ ...formData, color })}
@@ -683,16 +635,18 @@ export default function Categorias() {
               </div>
             </div>
 
-            <div className="flex gap-2 pt-4">
+            <div className="flex gap-2 pt-2">
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
                 className="flex-1"
                 onClick={() => setDialogOpen(false)}
               >
                 Cancelar
               </Button>
               <Button
+                size="sm"
                 className="flex-1"
                 onClick={handleSave}
                 disabled={
@@ -703,7 +657,7 @@ export default function Categorias() {
                 }
               >
                 {(createCategory.isPending || updateCategory.isPending) ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
                   "Salvar"
                 )}
@@ -713,7 +667,6 @@ export default function Categorias() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation - Using new DeleteCategoryDialog component */}
       <DeleteCategoryDialog
         category={categoryToDelete}
         open={!!deleteId}

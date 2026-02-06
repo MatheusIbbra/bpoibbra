@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +25,7 @@ import { useClearReconciliationRules } from "@/hooks/useClearReconciliationRules
 import { useCategories } from "@/hooks/useCategories";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { useSeedReconciliationRules } from "@/hooks/useSeedReconciliationRules";
+import { cn } from "@/lib/utils";
 
 interface RuleFormData {
   description: string;
@@ -119,21 +119,11 @@ export default function RegrasConciliacao() {
     return true;
   }) || [];
 
-  // Show base selection required state
   if (requiresBaseSelection) {
     return (
       <AppLayout title="Regras de Conciliação">
         <div className="space-y-4">
           <BaseRequiredAlert action="gerenciar regras de conciliação" />
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-              <Scale className="h-10 w-10 text-muted-foreground mb-3" />
-              <h3 className="text-base font-semibold">Selecione uma base</h3>
-              <p className="text-sm text-muted-foreground">
-                Selecione uma base específica no menu superior para gerenciar regras.
-              </p>
-            </CardContent>
-          </Card>
         </div>
       </AppLayout>
     );
@@ -141,162 +131,177 @@ export default function RegrasConciliacao() {
 
   return (
     <AppLayout title="Regras de Conciliação">
-      <div className="space-y-4">
-        <Card className="shadow-sm">
-          <CardHeader className="py-3 px-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Scale className="h-4 w-4" />
-                Regras de Conciliação Automática
-              </CardTitle>
-              
-              <div className="flex gap-2 flex-wrap">
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  onClick={() => seedRules.mutate()}
-                  disabled={requiresBaseSelection || seedRules.isPending}
-                >
-                  {seedRules.isPending ? (
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-3 w-3 mr-1" />
-                  )}
-                  Criar Iniciais
-                </Button>
-                
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowClearConfirmation(true)}
-                  disabled={requiresBaseSelection || clearRules.isPending || !rules || rules.length === 0}
-                  className="text-destructive hover:text-destructive"
-                >
-                  {clearRules.isPending ? (
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-3 w-3 mr-1" />
-                  )}
-                  Limpar
-                </Button>
-                
-                <Button size="sm" onClick={() => handleOpenDialog()} disabled={requiresBaseSelection}>
-                  <Plus className="h-3 w-3 mr-1" />
-                  Nova Regra
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          
-          <CardContent className="px-4 pb-4 pt-0">
-            <p className="text-xs text-muted-foreground mb-3">
-              Regras são usadas para sugerir classificações automáticas em transações importadas.
+      <div className="space-y-3">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-semibold flex items-center gap-2">
+              <Scale className="h-4 w-4 text-muted-foreground" />
+              Regras de Conciliação Automática
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Sugestões de classificação automática em transações importadas
             </p>
+          </div>
+          
+          <div className="flex gap-1.5 flex-wrap">
+            <Button 
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => seedRules.mutate()}
+              disabled={seedRules.isPending}
+            >
+              {seedRules.isPending ? (
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              ) : (
+                <Sparkles className="h-3 w-3 mr-1" />
+              )}
+              Criar Iniciais
+            </Button>
             
-            {isLoading ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            ) : !rules || rules.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Scale className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">Nenhuma regra cadastrada.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="text-xs">
-                      <TableHead>Descrição</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                      <TableHead className="text-center">Venc.</TableHead>
-                      <TableHead className="text-center">Tipo</TableHead>
-                      <TableHead>Categoria</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rules.map((rule) => {
-                      const category = categories?.find(c => c.id === rule.category_id);
-                      
-                      return (
-                        <TableRow key={rule.id} className="text-sm">
-                          <TableCell className="font-medium max-w-[150px] truncate">{rule.description}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(rule.amount)}</TableCell>
-                          <TableCell className="text-center text-xs">
-                            {rule.due_day ? `Dia ${rule.due_day}` : "-"}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant={rule.transaction_type === "income" ? "default" : "destructive"} className="text-[10px]">
-                              {rule.transaction_type === "income" ? "Receita" : "Despesa"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground max-w-[100px] truncate">
-                            {category?.name || "-"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => handleOpenDialog(rule)}
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => deleteRule.mutate(rule.id)}
-                              >
-                                <Trash2 className="h-3 w-3 text-destructive" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            <Button 
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs text-destructive hover:text-destructive"
+              onClick={() => setShowClearConfirmation(true)}
+              disabled={clearRules.isPending || !rules || rules.length === 0}
+            >
+              <Trash2 className="h-3 w-3 mr-1" />
+              Limpar
+            </Button>
+            
+            <Button size="sm" className="h-7 text-xs" onClick={() => handleOpenDialog()}>
+              <Plus className="h-3 w-3 mr-1" />
+              Nova Regra
+            </Button>
+          </div>
+        </div>
+
+        {/* Rules List - Card-based minimal design */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : !rules || rules.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+              <Scale className="h-8 w-8 text-muted-foreground mb-2 opacity-50" />
+              <p className="text-sm text-muted-foreground">Nenhuma regra cadastrada</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-2">
+            {rules.map((rule) => {
+              const category = categories?.find(c => c.id === rule.category_id);
+              const costCenter = costCenters?.find(cc => cc.id === rule.cost_center_id);
+              const isIncome = rule.transaction_type === "income";
+              
+              return (
+                <div
+                  key={rule.id}
+                  className={cn(
+                    "flex items-center justify-between px-3 py-2.5 rounded-lg border bg-card transition-colors hover:bg-muted/30",
+                    isIncome ? "border-l-2 border-l-primary" : "border-l-2 border-l-destructive"
+                  )}
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className={cn(
+                      "shrink-0 h-7 w-7 rounded-full flex items-center justify-center",
+                      isIncome ? "bg-primary/10" : "bg-destructive/10"
+                    )}>
+                      {isIncome ? (
+                        <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                      ) : (
+                        <TrendingDown className="h-3.5 w-3.5 text-destructive" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium truncate">{rule.description}</p>
+                        <span className="text-sm font-semibold tabular-nums shrink-0">
+                          {formatCurrency(rule.amount)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {category && (
+                          <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                            <div 
+                              className="h-1.5 w-1.5 rounded-full" 
+                              style={{ backgroundColor: category.color || "#6366f1" }} 
+                            />
+                            {category.name}
+                          </span>
+                        )}
+                        {costCenter && (
+                          <span className="text-[11px] text-muted-foreground">
+                            • {costCenter.name}
+                          </span>
+                        )}
+                        {rule.due_day && (
+                          <span className="text-[11px] text-muted-foreground">
+                            • Dia {rule.due_day}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-0.5 shrink-0 ml-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => handleOpenDialog(rule)}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      onClick={() => deleteRule.mutate(rule.id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Create/Edit Rule Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
-        <DialogContent>
+        <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>{editingRule ? "Editar Regra" : "Nova Regra de Conciliação"}</DialogTitle>
-            <DialogDescription>
-              Regras são usadas para sugerir classificações automáticas.
-            </DialogDescription>
+            <DialogTitle className="text-base">{editingRule ? "Editar Regra" : "Nova Regra"}</DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Descrição</Label>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Descrição</Label>
               <Input
                 placeholder="Ex: Aluguel Escritório..."
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="h-8 text-sm"
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Valor</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-xs">Valor</Label>
                 <Input
                   placeholder="0,00"
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  className="h-8 text-sm"
                 />
               </div>
-              
-              <div className="space-y-2">
-                <Label>Dia Vencimento</Label>
+              <div>
+                <Label className="text-xs">Dia Venc.</Label>
                 <Input
                   type="number"
                   min="1"
@@ -304,41 +309,33 @@ export default function RegrasConciliacao() {
                   placeholder="1-31"
                   value={formData.due_day}
                   onChange={(e) => setFormData({ ...formData, due_day: e.target.value })}
+                  className="h-8 text-sm"
                 />
+              </div>
+              <div>
+                <Label className="text-xs">Tipo</Label>
+                <Select
+                  value={formData.transaction_type}
+                  onValueChange={(v) => setFormData({ ...formData, transaction_type: v, category_id: "" })}
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="income">Receita</SelectItem>
+                    <SelectItem value="expense">Despesa</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             
-            <div className="space-y-2">
-              <Label>Tipo</Label>
-              <Select
-                value={formData.transaction_type}
-                onValueChange={(v) => setFormData({ ...formData, transaction_type: v, category_id: "" })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="income">
-                    <span className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-success" /> Receita
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="expense">
-                    <span className="flex items-center gap-2">
-                      <TrendingDown className="h-4 w-4 text-destructive" /> Despesa
-                    </span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Categoria Sugerida</Label>
+            <div>
+              <Label className="text-xs">Categoria</Label>
               <Select
                 value={formData.category_id}
                 onValueChange={(v) => setFormData({ ...formData, category_id: v })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-8 text-sm">
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -349,13 +346,13 @@ export default function RegrasConciliacao() {
               </Select>
             </div>
             
-            <div className="space-y-2">
-              <Label>Centro de Custo</Label>
+            <div>
+              <Label className="text-xs">Centro de Custo</Label>
               <Select
                 value={formData.cost_center_id}
                 onValueChange={(v) => setFormData({ ...formData, cost_center_id: v })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-8 text-sm">
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -367,30 +364,31 @@ export default function RegrasConciliacao() {
             </div>
           </div>
           
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCloseDialog}>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={handleCloseDialog}>
               Cancelar
             </Button>
             <Button 
+              size="sm"
               onClick={handleSaveRule}
               disabled={!formData.description || !formData.amount || createRule.isPending || updateRule.isPending}
             >
-              {(createRule.isPending || updateRule.isPending) && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {(createRule.isPending || updateRule.isPending) && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
               {editingRule ? "Salvar" : "Criar"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
       
-      {/* Clear Rules Confirmation Dialog */}
+      {/* Clear Rules Confirmation */}
       <AlertDialog open={showClearConfirmation} onOpenChange={setShowClearConfirmation}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive text-base">
+              <AlertTriangle className="h-4 w-4" />
               Limpar Todas as Regras
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-sm">
               Tem certeza que deseja excluir todas as {rules?.length || 0} regras
               {selectedOrganization && ` da base "${selectedOrganization.name}"`}?
               Esta ação é irreversível.

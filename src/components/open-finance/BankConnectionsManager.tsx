@@ -103,10 +103,10 @@ export function BankConnectionsManager() {
     if (!pluggyToken) return;
 
     // Build a minimal HTML page for the popup that loads the Pluggy SDK
-    const popupHtml = `
-<!DOCTYPE html>
-<html>
+    const popupHtml = `<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
+  <meta charset="UTF-8">
   <title>Conectando ao banco...</title>
   <style>
     body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f5f5f5; }
@@ -117,33 +117,40 @@ export function BankConnectionsManager() {
   </style>
 </head>
 <body>
-  <div class="loading">
+  <div class="loading" id="loading-state">
     <div class="spinner"></div>
-    <p>Carregando widget de conexão bancária...</p>
+    <p>Carregando...</p>
   </div>
   <script src="https://cdn.pluggy.ai/pluggy-connect/v2.7.0/pluggy-connect.js"><\/script>
   <script>
-    try {
-      var connect = new PluggyConnect({
-        connectToken: '${pluggyToken}',
-        onSuccess: function(itemData) {
-          window.opener.postMessage({ type: 'pluggy-success', data: itemData }, '*');
-          window.close();
-        },
-        onError: function(error) {
-          window.opener.postMessage({ type: 'pluggy-error', error: error }, '*');
-          window.close();
-        },
-        onClose: function() {
-          window.opener.postMessage({ type: 'pluggy-close' }, '*');
-          window.close();
+    (function() {
+      try {
+        if (typeof PluggyConnect === 'undefined') {
+          document.getElementById('loading-state').innerHTML = '<p>Erro: SDK nao carregou. Verifique sua conexao.</p>';
+          setTimeout(function() { window.close(); }, 5000);
+          return;
         }
-      });
-      connect.init();
-    } catch(e) {
-      document.body.innerHTML = '<div class="loading"><p>Erro ao carregar widget: ' + e.message + '</p></div>';
-      setTimeout(function() { window.close(); }, 3000);
-    }
+        var connect = new PluggyConnect({
+          connectToken: '${pluggyToken}',
+          onSuccess: function(itemData) {
+            window.opener.postMessage({ type: 'pluggy-success', data: itemData }, '*');
+            window.close();
+          },
+          onError: function(error) {
+            window.opener.postMessage({ type: 'pluggy-error', error: error }, '*');
+            window.close();
+          },
+          onClose: function() {
+            window.opener.postMessage({ type: 'pluggy-close' }, '*');
+            window.close();
+          }
+        });
+        connect.init();
+      } catch(e) {
+        document.getElementById('loading-state').innerHTML = '<p>Erro: ' + e.message + '</p>';
+        setTimeout(function() { window.close(); }, 5000);
+      }
+    })();
   <\/script>
 </body>
 </html>`;

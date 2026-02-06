@@ -270,7 +270,7 @@ export default function DemonstrativoFinanceiro() {
 
   return (
     <AppLayout title="Demonstrativo Financeiro">
-      <div className="space-y-6">
+      <div className="space-y-3">
         {/* Base Selection Alert */}
         {requiresBaseSelection && <BaseRequiredAlert action="gerar relatórios" />}
         
@@ -314,48 +314,42 @@ export default function DemonstrativoFinanceiro() {
         ) : (
           <>
             {/* Summary Cards */}
-            <div className="grid gap-4 md:grid-cols-3">
-              <Card className="border-l-4 border-l-green-500">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Receitas
-                  </CardTitle>
-                  <TrendingUp className="h-4 w-4 text-success" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold text-success">
+            <div className="grid gap-2 md:grid-cols-3">
+              <Card className="border-l-2 border-l-green-500">
+                <CardContent className="py-2.5 px-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">Total Receitas</p>
+                    <TrendingUp className="h-3.5 w-3.5 text-success" />
+                  </div>
+                  <p className="text-lg font-bold text-success mt-0.5">
                     {formatCurrency(data?.incomeGroup.total || 0)}
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="border-l-4 border-l-red-500">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Despesas
-                  </CardTitle>
-                  <TrendingDown className="h-4 w-4 text-destructive" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold text-destructive">
+              <Card className="border-l-2 border-l-red-500">
+                <CardContent className="py-2.5 px-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">Total Despesas</p>
+                    <TrendingDown className="h-3.5 w-3.5 text-destructive" />
+                  </div>
+                  <p className="text-lg font-bold text-destructive mt-0.5">
                     {formatCurrency(data?.expenseGroup.total || 0)}
                   </p>
                 </CardContent>
               </Card>
 
               <Card className={cn(
-                "border-l-4",
+                "border-l-2",
                 (data?.balance || 0) >= 0 ? "border-l-blue-500" : "border-l-orange-500"
               )}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Resultado do Período
-                  </CardTitle>
-                  <DollarSign className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent>
+                <CardContent className="py-2.5 px-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">Resultado</p>
+                    <DollarSign className="h-3.5 w-3.5 text-primary" />
+                  </div>
                   <p className={cn(
-                    "text-2xl font-bold",
+                    "text-lg font-bold mt-0.5",
                     (data?.balance || 0) >= 0 ? "text-success" : "text-destructive"
                   )}>
                     {formatCurrency(data?.balance || 0)}
