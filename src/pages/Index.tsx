@@ -2,7 +2,6 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ConnectedAccountsSection } from "@/components/dashboard/ConnectedAccountsSection";
-import { ConsolidatedBalanceSection } from "@/components/dashboard/ConsolidatedBalanceSection";
 import { FintechTransactionsList } from "@/components/dashboard/FintechTransactionsList";
 import { MonthlyEvolutionChart } from "@/components/dashboard/MonthlyEvolutionChart";
 import { AIAssistantChat } from "@/components/ai/AIAssistantChat";
@@ -11,17 +10,19 @@ import { CategoryDonutChart } from "@/components/dashboard/CategoryDonutChart";
 import { BudgetProgress } from "@/components/dashboard/BudgetProgress";
 import { ReconciliationMetricsCard } from "@/components/dashboard/ReconciliationMetricsCard";
 import { StrategicInsightsCard } from "@/components/dashboard/StrategicInsightsCard";
+import { StatCard } from "@/components/dashboard/StatCard";
 import { ImportCard } from "@/components/import/ImportCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { formatCurrency } from "@/lib/formatters";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, Wallet, ArrowUpRight, ArrowDownRight, PiggyBank } from "lucide-react";
 
 const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const { error } = useDashboardStats();
+  const { data: stats, error } = useDashboardStats();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -61,13 +62,40 @@ const Index = () => {
   return (
     <AppLayout title="Home">
       <div className="space-y-3">
-        {/* Bloco 1: Saldo Consolidado / Patrimônio */}
-        <ConsolidatedBalanceSection />
+        {/* Bloco 1: StatCards — Saldo, Receitas, Despesas, Economia */}
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            title="Saldo Total"
+            value={formatCurrency(stats?.totalBalance ?? 0)}
+            icon={<Wallet className="h-4 w-4" />}
+            variant="default"
+          />
+          <StatCard
+            title="Receitas do Mês"
+            value={formatCurrency(stats?.monthlyIncome ?? 0)}
+            icon={<ArrowUpRight className="h-4 w-4" />}
+            variant="success"
+            trend={stats?.incomeChange ? { value: stats.incomeChange, isPositive: stats.incomeChange >= 0 } : undefined}
+          />
+          <StatCard
+            title="Despesas do Mês"
+            value={formatCurrency(stats?.monthlyExpenses ?? 0)}
+            icon={<ArrowDownRight className="h-4 w-4" />}
+            variant="destructive"
+            trend={stats?.expenseChange ? { value: stats.expenseChange, isPositive: stats.expenseChange <= 0 } : undefined}
+          />
+          <StatCard
+            title="Economia do Mês"
+            value={formatCurrency(stats?.monthlySavings ?? 0)}
+            icon={<PiggyBank className="h-4 w-4" />}
+            variant={stats?.monthlySavings && stats.monthlySavings >= 0 ? "success" : "warning"}
+          />
+        </div>
 
         {/* Alertas de Orçamento */}
         <BudgetAlerts showNotifications={true} />
 
-        {/* Bloco 2: Movimentações + Gráficos */}
+        {/* Movimentações + Gráficos */}
         <div className="grid gap-3 grid-cols-1 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <FintechTransactionsList />
