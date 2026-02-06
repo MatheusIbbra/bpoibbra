@@ -7,10 +7,6 @@ const corsHeaders = {
 
 const PLUGGY_API_URL = 'https://api.pluggy.ai';
 
-interface PluggyToken {
-  accessToken: string;
-}
-
 // Get Pluggy API access token
 async function getPluggyToken(clientId: string, clientSecret: string): Promise<string> {
   const response = await fetch(`${PLUGGY_API_URL}/auth`, {
@@ -25,8 +21,15 @@ async function getPluggyToken(clientId: string, clientSecret: string): Promise<s
     throw new Error('Falha na autenticação com Pluggy');
   }
 
-  const data: PluggyToken = await response.json();
-  return data.accessToken;
+  const data = await response.json();
+  // Pluggy API returns the token in the 'apiKey' field
+  const token = data.apiKey;
+  if (!token) {
+    console.error('Pluggy auth response missing apiKey:', JSON.stringify(data));
+    throw new Error('Pluggy auth response missing apiKey');
+  }
+  console.log(`[PLUGGY-AUTH] Token obtained (${token.length} chars)`);
+  return token;
 }
 
 // ========================================
@@ -393,6 +396,79 @@ Deno.serve(async (req) => {
     console.log(`Saved metadata for connection ${connectionToSync.id}: bank=${connectorName}, accounts=${accounts.length}, balance=${totalBalance}`);
 
     // ========================================
+    // CREATE/UPDATE ACCOUNTS IN accounts TABLE
+    // ========================================
+    const pluggyAccountToLocalAccount: Record<string, string> = {}; // pluggyAccountId -> local account id
+
+    function mapPluggyAccountType(pluggyType: string): string {
+      const typeMap: Record<string, string> = {
+        'BANK': 'checking',
+        'CHECKING': 'checking',
+        'SAVINGS': 'savings',
+        'CREDIT': 'credit_card',
+        'INVESTMENT': 'investment',
+      };
+      return typeMap[pluggyType?.toUpperCase()] || 'checking';
+    }
+
+    for (const acc of accounts) {
+      const accountType = mapPluggyAccountType(acc.type || acc.subtype || 'BANK');
+      const accountName = acc.name || `${connectorName} - ${acc.type || 'Conta'}`;
+      const accountNumber = acc.number || null;
+      const agency = acc.bankData?.branch || null;
+      const balance = acc.balance ?? 0;
+
+      // Check if we already have a local account for this Pluggy account
+      const { data: existingAccount } = await supabaseAdmin
+        .from('accounts')
+        .select('id')
+        .eq('organization_id', connectionToSync.organization_id)
+        .eq('bank_name', connectorName)
+        .eq('name', accountName)
+        .maybeSingle();
+
+      if (existingAccount) {
+        // Update existing account balance
+        await supabaseAdmin
+          .from('accounts')
+          .update({
+            current_balance: balance,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingAccount.id);
+        
+        pluggyAccountToLocalAccount[acc.id] = existingAccount.id;
+        console.log(`[ACCOUNTS] Updated existing account ${existingAccount.id}: balance=${balance}`);
+      } else {
+        // Create new account
+        const { data: newAccount, error: accountError } = await supabaseAdmin
+          .from('accounts')
+          .insert({
+            organization_id: connectionToSync.organization_id,
+            user_id: connectionToSync.user_id,
+            name: accountName,
+            account_type: accountType,
+            bank_name: connectorName,
+            current_balance: balance,
+            initial_balance: balance,
+            status: 'active',
+            start_date: new Date().toISOString().split('T')[0],
+          })
+          .select('id')
+          .single();
+
+        if (accountError) {
+          console.error(`[ACCOUNTS] Failed to create account for ${acc.id}:`, accountError);
+        } else {
+          pluggyAccountToLocalAccount[acc.id] = newAccount.id;
+          console.log(`[ACCOUNTS] Created new account ${newAccount.id}: ${accountName}, balance=${balance}`);
+        }
+      }
+    }
+
+    console.log(`[ACCOUNTS] Mapped ${Object.keys(pluggyAccountToLocalAccount).length} Pluggy accounts to local accounts`);
+
+    // ========================================
     // FETCH AND IMPORT TRANSACTIONS
     // ========================================
     let allTransactions: any[] = [];
@@ -402,7 +478,7 @@ Deno.serve(async (req) => {
         if (from_date) url += `&from=${from_date}`;
         if (to_date) url += `&to=${to_date}`;
 
-        console.log(`Fetching transactions for account ${account.id}...`);
+        console.log(`[TX] Fetching transactions for Pluggy account ${account.id}...`);
         const transactionsResponse = await fetch(url, {
           method: 'GET',
           headers: pluggyHeaders
@@ -411,46 +487,52 @@ Deno.serve(async (req) => {
         if (transactionsResponse.ok) {
           const transactionsData = await transactionsResponse.json();
           const transactions = transactionsData.results || [];
-          console.log(`Received ${transactions.length} transactions for account ${account.id}`);
+          console.log(`[TX] Received ${transactions.length} transactions for account ${account.id}`);
           allTransactions.push(...transactions.map((tx: any) => ({ ...tx, pluggyAccountId: account.id })));
         } else {
           const errorText = await transactionsResponse.text();
-          console.warn('Failed to fetch transactions:', transactionsResponse.status, errorText);
+          console.warn(`[TX] Failed to fetch transactions for account ${account.id}:`, transactionsResponse.status, errorText);
         }
       } catch (txError) {
-        console.warn('Error fetching transactions:', txError);
+        console.warn('[TX] Error fetching transactions:', txError);
       }
     }
 
-    console.log(`Total transactions fetched: ${allTransactions.length}`);
+    console.log(`[TX] Total transactions fetched: ${allTransactions.length}`);
 
-    // Get a default account for this organization to link transactions
-    const { data: defaultAccount } = await supabaseAdmin
-      .from('accounts')
-      .select('id')
-      .eq('organization_id', connectionToSync.organization_id)
-      .eq('status', 'active')
-      .limit(1)
-      .single();
-
-    if (!defaultAccount) {
-      await supabaseAdmin.from('integration_logs').insert({
-        organization_id: connectionToSync.organization_id,
-        bank_connection_id: connectionToSync.id,
-        provider: 'pluggy',
-        event_type: 'sync',
-        status: 'warning',
-        message: 'No active account found for organization'
-      });
-
-      return new Response(
-        JSON.stringify({ 
-          error: 'No active account found. Please create an account first.',
-          imported: 0,
-          skipped: 0
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Fallback: if no pluggy accounts mapped, try to find an existing account
+    let fallbackAccountId: string | null = null;
+    if (Object.keys(pluggyAccountToLocalAccount).length === 0) {
+      const { data: fallbackAccount } = await supabaseAdmin
+        .from('accounts')
+        .select('id')
+        .eq('organization_id', connectionToSync.organization_id)
+        .eq('status', 'active')
+        .limit(1)
+        .maybeSingle();
+      
+      fallbackAccountId = fallbackAccount?.id || null;
+      
+      if (!fallbackAccountId && allTransactions.length > 0) {
+        console.warn('[TX] No accounts available and transactions to import. Creating a default account.');
+        const { data: createdDefault } = await supabaseAdmin
+          .from('accounts')
+          .insert({
+            organization_id: connectionToSync.organization_id,
+            user_id: connectionToSync.user_id,
+            name: `${connectorName} - Conta`,
+            account_type: 'checking',
+            bank_name: connectorName,
+            current_balance: 0,
+            initial_balance: 0,
+            status: 'active',
+            start_date: new Date().toISOString().split('T')[0],
+          })
+          .select('id')
+          .single();
+        
+        fallbackAccountId = createdDefault?.id || null;
+      }
     }
 
     let imported = 0;
@@ -480,6 +562,14 @@ Deno.serve(async (req) => {
       const txDate = tx.date ? tx.date.split('T')[0] : new Date().toISOString().split('T')[0];
       const description = tx.description || tx.descriptionRaw || 'Movimentação via Open Finance';
 
+      // Map to the correct local account
+      const localAccountId = pluggyAccountToLocalAccount[tx.pluggyAccountId] || fallbackAccountId;
+      if (!localAccountId) {
+        console.warn(`[TX] No local account for Pluggy account ${tx.pluggyAccountId}, skipping transaction`);
+        skipped++;
+        continue;
+      }
+
       const { data: inserted, error: insertError } = await supabaseAdmin
         .from('transactions')
         .insert({
@@ -487,7 +577,7 @@ Deno.serve(async (req) => {
           user_id: connectionToSync.user_id,
           bank_connection_id: connectionToSync.id,
           external_transaction_id: externalId,
-          account_id: defaultAccount.id,
+          account_id: localAccountId,
           date: txDate,
           description: description,
           raw_description: JSON.stringify(tx),
