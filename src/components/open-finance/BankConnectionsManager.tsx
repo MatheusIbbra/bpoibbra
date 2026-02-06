@@ -102,28 +102,65 @@ export function BankConnectionsManager() {
   useEffect(() => {
     if (!pluggyToken) return;
 
-    const script = document.createElement('script');
-    script.src = 'https://cdn.pluggy.ai/pluggy-connect/v2.js';
-    script.async = true;
-    script.onload = () => {
+    const initPluggy = () => {
       const PluggyConnect = (window as any).PluggyConnect;
       if (PluggyConnect) {
+        console.log('Initializing PluggyConnect widget...');
         const connect = new PluggyConnect({
           connectToken: pluggyToken,
-          onSuccess: handlePluggySuccess,
-          onError: handlePluggyError,
+          onSuccess: (itemData: any) => {
+            console.log('Pluggy success:', itemData);
+            handlePluggySuccess({ item: itemData, connector: itemData.connector });
+          },
+          onError: (error: any) => {
+            console.error('Pluggy widget error:', error);
+            handlePluggyError(error);
+          },
           onClose: () => {
+            console.log('Pluggy widget closed');
             setPluggyToken(null);
             setIsConnecting(false);
+          },
+          onOpen: () => {
+            console.log('Pluggy widget opened');
           }
         });
         connect.init();
+      } else {
+        console.error('PluggyConnect not found on window');
+        toast.error('Erro ao carregar widget de conexão');
+        setIsConnecting(false);
       }
+    };
+
+    // Check if script already loaded
+    const existingScript = document.querySelector('script[src*="cdn.pluggy.ai/pluggy-connect"]');
+    if (existingScript && (window as any).PluggyConnect) {
+      initPluggy();
+      return;
+    }
+
+    // Remove old script if exists
+    if (existingScript) {
+      existingScript.remove();
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.pluggy.ai/pluggy-connect/v2.7.0/pluggy-connect.js';
+    script.async = true;
+    script.onload = () => {
+      console.log('Pluggy Connect SDK loaded');
+      initPluggy();
+    };
+    script.onerror = () => {
+      console.error('Failed to load Pluggy Connect SDK');
+      toast.error('Erro ao carregar SDK de conexão bancária');
+      setIsConnecting(false);
     };
     document.body.appendChild(script);
 
     return () => {
-      document.body.removeChild(script);
+      // Don't remove script on cleanup to allow reuse
     };
   }, [pluggyToken, handlePluggySuccess, handlePluggyError]);
 
