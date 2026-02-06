@@ -39,26 +39,42 @@ async function getPluggyToken(clientId: string, clientSecret: string): Promise<s
 // Payments must be classified as TRANSFER, never income.
 // ========================================
 function isCreditCardPayment(description: string): boolean {
-  const text = (description || '').toLowerCase();
-  const keywords = [
+  const text = (description || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  // Very strict patterns - only explicit credit card bill payment descriptions
+  const strictPatterns = [
     "pagamento fatura",
     "pgto fatura",
-    "pgto cartao",
-    "pgto cartão",
     "pagamento cartao",
-    "pagamento cartão",
-    "fatura cartao",
-    "fatura cartão",
-    "cartao credito",
-    "cartão crédito",
+    "pgto cartao",
     "liq fatura",
     "liquidacao cartao",
-    "liquidação cartão",
-    "pag fatura",
-    "pag cartao",
-    "pag cartão",
+    "pag fatura cartao",
   ];
-  return keywords.some(keyword => text.includes(keyword));
+  return strictPatterns.some(keyword => text.includes(keyword));
+}
+
+// ========================================
+// STRICT INTERNAL TRANSFER DETECTION
+// Only detect transfers between accounts when ALL criteria are met:
+// 1. Two transactions exist (one income, one expense)
+// 2. Same organization_id
+// 3. Same absolute amount
+// 4. Dates within 1 day
+// 5. Different account_ids
+// 6. Neither account is credit_card
+// 7. Description contains transfer keywords
+// ========================================
+const TRANSFER_KEYWORDS = ["pix", "ted", "transfer", "transf", "doc", "tev"];
+
+function hasTransferKeyword(description: string): boolean {
+  const text = (description || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return TRANSFER_KEYWORDS.some(kw => text.includes(kw));
+}
+
+function dateDiffDays(d1: string, d2: string): number {
+  const date1 = new Date(d1);
+  const date2 = new Date(d2);
+  return Math.abs(date1.getTime() - date2.getTime()) / (1000 * 60 * 60 * 24);
 }
 
 // ========================================
@@ -600,12 +616,13 @@ Deno.serve(async (req) => {
       }
 
       // ========================================
-      // CREDIT CARD PAYMENT DETECTION
+      // CREDIT CARD PAYMENT DETECTION (STRICT)
       // CREDIT CARD RULE:
       // credit_card accounts are liabilities (passivo).
-      // Payments are TRANSFERS, never income/revenue.
-      // They reduce checking balance and card debt.
-      // They do NOT impact DRE, only cash flow.
+      // Only reclassify in very specific cases:
+      // 1. Income on credit_card account = bill payment received → transfer
+      // 2. Expense on checking/savings with VERY specific CC payment description → transfer
+      // NEVER convert: regular expenses, supplier payments, auto-debits
       // ========================================
       const accountForTx = accounts.find((a: any) => a.id === tx.pluggyAccountId);
       const pluggyAccountType = accountForTx ? mapPluggyAccountType(accountForTx.type || accountForTx.subtype || 'BANK') : 'checking';
@@ -616,12 +633,12 @@ Deno.serve(async (req) => {
         type = 'transfer';
         isCreditCardPaymentTx = true;
         console.log(`[CC-RULE] TX on credit_card account reclassified: income → transfer (payment received): ${description}`);
-      } else if (pluggyAccountType !== 'credit_card' && isCreditCardPayment(description)) {
-        // Any transaction on checking/savings that matches credit card payment keywords
-        // regardless of original type (income OR expense) → mark as transfer
+      } else if (pluggyAccountType !== 'credit_card' && type === 'expense' && isCreditCardPayment(description)) {
+        // ONLY convert expense on non-credit-card accounts if description STRICTLY matches
+        // credit card bill payment patterns. Never convert income or other types.
         type = 'transfer';
         isCreditCardPaymentTx = true;
-        console.log(`[CC-RULE] TX on ${pluggyAccountType} reclassified → transfer (bill payment detected): ${description}`);
+        console.log(`[CC-RULE] TX on ${pluggyAccountType} reclassified: expense → transfer (strict bill payment match): ${description}`);
       }
 
       const { data: inserted, error: insertError } = await supabaseAdmin
@@ -682,6 +699,99 @@ Deno.serve(async (req) => {
       }
       
       console.log(`[CLASSIFY] Classification complete: ${classified}/${newTransactionIds.length} processed`);
+    }
+
+    // ========================================
+    // STRICT INTERNAL TRANSFER PAIR DETECTION
+    // After classification, detect matching transaction pairs
+    // that are clearly internal transfers between accounts.
+    // Requirements (ALL must be met):
+    // 1. Same organization_id
+    // 2. Same absolute amount
+    // 3. Dates within 1 day
+    // 4. One income, one expense
+    // 5. Different account_ids
+    // 6. Neither account is credit_card
+    // 7. Description contains transfer keyword (pix, ted, transfer, transf, doc)
+    // If ANY doubt → do NOT convert.
+    // ========================================
+    if (newTransactionIds.length > 1) {
+      console.log(`[TRANSFER-DETECT] Checking ${newTransactionIds.length} new transactions for internal transfer pairs...`);
+      
+      // Fetch full transaction data for newly imported ones
+      const newIds = newTransactionIds.map(t => t.id);
+      const { data: newTxFull } = await supabaseAdmin
+        .from('transactions')
+        .select('id, amount, type, date, account_id, description')
+        .in('id', newIds);
+      
+      if (newTxFull && newTxFull.length > 1) {
+        // Build account type map (only for accounts in this sync)
+        const accountTypeMap: Record<string, string> = {};
+        for (const acc of accounts) {
+          const localId = pluggyAccountToLocalAccount[acc.id];
+          if (localId) {
+            accountTypeMap[localId] = mapPluggyAccountType(acc.type || acc.subtype || 'BANK');
+          }
+        }
+        
+        const paired = new Set<string>();
+        let transferPairs = 0;
+        
+        for (const txA of newTxFull) {
+          if (paired.has(txA.id)) continue;
+          if (txA.type !== 'income' && txA.type !== 'expense') continue;
+          if (accountTypeMap[txA.account_id] === 'credit_card') continue;
+          if (!hasTransferKeyword(txA.description || '')) continue;
+          
+          for (const txB of newTxFull) {
+            if (txB.id === txA.id || paired.has(txB.id)) continue;
+            if (txB.type !== 'income' && txB.type !== 'expense') continue;
+            if (txA.type === txB.type) continue; // Must be one income + one expense
+            if (txA.account_id === txB.account_id) continue; // Must be different accounts
+            if (accountTypeMap[txB.account_id] === 'credit_card') continue;
+            if (!hasTransferKeyword(txB.description || '')) continue;
+            
+            // Check same absolute amount
+            if (Math.abs(Number(txA.amount) - Number(txB.amount)) > 0.01) continue;
+            
+            // Check dates within 1 day
+            if (dateDiffDays(txA.date, txB.date) > 1) continue;
+            
+            // All criteria met — convert both to transfer and link them
+            console.log(`[TRANSFER-DETECT] Pair found: ${txA.id} (${txA.type}) <-> ${txB.id} (${txB.type}), amount=${txA.amount}`);
+            
+            await supabaseAdmin
+              .from('transactions')
+              .update({
+                type: 'transfer',
+                linked_transaction_id: txB.id,
+                classification_source: 'system',
+                validation_status: 'validated',
+                validated_at: new Date().toISOString(),
+              })
+              .eq('id', txA.id);
+            
+            await supabaseAdmin
+              .from('transactions')
+              .update({
+                type: 'transfer',
+                linked_transaction_id: txA.id,
+                classification_source: 'system',
+                validation_status: 'validated',
+                validated_at: new Date().toISOString(),
+              })
+              .eq('id', txB.id);
+            
+            paired.add(txA.id);
+            paired.add(txB.id);
+            transferPairs++;
+            break; // Move to next txA
+          }
+        }
+        
+        console.log(`[TRANSFER-DETECT] Detected ${transferPairs} internal transfer pairs`);
+      }
     }
 
     // ========================================
