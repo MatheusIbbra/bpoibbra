@@ -7,7 +7,15 @@ const corsHeaders = {
 
 const PLUGGY_API_URL = 'https://api.pluggy.ai';
 
+function jsonResponse(body: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
 Deno.serve(async (req) => {
+  // CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -18,10 +26,8 @@ Deno.serve(async (req) => {
   const PLUGGY_CLIENT_SECRET = Deno.env.get('PLUGGY_CLIENT_SECRET');
 
   if (!PLUGGY_CLIENT_ID || !PLUGGY_CLIENT_SECRET) {
-    return new Response(
-      JSON.stringify({ error: 'Configuração Pluggy incompleta' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error('Missing PLUGGY_CLIENT_ID or PLUGGY_CLIENT_SECRET');
+    return jsonResponse({ error: 'Configuração Pluggy incompleta. Verifique as variáveis de ambiente PLUGGY_CLIENT_ID e PLUGGY_CLIENT_SECRET.' }, 500);
   }
 
   const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -30,10 +36,8 @@ Deno.serve(async (req) => {
     // Verify authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authorization required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.warn('Request without Authorization header');
+      return jsonResponse({ error: 'Authorization required' }, 401);
     }
 
     const supabaseUser = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY')!, {
@@ -42,19 +46,16 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
     if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.warn('Invalid auth token:', userError?.message);
+      return jsonResponse({ error: 'Token de autenticação inválido' }, 401);
     }
+
+    console.log(`User ${user.id} requesting Pluggy connect token`);
 
     const { organization_id } = await req.json();
 
     if (!organization_id) {
-      return new Response(
-        JSON.stringify({ error: 'organization_id is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'organization_id is required' }, 400);
     }
 
     // Verify user has access to this organization
@@ -63,14 +64,12 @@ Deno.serve(async (req) => {
     });
 
     if (!viewableOrgs?.includes(organization_id)) {
-      return new Response(
-        JSON.stringify({ error: 'Access denied' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.warn(`User ${user.id} denied access to org ${organization_id}`);
+      return jsonResponse({ error: 'Acesso negado a esta organização' }, 403);
     }
 
-    // Get Pluggy access token
-    console.log('Authenticating with Pluggy...');
+    // Step 1: Get Pluggy API access token
+    console.log('Step 1: Authenticating with Pluggy API...');
     const authResponse = await fetch(`${PLUGGY_API_URL}/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -82,40 +81,51 @@ Deno.serve(async (req) => {
 
     if (!authResponse.ok) {
       const errorText = await authResponse.text();
-      console.error('Pluggy auth failed:', authResponse.status, errorText);
-      return new Response(
-        JSON.stringify({ error: 'Falha na autenticação com Pluggy' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error(`Pluggy auth failed [${authResponse.status}]:`, errorText);
+      return jsonResponse({ 
+        error: 'Falha na autenticação com Pluggy. Verifique credenciais.',
+        details: `Status: ${authResponse.status}`
+      }, 500);
     }
 
     const authData = await authResponse.json();
     const accessToken = authData.apiKey;
 
-    // Create a connect token for the Pluggy Connect widget
-    console.log('Creating Pluggy connect token...');
+    if (!accessToken) {
+      console.error('Pluggy auth response missing apiKey:', JSON.stringify(authData));
+      return jsonResponse({ error: 'Resposta inválida da autenticação Pluggy (sem apiKey)' }, 500);
+    }
+
+    console.log('Step 1 OK: Pluggy API authenticated');
+
+    // Step 2: Create a connect token for the Pluggy Connect widget
+    console.log('Step 2: Creating connect token...');
     const connectResponse = await fetch(`${PLUGGY_API_URL}/connect_token`, {
       method: 'POST',
       headers: { 
         'X-API-KEY': accessToken,
         'Content-Type': 'application/json' 
       },
-      body: JSON.stringify({
-        // Optional: pass itemId to update existing connection
-      }),
+      body: JSON.stringify({}),
     });
 
     if (!connectResponse.ok) {
       const errorText = await connectResponse.text();
-      console.error('Failed to create connect token:', connectResponse.status, errorText);
-      return new Response(
-        JSON.stringify({ error: 'Falha ao criar token de conexão' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error(`Failed to create connect token [${connectResponse.status}]:`, errorText);
+      return jsonResponse({ 
+        error: 'Falha ao criar token de conexão Pluggy',
+        details: `Status: ${connectResponse.status}`
+      }, 500);
     }
 
     const connectData = await connectResponse.json();
-    console.log('Connect token created successfully');
+    
+    if (!connectData.accessToken) {
+      console.error('Connect token response missing accessToken:', JSON.stringify(connectData));
+      return jsonResponse({ error: 'Token de conexão inválido recebido do Pluggy' }, 500);
+    }
+
+    console.log(`Step 2 OK: Connect token created (${connectData.accessToken.length} chars)`);
 
     // Log the connection attempt
     await supabaseAdmin.from('integration_logs').insert({
@@ -123,23 +133,16 @@ Deno.serve(async (req) => {
       provider: 'pluggy',
       event_type: 'connect_token_created',
       status: 'success',
-      message: 'Connect token created for Pluggy widget'
+      message: `Connect token created for user ${user.id}`
     });
 
-    return new Response(
-      JSON.stringify({ 
-        accessToken: connectData.accessToken,
-        // The frontend will use this token to open the Pluggy Connect widget
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return jsonResponse({ 
+      accessToken: connectData.accessToken,
+    });
 
   } catch (error: unknown) {
-    console.error('Error in pluggy-connect:', error);
+    console.error('Unhandled error in pluggy-connect:', error);
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return jsonResponse({ error: errorMessage }, 500);
   }
 });

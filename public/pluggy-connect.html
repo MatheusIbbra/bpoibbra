@@ -7,83 +7,230 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #f8f9fa; color: #333; }
-    .loading { text-align: center; }
-    .loading p { margin-top: 16px; font-size: 15px; color: #666; }
-    .error { color: #dc2626; }
-    .spinner { width: 44px; height: 44px; border: 4px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto; }
+    .container { text-align: center; max-width: 400px; padding: 24px; }
+    .container p { margin-top: 12px; font-size: 14px; color: #666; line-height: 1.5; }
+    .error { color: #dc2626; font-weight: 500; }
+    .spinner { width: 40px; height: 40px; border: 3px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .retry-btn { margin-top: 16px; padding: 8px 20px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .retry-btn:hover { background: #2563eb; }
+    .close-btn { margin-top: 8px; padding: 8px 20px; background: transparent; color: #666; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .close-btn:hover { background: #f3f4f6; }
+    .debug { margin-top: 16px; font-size: 11px; color: #9ca3af; word-break: break-all; }
   </style>
 </head>
 <body>
-  <div class="loading" id="status">
-    <div class="spinner"></div>
-    <p>Carregando widget de conexão bancária...</p>
+  <div class="container" id="status">
+    <div class="spinner" id="spinner"></div>
+    <p id="message">Carregando widget de conexão bancária...</p>
   </div>
 
-  <script src="https://cdn.pluggy.ai/pluggy-connect/v2.12.0/pluggy-connect.js"></script>
   <script>
     (function() {
       var statusEl = document.getElementById('status');
+      var messageEl = document.getElementById('message');
+      var spinnerEl = document.getElementById('spinner');
+      var SDK_URL = 'https://cdn.pluggy.ai/pluggy-connect/v2.12.0/pluggy-connect.js';
+      var SDK_LOAD_TIMEOUT = 15000; // 15 seconds
+      var sdkLoaded = false;
+      var initAttempted = false;
 
-      // Get the connect token from the URL hash
+      // ---- Utility functions ----
+      function showError(msg, showRetry) {
+        spinnerEl.style.display = 'none';
+        messageEl.className = 'error';
+        messageEl.textContent = msg;
+        
+        if (showRetry) {
+          var retryBtn = document.createElement('button');
+          retryBtn.className = 'retry-btn';
+          retryBtn.textContent = 'Tentar novamente';
+          retryBtn.onclick = function() { window.location.reload(); };
+          statusEl.appendChild(retryBtn);
+        }
+
+        var closeBtn = document.createElement('button');
+        closeBtn.className = 'close-btn';
+        closeBtn.textContent = 'Fechar';
+        closeBtn.onclick = function() { 
+          notifyOpener('pluggy-close');
+          window.close(); 
+        };
+        statusEl.appendChild(closeBtn);
+      }
+
+      function notifyOpener(type, payload) {
+        try {
+          if (window.opener && !window.opener.closed) {
+            var msg = { type: type };
+            if (payload) {
+              if (type === 'pluggy-success') msg.data = payload;
+              else if (type === 'pluggy-error') msg.error = payload;
+            }
+            window.opener.postMessage(msg, '*');
+          }
+        } catch(e) {
+          console.warn('Could not notify opener:', e);
+        }
+      }
+
+      function log(msg) {
+        console.log('[PluggyConnect]', msg);
+      }
+
+      // ---- Token validation ----
       var token = window.location.hash.substring(1);
+
       if (!token) {
-        statusEl.innerHTML = '<p class="error">Token não encontrado. Feche esta janela e tente novamente.</p>';
+        log('ERROR: No token found in URL hash');
+        showError('Token não encontrado. Feche esta janela e tente novamente.', false);
+        notifyOpener('pluggy-error', { message: 'Token não encontrado na URL' });
         return;
       }
 
-      // Wait a bit for the SDK script to load
-      function tryInit(attempts) {
-        if (typeof PluggyConnect !== 'undefined') {
-          initWidget(token);
-        } else if (attempts > 0) {
-          setTimeout(function() { tryInit(attempts - 1); }, 300);
-        } else {
-          statusEl.innerHTML = '<p class="error">Erro ao carregar o widget. Verifique sua conexão e tente novamente.</p>';
-          setTimeout(function() {
-            if (window.opener) {
-              window.opener.postMessage({ type: 'pluggy-error', error: { message: 'SDK não carregou' } }, '*');
-            }
-            window.close();
-          }, 3000);
-        }
+      if (token.length < 20) {
+        log('ERROR: Token appears invalid (too short): ' + token.length + ' chars');
+        showError('Token inválido. Feche esta janela e tente novamente.', false);
+        notifyOpener('pluggy-error', { message: 'Token inválido (muito curto)' });
+        return;
       }
 
-      function initWidget(connectToken) {
+      log('Token found: ' + token.substring(0, 10) + '... (' + token.length + ' chars)');
+
+      // ---- SDK loading with fallback ----
+      function loadSDK(callback) {
+        log('Loading Pluggy SDK from CDN...');
+        var script = document.createElement('script');
+        script.src = SDK_URL;
+        script.async = true;
+
+        var timeoutId = setTimeout(function() {
+          if (!sdkLoaded) {
+            log('ERROR: SDK load timed out after ' + SDK_LOAD_TIMEOUT + 'ms');
+            callback(new Error('Timeout ao carregar SDK'));
+          }
+        }, SDK_LOAD_TIMEOUT);
+
+        script.onload = function() {
+          clearTimeout(timeoutId);
+          sdkLoaded = true;
+          log('SDK script loaded successfully');
+          // Give the SDK a moment to register globals
+          setTimeout(function() { callback(null); }, 200);
+        };
+
+        script.onerror = function(e) {
+          clearTimeout(timeoutId);
+          log('ERROR: SDK script failed to load');
+          callback(new Error('Falha ao carregar script do SDK'));
+        };
+
+        document.head.appendChild(script);
+      }
+
+      function initWidget() {
+        if (initAttempted) return;
+        initAttempted = true;
+
+        // Check if PluggyConnect global is available
+        if (typeof PluggyConnect === 'undefined') {
+          log('ERROR: PluggyConnect global not found after script load');
+          showError('SDK carregou mas não inicializou corretamente. Verifique se o domínio está autorizado no provedor.', true);
+          notifyOpener('pluggy-error', { message: 'PluggyConnect global não encontrado' });
+          return;
+        }
+
+        log('Initializing PluggyConnect widget...');
+        messageEl.textContent = 'Inicializando widget...';
+
         try {
           var connect = new PluggyConnect({
-            connectToken: connectToken,
+            connectToken: token,
+            
             onSuccess: function(itemData) {
-              if (window.opener) {
-                window.opener.postMessage({ type: 'pluggy-success', data: itemData }, '*');
-              }
-              setTimeout(function() { window.close(); }, 500);
+              log('SUCCESS: Connection completed. Item: ' + JSON.stringify(itemData));
+              notifyOpener('pluggy-success', itemData);
+              messageEl.className = '';
+              messageEl.textContent = 'Conexão realizada com sucesso!';
+              spinnerEl.style.display = 'none';
+              setTimeout(function() { window.close(); }, 1500);
             },
+
             onError: function(error) {
-              if (window.opener) {
-                window.opener.postMessage({ type: 'pluggy-error', error: error || { message: 'Erro desconhecido' } }, '*');
-              }
-              setTimeout(function() { window.close(); }, 2000);
+              log('ERROR from Pluggy widget: ' + JSON.stringify(error));
+              var errorMsg = (error && (error.message || error.msg)) || 'Erro desconhecido no widget';
+              showError('Erro na conexão: ' + errorMsg, true);
+              notifyOpener('pluggy-error', { message: errorMsg });
             },
+
             onClose: function() {
-              if (window.opener) {
-                window.opener.postMessage({ type: 'pluggy-close' }, '*');
-              }
+              log('Widget closed by user');
+              notifyOpener('pluggy-close');
               setTimeout(function() { window.close(); }, 300);
+            },
+
+            onEvent: function(event) {
+              log('Widget event: ' + JSON.stringify(event));
             }
           });
+
           connect.init();
+          log('Widget init() called successfully');
+
         } catch(e) {
-          statusEl.innerHTML = '<p class="error">Erro: ' + e.message + '</p>';
-          if (window.opener) {
-            window.opener.postMessage({ type: 'pluggy-error', error: { message: e.message } }, '*');
-          }
-          setTimeout(function() { window.close(); }, 3000);
+          log('ERROR: Exception during widget init: ' + e.message);
+          showError('Erro ao inicializar: ' + e.message, true);
+          notifyOpener('pluggy-error', { message: 'Exceção na inicialização: ' + e.message });
         }
       }
 
-      // Start attempting to initialize
-      tryInit(15);
+      // ---- Main flow: wait for window.onload, then load SDK, then init ----
+      function start() {
+        loadSDK(function(err) {
+          if (err) {
+            // Fallback: try loading from alternate CDN
+            log('Trying fallback SDK URL...');
+            var fallbackUrl = 'https://cdn.pluggy.ai/pluggy-connect/v2/pluggy-connect.js';
+            var fallbackScript = document.createElement('script');
+            fallbackScript.src = fallbackUrl;
+            fallbackScript.async = true;
+            
+            fallbackScript.onload = function() {
+              sdkLoaded = true;
+              log('Fallback SDK loaded successfully');
+              setTimeout(function() { initWidget(); }, 200);
+            };
+
+            fallbackScript.onerror = function() {
+              log('ERROR: Fallback SDK also failed to load');
+              showError(
+                'Não foi possível carregar o SDK de conexão bancária. ' +
+                'Verifique sua conexão com a internet e tente novamente.',
+                true
+              );
+              notifyOpener('pluggy-error', { message: 'SDK não carregou (CDN principal e fallback falharam)' });
+            };
+
+            document.head.appendChild(fallbackScript);
+            return;
+          }
+
+          initWidget();
+        });
+      }
+
+      // Ensure everything is ready before starting
+      if (document.readyState === 'complete') {
+        log('Document already complete, starting immediately');
+        start();
+      } else {
+        log('Waiting for window.onload...');
+        window.addEventListener('load', function() {
+          log('window.onload fired, starting SDK load');
+          start();
+        });
+      }
+
     })();
   </script>
 </body>
