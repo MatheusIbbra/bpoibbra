@@ -73,7 +73,9 @@ export function useDashboardStats() {
       let totalAccountBalance = 0;
       if (accountsData) {
         for (const account of accountsData) {
-          // Credit cards are liabilities, exclude from available balance
+          // CREDIT CARD RULE:
+          // credit_card accounts are liabilities (passivo).
+          // Never include in available balance calculations.
           if (account.account_type === 'credit_card') continue;
           
           const { data: balanceData } = await supabase.rpc("calculate_account_balance", {

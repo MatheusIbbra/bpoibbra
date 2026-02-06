@@ -1,10 +1,14 @@
+import { useNavigate } from "react-router-dom";
 import { CreditCard } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { useCreditCardSummary } from "@/hooks/useCreditCardSummary";
 import { useBankConnections } from "@/hooks/useBankConnections";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
+
+// CREDIT CARD RULE:
+// credit_card accounts are liabilities (passivo).
+// Never include in available balance calculations.
 
 function getUsageStatus(percentage: number) {
   if (percentage >= 90) return { color: "text-destructive", barColor: "bg-destructive", label: "Crítico" };
@@ -13,6 +17,7 @@ function getUsageStatus(percentage: number) {
 }
 
 export function CreditCardSummary() {
+  const navigate = useNavigate();
   const { data: cards, isLoading } = useCreditCardSummary();
   const { data: bankConnections } = useBankConnections();
 
@@ -27,7 +32,10 @@ export function CreditCardSummary() {
 
   if (isLoading || !cards || cards.length === 0) return null;
 
+  // CREDIT CARD RULE: Total debt shown as liability (passivo consolidado)
   const totalDebt = cards.reduce((sum, c) => sum + Math.abs(c.currentBalance), 0);
+  const totalPurchases = cards.reduce((sum, c) => sum + c.monthlyPurchases, 0);
+  const totalPayments = cards.reduce((sum, c) => sum + c.monthlyPayments, 0);
 
   return (
     <div className="space-y-2">
@@ -35,17 +43,28 @@ export function CreditCardSummary() {
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
           Cartões de Crédito
         </h3>
-        <span className="text-xs text-destructive font-medium">
-          Total a pagar: {formatCurrency(totalDebt)}
-        </span>
+        <div className="flex items-center gap-3 text-xs">
+          {totalPurchases > 0 && (
+            <span className="text-muted-foreground">
+              Compras: <span className="font-medium text-foreground">{formatCurrency(totalPurchases)}</span>
+            </span>
+          )}
+          {totalPayments > 0 && (
+            <span className="text-muted-foreground">
+              Pago: <span className="font-medium text-success">{formatCurrency(totalPayments)}</span>
+            </span>
+          )}
+          <span className="text-destructive font-medium">
+            Total a pagar: {formatCurrency(totalDebt)}
+          </span>
+        </div>
       </div>
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((card) => {
           const logo = card.bankName ? bankLogoMap.get(card.bankName) : undefined;
+          // CREDIT CARD RULE: Always treat balance as absolute debt
           const debt = Math.abs(card.currentBalance);
           
-          // Estimate limit usage if we have data
-          // available_balance on credit cards from Pluggy = available credit
           const hasLimitInfo = card.monthlyPurchases > 0 || debt > 0;
           const estimatedLimit = debt + (card.monthlyPayments || 0);
           const usagePercent = estimatedLimit > 0
@@ -54,7 +73,11 @@ export function CreditCardSummary() {
           const status = getUsageStatus(usagePercent);
 
           return (
-            <Card key={card.accountId} className="card-executive-hover overflow-hidden">
+            <Card
+              key={card.accountId}
+              className="card-executive-hover overflow-hidden cursor-pointer"
+              onClick={() => navigate(`/cartao/${card.accountId}`)}
+            >
               <CardContent className="p-4">
                 {/* Header */}
                 <div className="flex items-center gap-2.5 mb-3">
