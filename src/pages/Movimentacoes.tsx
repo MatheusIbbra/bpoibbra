@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { format } from "date-fns";
+import { useState, useMemo } from "react";
+import { format, isToday, isYesterday, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Plus,
@@ -43,7 +43,45 @@ import { useTransactions, useDeleteTransaction, Transaction } from "@/hooks/useT
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, parseLocalDate } from "@/lib/formatters";
+import { getAutoIcon } from "@/lib/category-icons";
+import * as LucideIcons from "lucide-react";
+
+interface GroupedTransactions {
+  label: string;
+  transactions: Transaction[];
+}
+
+function groupTransactionsByDate(transactions: Transaction[]): GroupedTransactions[] {
+  const groups: Record<string, Transaction[]> = {};
+  const order: string[] = [];
+  const now = new Date();
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+
+  for (const tx of transactions) {
+    const txDate = parseLocalDate(tx.date);
+    let label: string;
+
+    if (isToday(txDate)) {
+      label = "Hoje";
+    } else if (isYesterday(txDate)) {
+      label = "Ontem";
+    } else if (txDate >= weekStart) {
+      label = "Esta semana";
+    } else {
+      label = format(txDate, "MMMM yyyy", { locale: ptBR });
+      label = label.charAt(0).toUpperCase() + label.slice(1);
+    }
+
+    if (!groups[label]) {
+      groups[label] = [];
+      order.push(label);
+    }
+    groups[label].push(tx);
+  }
+
+  return order.map((label) => ({ label, transactions: groups[label] }));
+}
 
 export default function Movimentacoes() {
   const { requiresBaseSelection } = useBaseFilter();
@@ -54,20 +92,17 @@ export default function Movimentacoes() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [defaultType, setDefaultType] = useState<"transfer" | "income" | "expense">("transfer");
 
-  // Fetch all transactions
   const { data: allTransactions, isLoading } = useTransactions({
     search: search || undefined,
   });
 
   const deleteTransaction = useDeleteTransaction();
 
-  // Filter transactions by type based on active tab
   const getFilteredTransactions = () => {
     if (!allTransactions) return [];
-    
     switch (activeTab) {
       case "transacoes":
-        return allTransactions.filter(t => 
+        return allTransactions.filter(t =>
           ["transfer", "investment", "redemption"].includes(t.type)
         );
       case "receitas":
@@ -80,6 +115,7 @@ export default function Movimentacoes() {
   };
 
   const filteredTransactions = getFilteredTransactions();
+  const grouped = useMemo(() => groupTransactionsByDate(filteredTransactions), [filteredTransactions]);
 
   const handleEdit = (transaction: Transaction) => {
     setEditingTransaction(transaction);
@@ -95,9 +131,7 @@ export default function Movimentacoes() {
 
   const handleDialogClose = (open: boolean) => {
     setDialogOpen(open);
-    if (!open) {
-      setEditingTransaction(null);
-    }
+    if (!open) setEditingTransaction(null);
   };
 
   const handleNewTransaction = () => {
@@ -115,7 +149,13 @@ export default function Movimentacoes() {
     setDialogOpen(true);
   };
 
-  const getTransactionIcon = (type: string) => {
+  const getTransactionIcon = (type: string, categoryIcon?: string | null) => {
+    if (categoryIcon) {
+      const iconName = getAutoIcon(categoryIcon);
+      const PascalName = iconName.charAt(0).toUpperCase() + iconName.slice(1).replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+      const IconComp = (LucideIcons as any)[PascalName];
+      if (IconComp) return <IconComp className="h-4 w-4" />;
+    }
     switch (type) {
       case "transfer":
         return <ArrowLeftRight className="h-4 w-4" />;
@@ -134,50 +174,34 @@ export default function Movimentacoes() {
 
   const getTransactionLabel = (type: string) => {
     switch (type) {
-      case "transfer":
-        return "Transferência";
-      case "investment":
-        return "Aplicação";
-      case "redemption":
-        return "Resgate";
-      case "income":
-        return "Receita";
-      case "expense":
-        return "Despesa";
-      default:
-        return type;
+      case "transfer": return "Transferência";
+      case "investment": return "Aplicação";
+      case "redemption": return "Resgate";
+      case "income": return "Receita";
+      case "expense": return "Despesa";
+      default: return type;
     }
   };
 
   const getTransactionColor = (type: string) => {
     switch (type) {
-      case "transfer":
-        return "bg-blue-500/10 text-blue-500";
-      case "investment":
-        return "bg-orange-500/10 text-orange-500";
-      case "redemption":
-        return "bg-emerald-500/10 text-emerald-500";
-      case "income":
-        return "bg-success/10 text-success";
-      case "expense":
-        return "bg-destructive/10 text-destructive";
-      default:
-        return "bg-muted text-muted-foreground";
+      case "transfer": return "bg-info/10 text-info";
+      case "investment": return "bg-warning/10 text-warning";
+      case "redemption": return "bg-success/10 text-success";
+      case "income": return "bg-success/10 text-success";
+      case "expense": return "bg-destructive/10 text-destructive";
+      default: return "bg-muted text-muted-foreground";
     }
   };
 
   const getNewButtonLabel = () => {
     switch (activeTab) {
-      case "receitas":
-        return "Nova Receita";
-      case "despesas":
-        return "Nova Despesa";
-      default:
-        return "Nova Transação";
+      case "receitas": return "Nova Receita";
+      case "despesas": return "Nova Despesa";
+      default: return "Nova Movimentação";
     }
   };
 
-  // Show base selection required state
   if (requiresBaseSelection) {
     return (
       <AppLayout title="Movimentações">
@@ -203,7 +227,7 @@ export default function Movimentacoes() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <TabsList className="grid w-full sm:w-auto grid-cols-3">
-              <TabsTrigger value="transacoes" className="text-xs sm:text-sm">Transações</TabsTrigger>
+              <TabsTrigger value="transacoes" className="text-xs sm:text-sm">Movimentações</TabsTrigger>
               <TabsTrigger value="receitas" className="text-xs sm:text-sm">Receitas</TabsTrigger>
               <TabsTrigger value="despesas" className="text-xs sm:text-sm">Despesas</TabsTrigger>
             </TabsList>
@@ -212,7 +236,7 @@ export default function Movimentacoes() {
               <div className="relative flex-1 sm:w-64">
                 <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar..."
+                  placeholder="Buscar movimentação..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-8 h-9"
@@ -227,10 +251,10 @@ export default function Movimentacoes() {
           </div>
 
           <TabsContent value={activeTab} className="mt-4">
-            <Card>
+            <Card className="card-executive">
               <CardHeader className="py-3 px-4">
                 <CardTitle className="text-sm font-medium">
-                  {isLoading ? "Carregando..." : `${filteredTransactions.length} registros`}
+                  {isLoading ? "Carregando..." : `${filteredTransactions.length} movimentações`}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -241,9 +265,9 @@ export default function Movimentacoes() {
                 ) : filteredTransactions.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center px-4">
                     <AlertCircle className="h-10 w-10 text-muted-foreground mb-3" />
-                    <h3 className="font-semibold">Nenhum registro encontrado</h3>
+                    <h3 className="font-semibold">Nenhuma movimentação encontrada</h3>
                     <p className="text-sm text-muted-foreground">
-                      {activeTab === "transacoes" 
+                      {activeTab === "transacoes"
                         ? "Aqui aparecem transferências, aplicações e resgates."
                         : activeTab === "receitas"
                         ? "As receitas classificadas aparecerão aqui."
@@ -251,68 +275,84 @@ export default function Movimentacoes() {
                     </p>
                   </div>
                 ) : (
-                  <div className="divide-y">
-                    {filteredTransactions.map((transaction) => (
-                      <div
-                        key={transaction.id}
-                        className="flex items-center gap-3 p-3 hover:bg-muted/50 transition-colors"
-                      >
-                        <div
-                          className={cn(
-                            "flex h-8 w-8 items-center justify-center rounded-full shrink-0",
-                            getTransactionColor(transaction.type)
-                          )}
-                        >
-                          {getTransactionIcon(transaction.type)}
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium truncate">{transaction.description}</p>
-                            {activeTab === "transacoes" && (
-                              <Badge variant="outline" className="shrink-0 text-xs h-5">
-                                {getTransactionLabel(transaction.type)}
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <span>{transaction.categories?.name || transaction.accounts?.name || "—"}</span>
-                            <span>•</span>
-                            <span>{format(new Date(transaction.date), "dd/MM/yy", { locale: ptBR })}</span>
-                          </div>
-                        </div>
-
-                        <div className="text-right shrink-0">
-                          <p className={cn(
-                            "text-sm font-semibold",
-                            transaction.type === "income" && "text-success",
-                            transaction.type === "expense" && "text-destructive"
-                          )}>
-                            {transaction.type === "income" ? "+" : transaction.type === "expense" ? "-" : ""}
-                            {formatCurrency(Number(transaction.amount))}
+                  <div>
+                    {grouped.map((group) => (
+                      <div key={group.label}>
+                        {/* Date group header */}
+                        <div className="px-4 py-2 bg-muted/30 border-y border-border/40">
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                            {group.label}
                           </p>
                         </div>
 
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(transaction)}>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setDeleteId(transaction.id)}
-                              className="text-destructive"
+                        {/* Transactions in group */}
+                        <div className="divide-y divide-border/30">
+                          {group.transactions.map((transaction) => (
+                            <div
+                              key={transaction.id}
+                              className="flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors"
                             >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              <div
+                                className={cn(
+                                  "flex h-9 w-9 items-center justify-center rounded-full shrink-0",
+                                  getTransactionColor(transaction.type)
+                                )}
+                              >
+                                {getTransactionIcon(transaction.type, transaction.categories?.icon)}
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium truncate">
+                                    {transaction.description || "Movimentação"}
+                                  </p>
+                                  {activeTab === "transacoes" && (
+                                    <Badge variant="outline" className="shrink-0 text-[10px] h-5 px-1.5">
+                                      {getTransactionLabel(transaction.type)}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                  <span>{transaction.categories?.name || transaction.accounts?.name || "—"}</span>
+                                  <span>·</span>
+                                  <span>{format(parseLocalDate(transaction.date), "dd/MM/yy", { locale: ptBR })}</span>
+                                </div>
+                              </div>
+
+                              <div className="text-right shrink-0">
+                                <p className={cn(
+                                  "text-sm font-semibold tabular-nums",
+                                  transaction.type === "income" && "text-success",
+                                  transaction.type === "expense" && "text-destructive"
+                                )}>
+                                  {transaction.type === "income" ? "+" : transaction.type === "expense" ? "-" : ""}
+                                  {formatCurrency(Number(transaction.amount))}
+                                </p>
+                              </div>
+
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleEdit(transaction)}>
+                                    <Pencil className="h-4 w-4 mr-2" />
+                                    Editar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => setDeleteId(transaction.id)}
+                                    className="text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Excluir
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
