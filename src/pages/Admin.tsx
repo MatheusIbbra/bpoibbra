@@ -272,7 +272,7 @@ export default function Admin() {
                     <TableHead className="min-w-[200px]">Email</TableHead>
                     <TableHead className="hidden md:table-cell">Cadastrado em</TableHead>
                     <TableHead>Status</TableHead>
-                    {role !== "admin" && role !== "cliente" && (
+                    {role !== "cliente" && (
                       <TableHead>Alterar Perfil</TableHead>
                     )}
                     <TableHead className="text-right">Ações</TableHead>
@@ -329,7 +329,7 @@ export default function Admin() {
                           )}
                         </TableCell>
 
-                        {role !== "admin" && role !== "cliente" && (
+                        {role !== "cliente" && (
                           <TableCell>
                             <Select
                               value={userItem.role || "none"}
@@ -634,7 +634,7 @@ export default function Admin() {
                         <TableRow className="bg-muted/30 hover:bg-muted/30">
                           <TableHead className="min-w-[200px]">Usuário</TableHead>
                           <TableHead className="min-w-[200px]">Email</TableHead>
-                          <TableHead>Perfil</TableHead>
+                          <TableHead>Alterar Perfil</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
@@ -680,9 +680,28 @@ export default function Admin() {
                                   </div>
                                 </TableCell>
                                 <TableCell>
-                                  <Badge className={ROLE_COLORS[userRole]}>
-                                    {ROLE_LABELS[userRole]}
-                                  </Badge>
+                                  <Select
+                                    value={userItem.role || "none"}
+                                    onValueChange={(value) => handleRoleChange(userItem.id, value)}
+                                    disabled={assignRole.isPending || removeRole.isPending || userItem.id === user?.id}
+                                  >
+                                    <SelectTrigger className="w-40">
+                                      <SelectValue placeholder="Selecionar" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">
+                                        <span className="text-muted-foreground">Sem perfil</span>
+                                      </SelectItem>
+                                      {ALL_ROLES.map((r) => (
+                                        <SelectItem key={r} value={r}>
+                                          <div className="flex items-center gap-2">
+                                            {ROLE_ICONS[r]}
+                                            {ROLE_LABELS[r]}
+                                          </div>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
                                 </TableCell>
                                 <TableCell>
                                   {userItem.is_blocked ? (

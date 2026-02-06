@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
+import { useIsAdmin } from "@/hooks/useUserRoles";
 import { format, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useMemo } from "react";
@@ -114,6 +115,7 @@ const LogItem = ({ log }: { log: IntegrationLog }) => (
 
 export default function OpenFinance() {
   const { getOrganizationFilter } = useBaseFilter();
+  const { isAdmin } = useIsAdmin();
   const orgFilter = getOrganizationFilter();
 
   // Memoiza a queryKey para evitar recriações desnecessárias
@@ -132,7 +134,6 @@ export default function OpenFinance() {
       let query = supabase
         .from("integration_logs")
         .select("id, event_type, status, message, created_at, provider")
-        .eq("provider", "klavi")
         .order("created_at", { ascending: false })
         .limit(20);
 
@@ -167,38 +168,40 @@ export default function OpenFinance() {
             <BankConnectionsManager />
           </div>
 
-          <div className="space-y-6">
-            {/* Activity Log */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Activity className="h-4 w-4" aria-hidden="true" />
-                  <span>Atividade Recente</span>
-                </CardTitle>
-                <CardDescription>
-                  Últimas ações e eventos
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {logsError ? (
-                  <ErrorState message="Erro ao carregar os logs. Tente novamente." />
-                ) : logsLoading ? (
-                  <LoadingState />
-                ) : !logs || logs.length === 0 ? (
-                  <EmptyState />
-                ) : (
-                  <div 
-                    className="space-y-3 max-h-[400px] overflow-y-auto overscroll-contain"
-                    role="feed"
-                    aria-label="Feed de atividades recentes"
-                  >
-                    {logs.map((log) => (
-                      <LogItem key={log.id} log={log} />
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+        <div className="space-y-6">
+            {/* Activity Log - Admin only */}
+            {isAdmin && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Activity className="h-4 w-4" aria-hidden="true" />
+                    <span>Atividade Recente</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Últimas ações e eventos
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {logsError ? (
+                    <ErrorState message="Erro ao carregar os logs. Tente novamente." />
+                  ) : logsLoading ? (
+                    <LoadingState />
+                  ) : !logs || logs.length === 0 ? (
+                    <EmptyState />
+                  ) : (
+                    <div 
+                      className="space-y-3 max-h-[400px] overflow-y-auto overscroll-contain"
+                      role="feed"
+                      aria-label="Feed de atividades recentes"
+                    >
+                      {logs.map((log) => (
+                        <LogItem key={log.id} log={log} />
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Info Card */}
             <Card>
