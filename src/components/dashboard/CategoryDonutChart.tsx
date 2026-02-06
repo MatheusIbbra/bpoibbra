@@ -7,10 +7,11 @@ import { useMemo } from "react";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 import { cn } from "@/lib/utils";
 
-const COLORS = [
-  "#6366f1", "#8b5cf6", "#a855f7", "#ec4899", "#f43f5e",
-  "#ef4444", "#f97316", "#f59e0b", "#84cc16", "#22c55e",
-  "#10b981", "#14b8a6", "#06b6d4", "#0ea5e9", "#3b82f6",
+// Distinct, vibrant colors for each category slice
+const DISTINCT_COLORS = [
+  "#6366f1", "#f43f5e", "#f59e0b", "#22c55e", "#06b6d4",
+  "#8b5cf6", "#ec4899", "#f97316", "#10b981", "#3b82f6",
+  "#d946ef", "#eab308", "#14b8a6", "#0ea5e9", "#ef4444",
 ];
 
 const formatCurrency = (value: number) =>
@@ -54,7 +55,7 @@ export function CategoryDonutChart() {
           return {
             name: cat?.name || "Sem categoria",
             value,
-            color: cat?.color || COLORS[i % COLORS.length],
+            color: DISTINCT_COLORS[i % DISTINCT_COLORS.length],
             percentage: total > 0 ? (value / total) * 100 : 0,
           };
         })
@@ -71,8 +72,8 @@ export function CategoryDonutChart() {
   const isLoading = loadingTx;
 
   return (
-    <Card>
-      <CardHeader className="pb-2 pt-3 px-4">
+    <Card className="h-full">
+      <CardHeader className="pb-1 pt-3 px-4">
         <CardTitle className="text-sm font-semibold flex items-center gap-2">
           <PieChartIcon className="h-4 w-4 text-muted-foreground" />
           Distribuição por Categoria
@@ -80,14 +81,12 @@ export function CategoryDonutChart() {
       </CardHeader>
       <CardContent className="px-4 pb-3">
         {isLoading ? (
-          <div className="flex items-center justify-center h-32">
+          <div className="flex items-center justify-center h-[200px]">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
-            {/* Income donut */}
+          <div className="space-y-4">
             <DonutSection title="Receitas" data={incomeData} type="income" />
-            {/* Expense donut */}
             <DonutSection title="Despesas" data={expenseData} type="expense" />
           </div>
         )}
@@ -99,8 +98,11 @@ export function CategoryDonutChart() {
 function DonutSection({ title, data, type }: { title: string; data: DonutData[]; type: "income" | "expense" }) {
   if (data.length === 0) {
     return (
-      <div className="text-center py-4">
-        <p className="text-xs text-muted-foreground">{title}</p>
+      <div className="text-center py-3">
+        <p className={cn(
+          "text-xs font-medium",
+          type === "income" ? "text-success" : "text-destructive"
+        )}>{title}</p>
         <p className="text-[11px] text-muted-foreground mt-1">Sem dados</p>
       </div>
     );
@@ -109,47 +111,50 @@ function DonutSection({ title, data, type }: { title: string; data: DonutData[];
   return (
     <div>
       <p className={cn(
-        "text-xs font-medium text-center mb-1",
+        "text-xs font-semibold mb-2",
         type === "income" ? "text-success" : "text-destructive"
       )}>
         {title}
       </p>
-      <div className="h-[100px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={25}
-              outerRadius={42}
-              paddingAngle={2}
-              dataKey="value"
-            >
-              {data.map((entry, index) => (
-                <Cell key={index} fill={entry.color} stroke="none" />
-              ))}
-            </Pie>
-            <Tooltip
-              formatter={(value: number) => formatCurrency(value)}
-              contentStyle={{
-                fontSize: "11px",
-                borderRadius: "8px",
-                border: "1px solid hsl(var(--border))",
-                background: "hsl(var(--background))",
-              }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="space-y-0.5 mt-1">
-        {data.slice(0, 4).map((item, i) => (
-          <div key={i} className="flex items-center gap-1.5 text-[10px]">
-            <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-            <span className="truncate flex-1">{item.name}</span>
-            <span className="text-muted-foreground shrink-0">{item.percentage.toFixed(0)}%</span>
-          </div>
-        ))}
+      <div className="flex items-start gap-3">
+        <div className="h-[90px] w-[90px] shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                innerRadius={22}
+                outerRadius={40}
+                paddingAngle={3}
+                dataKey="value"
+                strokeWidth={0}
+              >
+                {data.map((entry, index) => (
+                  <Cell key={index} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip
+                formatter={(value: number) => formatCurrency(value)}
+                contentStyle={{
+                  fontSize: "11px",
+                  borderRadius: "8px",
+                  border: "1px solid hsl(var(--border))",
+                  background: "hsl(var(--background))",
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="space-y-1 flex-1 min-w-0 pt-1">
+          {data.slice(0, 5).map((item, i) => (
+            <div key={i} className="flex items-center gap-1.5 text-[11px]">
+              <div className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: item.color }} />
+              <span className="truncate flex-1">{item.name}</span>
+              <span className="text-muted-foreground tabular-nums shrink-0">{item.percentage.toFixed(0)}%</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -104,7 +104,6 @@ export default function Orcamentos() {
   };
 
   const onSubmit = async (data: FormData) => {
-    // Validar que a categoria existe na base selecionada
     const validCategory = categories?.find(c => c.id === data.category_id);
     if (!validCategory) {
       toast.error("A categoria selecionada não existe ou não pertence a esta base");
@@ -129,21 +128,11 @@ export default function Orcamentos() {
   const totalBudget = budgets?.reduce((acc, b) => acc + Number(b.amount), 0) || 0;
   const totalSpent = budgets?.reduce((acc, b) => acc + getSpentForCategory(b.category_id), 0) || 0;
 
-  // Show base selection required state
   if (!canCreate) {
     return (
       <AppLayout title="Orçamentos">
-        <div className="space-y-6">
+        <div className="space-y-4">
           <BaseRequiredAlert action="gerenciar orçamentos" />
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <Wallet className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold">Selecione uma base</h3>
-              <p className="text-muted-foreground">
-                Selecione uma base específica no menu superior para visualizar e gerenciar orçamentos.
-              </p>
-            </CardContent>
-          </Card>
         </div>
       </AppLayout>
     );
@@ -151,55 +140,52 @@ export default function Orcamentos() {
 
   return (
     <AppLayout title="Orçamentos">
-      <div className="space-y-6">
-        {/* Summary */}
+      <div className="space-y-4">
+        {/* Summary - Compact */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-4">
+          <CardContent className="py-3 px-4">
+            <div className="flex items-center justify-between mb-2">
               <div>
-                <p className="text-sm text-muted-foreground">Orçamento Total do Mês</p>
-                <p className="text-2xl font-bold">{formatCurrency(totalBudget)}</p>
+                <p className="text-xs text-muted-foreground">Orçamento Total</p>
+                <p className="text-lg font-bold">{formatCurrency(totalBudget)}</p>
               </div>
               <div className="text-right">
-                <p className="text-sm text-muted-foreground">Gasto</p>
-                <p className={cn("text-2xl font-bold", totalSpent > totalBudget && "text-destructive")}>
+                <p className="text-xs text-muted-foreground">Gasto</p>
+                <p className={cn("text-lg font-bold", totalSpent > totalBudget && "text-destructive")}>
                   {formatCurrency(totalSpent)}
                 </p>
               </div>
             </div>
             <Progress
               value={totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0}
-              className={cn(totalSpent > totalBudget && "[&>div]:bg-destructive")}
+              className={cn("h-2", totalSpent > totalBudget && "[&>div]:bg-destructive")}
             />
           </CardContent>
         </Card>
 
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Orçamentos por Categoria</h2>
-          <Button onClick={() => { setEditingBudget(null); form.reset(); setDialogOpen(true); }}>
-            <Plus className="h-4 w-4 mr-2" />
+          <h2 className="text-sm font-semibold">Orçamentos por Categoria</h2>
+          <Button size="sm" className="h-7 text-xs" onClick={() => { setEditingBudget(null); form.reset(); setDialogOpen(true); }}>
+            <Plus className="h-3.5 w-3.5 mr-1" />
             Novo Orçamento
           </Button>
         </div>
 
         {/* Budget List */}
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : budgets?.length === 0 ? (
           <Card>
-            <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-              <Wallet className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold">Nenhum orçamento definido</h3>
-              <p className="text-muted-foreground">
-                Defina limites de gastos por categoria.
-              </p>
+            <CardContent className="flex flex-col items-center justify-center py-6 text-center">
+              <Wallet className="h-8 w-8 text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">Nenhum orçamento definido</p>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-2 md:grid-cols-2">
             {budgets?.map((budget) => {
               const spent = getSpentForCategory(budget.category_id);
               const percentage = Math.min((spent / Number(budget.amount)) * 100, 100);
@@ -207,25 +193,19 @@ export default function Orcamentos() {
 
               return (
                 <Card key={budget.id}>
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">{budget.categories?.name}</CardTitle>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(budget)}>
-                          <Pencil className="h-4 w-4" />
+                  <CardContent className="py-2.5 px-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-sm font-medium truncate flex-1">{budget.categories?.name}</p>
+                      <div className="flex gap-0.5 shrink-0 ml-2">
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEdit(budget)}>
+                          <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteId(budget.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setDeleteId(budget.id)}>
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-xs mb-1">
                       <span className={cn(isOverBudget && "text-destructive font-medium")}>
                         {formatCurrency(spent)}
                       </span>
@@ -235,11 +215,11 @@ export default function Orcamentos() {
                     </div>
                     <Progress
                       value={percentage}
-                      className={cn(isOverBudget && "[&>div]:bg-destructive")}
+                      className={cn("h-1.5", isOverBudget && "[&>div]:bg-destructive")}
                     />
                     {isOverBudget && (
-                      <p className="text-xs text-destructive flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
+                      <p className="text-[10px] text-destructive flex items-center gap-0.5 mt-1">
+                        <AlertCircle className="h-2.5 w-2.5" />
                         Excedido em {formatCurrency(spent - Number(budget.amount))}
                       </p>
                     )}
@@ -252,24 +232,24 @@ export default function Orcamentos() {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-base">
               {editingBudget ? "Editar Orçamento" : "Novo Orçamento"}
             </DialogTitle>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
               <FormField
                 control={form.control}
                 name="category_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Categoria</FormLabel>
+                    <FormLabel className="text-xs">Categoria</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione uma categoria" />
+                        <SelectTrigger className="h-8 text-sm">
+                          <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -289,11 +269,12 @@ export default function Orcamentos() {
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Limite (R$)</FormLabel>
+                    <FormLabel className="text-xs">Limite (R$)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         step="0.01"
+                        className="h-8 text-sm"
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                       />
@@ -303,12 +284,12 @@ export default function Orcamentos() {
                 )}
               />
               <div className="flex gap-2">
-                <Button type="button" variant="outline" className="flex-1" onClick={() => setDialogOpen(false)}>
+                <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" className="flex-1" disabled={createBudget.isPending || updateBudget.isPending}>
+                <Button type="submit" size="sm" className="flex-1" disabled={createBudget.isPending || updateBudget.isPending}>
                   {createBudget.isPending || updateBudget.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : editingBudget ? "Salvar" : "Criar"}
                 </Button>
               </div>
@@ -320,8 +301,8 @@ export default function Orcamentos() {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir orçamento?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-base">Excluir orçamento?</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm">
               Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>

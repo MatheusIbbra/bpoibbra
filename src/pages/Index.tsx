@@ -34,7 +34,6 @@ const Index = () => {
     value: number;
   }>({ open: false, type: "income", title: "", value: 0 });
 
-  // Fetch transactions for hover content
   const { data: allTransactions } = useTransactions({});
 
   useEffect(() => {
@@ -52,7 +51,6 @@ const Index = () => {
     }).format(value);
   }, []);
 
-  // Get current month transactions for hover
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
 
@@ -182,13 +180,18 @@ const Index = () => {
           )}
         </div>
         
-        {/* Budget Alerts */}
         <BudgetAlerts showNotifications={true} />
         
-        {/* Monthly Evolution Chart */}
-        <MonthlyEvolutionChart />
+        {/* Category Distribution + Monthly Evolution side by side */}
+        <div className="grid gap-3 grid-cols-1 lg:grid-cols-3">
+          <div className="lg:col-span-1">
+            <CategoryDonutChart />
+          </div>
+          <div className="lg:col-span-2">
+            <MonthlyEvolutionChart />
+          </div>
+        </div>
         
-        {/* Strategic Insights - Below Evolution */}
         <StrategicInsightsCard />
         
         <div className="grid gap-3 grid-cols-1 lg:grid-cols-3">
@@ -196,7 +199,6 @@ const Index = () => {
             <RecentTransactions />
           </div>
           <div className="space-y-3">
-            <CategoryDonutChart />
             <ReconciliationMetricsCard />
             <ImportCard />
             <BudgetProgress />
@@ -204,10 +206,8 @@ const Index = () => {
         </div>
       </div>
       
-      {/* AI Assistant Chat - Premium Feature */}
       <AIAssistantChat isPaidUser={false} />
 
-      {/* Transactions Detail Modal */}
       <TransactionsDetailModal
         open={detailModal.open}
         onOpenChange={(open) => setDetailModal(prev => ({ ...prev, open }))}

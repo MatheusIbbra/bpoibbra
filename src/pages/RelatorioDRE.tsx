@@ -115,7 +115,7 @@ export default function RelatorioDRE() {
 
   return (
     <AppLayout title="DRE - Demonstrativo de Resultado">
-      <div className="space-y-6">
+      <div className="space-y-3">
         {/* Base Selection Alert */}
         {requiresBaseSelection && <BaseRequiredAlert action="gerar relatórios" />}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -149,58 +149,50 @@ export default function RelatorioDRE() {
         ) : (
           <>
             {/* Summary Cards */}
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-2 md:grid-cols-4">
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Receita Bruta
-                  </CardTitle>
-                  <TrendingUp className="h-4 w-4 text-success" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold text-success">
+                <CardContent className="py-2.5 px-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">Receita Bruta</p>
+                    <TrendingUp className="h-3.5 w-3.5 text-success" />
+                  </div>
+                  <p className="text-lg font-bold text-success mt-0.5">
                     {formatCurrency(data?.grossRevenue || 0)}
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Despesas Operacionais
-                  </CardTitle>
-                  <TrendingDown className="h-4 w-4 text-destructive" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold text-destructive">
+                <CardContent className="py-2.5 px-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">Desp. Operacionais</p>
+                    <TrendingDown className="h-3.5 w-3.5 text-destructive" />
+                  </div>
+                  <p className="text-lg font-bold text-destructive mt-0.5">
                     {formatCurrency(data?.totalOperatingExpenses || 0)}
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Resultado Operacional
-                  </CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <p className={`text-2xl font-bold ${(data?.operatingIncome || 0) >= 0 ? "text-success" : "text-destructive"}`}>
+                <CardContent className="py-2.5 px-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">Result. Operacional</p>
+                    <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                  <p className={`text-lg font-bold mt-0.5 ${(data?.operatingIncome || 0) >= 0 ? "text-success" : "text-destructive"}`}>
                     {formatCurrency(data?.operatingIncome || 0)}
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Resultado Líquido
-                  </CardTitle>
-                  <DollarSign className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent>
-                  <p className={`text-2xl font-bold ${(data?.netIncome || 0) >= 0 ? "text-success" : "text-destructive"}`}>
+                <CardContent className="py-2.5 px-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">Result. Líquido</p>
+                    <DollarSign className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <p className={`text-lg font-bold mt-0.5 ${(data?.netIncome || 0) >= 0 ? "text-success" : "text-destructive"}`}>
                     {formatCurrency(data?.netIncome || 0)}
                   </p>
                 </CardContent>

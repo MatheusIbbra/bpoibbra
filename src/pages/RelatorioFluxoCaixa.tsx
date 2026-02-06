@@ -190,7 +190,7 @@ export default function RelatorioFluxoCaixa() {
 
   return (
     <AppLayout title="Fluxo de Caixa">
-      <div className="space-y-6">
+      <div className="space-y-3">
         {/* Base Selection Alert */}
         {requiresBaseSelection && <BaseRequiredAlert action="gerar relatórios" />}
         
@@ -227,58 +227,50 @@ export default function RelatorioFluxoCaixa() {
         ) : (
           <>
             {/* Summary Cards */}
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-2 md:grid-cols-4">
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Saldo Inicial
-                  </CardTitle>
-                  <Wallet className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">
+                <CardContent className="py-2.5 px-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">Saldo Inicial</p>
+                    <Wallet className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                  <p className="text-lg font-bold mt-0.5">
                     {formatCurrency(data?.openingBalance || 0)}
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Entradas
-                  </CardTitle>
-                  <TrendingUp className="h-4 w-4 text-success" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold text-success">
+                <CardContent className="py-2.5 px-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">Entradas</p>
+                    <TrendingUp className="h-3.5 w-3.5 text-success" />
+                  </div>
+                  <p className="text-lg font-bold text-success mt-0.5">
                     {formatCurrency(data?.totalInflows || 0)}
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Saídas
-                  </CardTitle>
-                  <TrendingDown className="h-4 w-4 text-destructive" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold text-destructive">
+                <CardContent className="py-2.5 px-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">Saídas</p>
+                    <TrendingDown className="h-3.5 w-3.5 text-destructive" />
+                  </div>
+                  <p className="text-lg font-bold text-destructive mt-0.5">
                     {formatCurrency(data?.totalOutflows || 0)}
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Saldo Final
-                  </CardTitle>
-                  <ArrowRightLeft className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent>
-                  <p className={`text-2xl font-bold ${(data?.closingBalance || 0) >= 0 ? "text-success" : "text-destructive"}`}>
+                <CardContent className="py-2.5 px-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">Saldo Final</p>
+                    <ArrowRightLeft className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <p className={`text-lg font-bold mt-0.5 ${(data?.closingBalance || 0) >= 0 ? "text-success" : "text-destructive"}`}>
                     {formatCurrency(data?.closingBalance || 0)}
                   </p>
                 </CardContent>
