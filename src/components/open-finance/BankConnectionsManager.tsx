@@ -114,30 +114,46 @@ export function BankConnectionsManager() {
     
     try {
       const result = await openPluggyConnect.mutateAsync({ organizationId });
-      if (result.accessToken) {
-        // Open the static HTML page in a popup, passing the token via hash
-        const popup = window.open(
-          `/pluggy-connect.html#${result.accessToken}`,
-          'pluggy-connect',
-          'width=500,height=700,scrollbars=yes,resizable=yes,left=200,top=100'
-        );
+      
+      if (!result.accessToken) {
+        console.error("Backend returned no accessToken:", result);
+        toast.error("Token de conexão inválido. Verifique a configuração do provedor.");
+        setIsConnecting(false);
+        return;
+      }
 
-        if (!popup) {
-          toast.error('Popup bloqueado pelo navegador. Permita popups para este site.');
-          setIsConnecting(false);
-          return;
-        }
+      console.log(`[OpenFinance] Connect token received (${result.accessToken.length} chars)`);
 
-        // Monitor popup close
-        const checkClosed = setInterval(() => {
+      // Open the static HTML page in a popup, passing the token via hash
+      const popup = window.open(
+        `/pluggy-connect.html#${result.accessToken}`,
+        'pluggy-connect',
+        'width=500,height=700,scrollbars=yes,resizable=yes,left=200,top=100'
+      );
+
+      if (!popup) {
+        toast.error('Popup bloqueado pelo navegador. Permita popups para este site.');
+        setIsConnecting(false);
+        return;
+      }
+
+      // Monitor popup close
+      const checkClosed = setInterval(() => {
+        try {
           if (popup.closed) {
             clearInterval(checkClosed);
             setIsConnecting(false);
           }
-        }, 500);
-      }
-    } catch (error) {
-      console.error("Failed to get connect token:", error);
+        } catch(e) {
+          // Cross-origin errors when popup navigates
+          clearInterval(checkClosed);
+          setIsConnecting(false);
+        }
+      }, 500);
+    } catch (error: any) {
+      console.error("[OpenFinance] Failed to get connect token:", error);
+      const msg = error?.message || 'Erro desconhecido';
+      toast.error("Falha ao conectar: " + msg);
       setIsConnecting(false);
     }
   };
