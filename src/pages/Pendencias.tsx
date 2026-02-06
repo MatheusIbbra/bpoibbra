@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { parseLocalDate } from "@/lib/formatters";
+import { useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Check, X, ChevronLeft, ChevronRight, Filter, Sparkles, Loader2, ArrowLeftRight, TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowRight, Building2, BookOpen, Brain, Zap, Search, Calendar, RefreshCw, Trash2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,6 +83,7 @@ export default function Pendencias() {
   const { data: costCenters } = useCostCenters();
   const { data: accounts } = useAccounts();
   const updateTransaction = useUpdateTransaction();
+  const queryClient = useQueryClient();
   const { availableOrganizations } = useBaseFilter();
   const aiClassification = useAIClassification();
   
@@ -233,27 +235,32 @@ export default function Pendencias() {
     setIsClearingAll(true);
     try {
       const ids = pendingTransactions.map(t => t.id);
-      // Batch update in chunks of 50
+      // Batch delete in chunks of 50
       for (let i = 0; i < ids.length; i += 50) {
         const chunk = ids.slice(i, i + 50);
         const { error } = await supabase
           .from("transactions")
-          .update({
-            validation_status: "validated",
-            validated_at: new Date().toISOString(),
-          })
+          .delete()
           .in("id", chunk);
         if (error) throw error;
       }
-      toast.success(`${ids.length} pendência(s) validada(s) com sucesso!`);
+      toast.success(`${ids.length} movimentação(ões) excluída(s) com sucesso!`);
+      // Invalidate all related queries so dashboard updates
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["monthly-evolution"] });
+      queryClient.invalidateQueries({ queryKey: ["credit-card-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-transactions-count"] });
+      queryClient.invalidateQueries({ queryKey: ["budget-analysis"] });
+      queryClient.invalidateQueries({ queryKey: ["reconciliation-metrics"] });
       refetch();
     } catch (error) {
       console.error("Error clearing pending:", error);
-      toast.error("Erro ao limpar pendências");
+      toast.error("Erro ao excluir movimentações");
     } finally {
       setIsClearingAll(false);
     }
-  }, [pendingTransactions, refetch]);
+  }, [pendingTransactions, refetch, queryClient]);
 
   const hasActiveFilters = searchTerm || accountFilter !== "all" || typeFilter !== "all" || dateRange?.from;
 
@@ -288,9 +295,9 @@ export default function Pendencias() {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Limpar todas as pendências?</AlertDialogTitle>
+                    <AlertDialogTitle>Excluir todas as pendências?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Isso irá validar automaticamente {pendingTransactions.length} transação(ões) pendente(s) com a classificação atual. Esta ação não pode ser desfeita.
+                      Isso irá excluir permanentemente {pendingTransactions.length} movimentação(ões) pendente(s). Esta ação não pode ser desfeita.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
