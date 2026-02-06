@@ -98,69 +98,109 @@ export function BankConnectionsManager() {
     setIsConnecting(false);
   }, []);
 
-  // Load Pluggy Connect widget dynamically
+  // Open Pluggy Connect widget in a popup to avoid iframe CORS blocking
   useEffect(() => {
     if (!pluggyToken) return;
 
-    const initPluggy = () => {
-      const PluggyConnect = (window as any).PluggyConnect;
-      if (PluggyConnect) {
-        console.log('Initializing PluggyConnect widget...');
-        const connect = new PluggyConnect({
-          connectToken: pluggyToken,
-          onSuccess: (itemData: any) => {
-            console.log('Pluggy success:', itemData);
-            handlePluggySuccess({ item: itemData, connector: itemData.connector });
-          },
-          onError: (error: any) => {
-            console.error('Pluggy widget error:', error);
-            handlePluggyError(error);
-          },
-          onClose: () => {
-            console.log('Pluggy widget closed');
-            setPluggyToken(null);
-            setIsConnecting(false);
-          },
-          onOpen: () => {
-            console.log('Pluggy widget opened');
-          }
-        });
-        connect.init();
-      } else {
-        console.error('PluggyConnect not found on window');
-        toast.error('Erro ao carregar widget de conexão');
-        setIsConnecting(false);
-      }
-    };
+    // Build a minimal HTML page for the popup that loads the Pluggy SDK
+    const popupHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Conectando ao banco...</title>
+  <style>
+    body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f5f5f5; }
+    .loading { text-align: center; color: #555; }
+    .loading p { margin-top: 12px; font-size: 14px; }
+    .spinner { width: 40px; height: 40px; border: 4px solid #ddd; border-top-color: #333; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="loading">
+    <div class="spinner"></div>
+    <p>Carregando widget de conexão bancária...</p>
+  </div>
+  <script src="https://cdn.pluggy.ai/pluggy-connect/v2.7.0/pluggy-connect.js"><\/script>
+  <script>
+    try {
+      var connect = new PluggyConnect({
+        connectToken: '${pluggyToken}',
+        onSuccess: function(itemData) {
+          window.opener.postMessage({ type: 'pluggy-success', data: itemData }, '*');
+          window.close();
+        },
+        onError: function(error) {
+          window.opener.postMessage({ type: 'pluggy-error', error: error }, '*');
+          window.close();
+        },
+        onClose: function() {
+          window.opener.postMessage({ type: 'pluggy-close' }, '*');
+          window.close();
+        }
+      });
+      connect.init();
+    } catch(e) {
+      document.body.innerHTML = '<div class="loading"><p>Erro ao carregar widget: ' + e.message + '</p></div>';
+      setTimeout(function() { window.close(); }, 3000);
+    }
+  <\/script>
+</body>
+</html>`;
 
-    // Check if script already loaded
-    const existingScript = document.querySelector('script[src*="cdn.pluggy.ai/pluggy-connect"]');
-    if (existingScript && (window as any).PluggyConnect) {
-      initPluggy();
+    const blob = new Blob([popupHtml], { type: 'text/html' });
+    const popupUrl = URL.createObjectURL(blob);
+    
+    const popup = window.open(
+      popupUrl,
+      'pluggy-connect',
+      'width=500,height=700,scrollbars=yes,resizable=yes,left=200,top=100'
+    );
+
+    if (!popup) {
+      toast.error('Popup bloqueado pelo navegador. Permita popups para este site.');
+      setIsConnecting(false);
+      setPluggyToken(null);
+      URL.revokeObjectURL(popupUrl);
       return;
     }
 
-    // Remove old script if exists
-    if (existingScript) {
-      existingScript.remove();
-    }
+    // Listen for messages from the popup
+    const handleMessage = (event: MessageEvent) => {
+      if (!event.data?.type?.startsWith('pluggy-')) return;
+      
+      switch (event.data.type) {
+        case 'pluggy-success':
+          console.log('Pluggy success from popup:', event.data.data);
+          handlePluggySuccess({ item: event.data.data, connector: event.data.data?.connector });
+          break;
+        case 'pluggy-error':
+          console.error('Pluggy error from popup:', event.data.error);
+          handlePluggyError(event.data.error || { message: 'Erro desconhecido' });
+          break;
+        case 'pluggy-close':
+          console.log('Pluggy popup closed');
+          setPluggyToken(null);
+          setIsConnecting(false);
+          break;
+      }
+    };
 
-    const script = document.createElement('script');
-    script.src = 'https://cdn.pluggy.ai/pluggy-connect/v2.7.0/pluggy-connect.js';
-    script.async = true;
-    script.onload = () => {
-      console.log('Pluggy Connect SDK loaded');
-      initPluggy();
-    };
-    script.onerror = () => {
-      console.error('Failed to load Pluggy Connect SDK');
-      toast.error('Erro ao carregar SDK de conexão bancária');
-      setIsConnecting(false);
-    };
-    document.body.appendChild(script);
+    window.addEventListener('message', handleMessage);
+
+    // Check if popup was closed manually
+    const checkClosed = setInterval(() => {
+      if (popup.closed) {
+        clearInterval(checkClosed);
+        setPluggyToken(null);
+        setIsConnecting(false);
+      }
+    }, 500);
 
     return () => {
-      // Don't remove script on cleanup to allow reuse
+      window.removeEventListener('message', handleMessage);
+      clearInterval(checkClosed);
+      URL.revokeObjectURL(popupUrl);
     };
   }, [pluggyToken, handlePluggySuccess, handlePluggyError]);
 
