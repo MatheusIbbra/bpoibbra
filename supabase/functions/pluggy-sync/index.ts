@@ -33,6 +33,35 @@ async function getPluggyToken(clientId: string, clientSecret: string): Promise<s
 }
 
 // ========================================
+// CREDIT CARD PAYMENT DETECTION HELPER
+// CREDIT CARD RULE:
+// credit_card accounts are liabilities (passivo).
+// Payments must be classified as TRANSFER, never income.
+// ========================================
+function isCreditCardPayment(description: string): boolean {
+  const text = (description || '').toLowerCase();
+  const keywords = [
+    "pagamento fatura",
+    "pgto fatura",
+    "pgto cartao",
+    "pgto cartão",
+    "pagamento cartao",
+    "pagamento cartão",
+    "fatura cartao",
+    "fatura cartão",
+    "cartao credito",
+    "cartão crédito",
+    "liq fatura",
+    "liquidacao cartao",
+    "liquidação cartão",
+    "pag fatura",
+    "pag cartao",
+    "pag cartão",
+  ];
+  return keywords.some(keyword => text.includes(keyword));
+}
+
+// ========================================
 // INLINE CLASSIFICATION (rules + patterns only, no AI)
 // ========================================
 function normalizeText(text: string): string {
@@ -572,23 +601,27 @@ Deno.serve(async (req) => {
 
       // ========================================
       // CREDIT CARD PAYMENT DETECTION
+      // CREDIT CARD RULE:
+      // credit_card accounts are liabilities (passivo).
+      // Payments are TRANSFERS, never income/revenue.
+      // They reduce checking balance and card debt.
+      // They do NOT impact DRE, only cash flow.
       // ========================================
       const accountForTx = accounts.find((a: any) => a.id === tx.pluggyAccountId);
       const pluggyAccountType = accountForTx ? mapPluggyAccountType(accountForTx.type || accountForTx.subtype || 'BANK') : 'checking';
+      let isCreditCardPaymentTx = false;
       
       if (pluggyAccountType === 'credit_card' && type === 'income') {
         // Income on credit card = bill payment received → mark as transfer
         type = 'transfer';
-        console.log(`[CC] TX on credit_card marked as transfer (payment received): ${description}`);
-      } else if (pluggyAccountType !== 'credit_card' && type === 'expense') {
-        // Check if this looks like a credit card bill payment from checking/savings
-        const descLower = (description || '').toLowerCase();
-        const paymentPatterns = ['pagamento', 'fatura', 'pgto cartao', 'pgto cartão', 'pag fatura', 'pag cartao', 'pag cartão'];
-        const isCardPayment = paymentPatterns.some(p => descLower.includes(p));
-        if (isCardPayment) {
-          type = 'transfer';
-          console.log(`[CC] TX on checking marked as transfer (bill payment): ${description}`);
-        }
+        isCreditCardPaymentTx = true;
+        console.log(`[CC-RULE] TX on credit_card account reclassified: income → transfer (payment received): ${description}`);
+      } else if (pluggyAccountType !== 'credit_card' && isCreditCardPayment(description)) {
+        // Any transaction on checking/savings that matches credit card payment keywords
+        // regardless of original type (income OR expense) → mark as transfer
+        type = 'transfer';
+        isCreditCardPaymentTx = true;
+        console.log(`[CC-RULE] TX on ${pluggyAccountType} reclassified → transfer (bill payment detected): ${description}`);
       }
 
       const { data: inserted, error: insertError } = await supabaseAdmin
@@ -605,6 +638,12 @@ Deno.serve(async (req) => {
           amount: amount,
           type: type,
           status: 'completed',
+          // CREDIT CARD RULE: payments are system-classified transfers with no category
+          ...(isCreditCardPaymentTx ? {
+            classification_source: 'system',
+            validation_status: 'validated',
+            validated_at: new Date().toISOString(),
+          } : {}),
           notes: `Importado via Open Finance (${connectorName})`
         })
         .select('id')
