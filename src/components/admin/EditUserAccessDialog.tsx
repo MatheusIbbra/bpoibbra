@@ -30,12 +30,27 @@ import {
   User,
   Send,
   Building2,
-  Plus,
-  X
+  X,
+  Search,
+  Shield,
+  Crown,
+  Eye,
+  Briefcase,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppRole, ROLE_LABELS } from "@/hooks/useUserRoles";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
+
+const ROLE_ICONS: Record<AppRole, React.ReactNode> = {
+  admin: <Crown className="h-3.5 w-3.5" />,
+  supervisor: <Eye className="h-3.5 w-3.5" />,
+  fa: <Briefcase className="h-3.5 w-3.5" />,
+  kam: <Building2 className="h-3.5 w-3.5" />,
+  projetista: <Briefcase className="h-3.5 w-3.5" />,
+  cliente: <User className="h-3.5 w-3.5" />,
+};
 
 interface UserToEdit {
   id: string;
@@ -71,6 +86,8 @@ export function EditUserAccessDialog({
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isTogglingBlock, setIsTogglingBlock] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<string>("");
+  const [isChangingRole, setIsChangingRole] = useState(false);
 
   // Base access state
   const [userOrgs, setUserOrgs] = useState<UserOrg[]>([]);
@@ -78,7 +95,6 @@ export function EditUserAccessDialog({
   const [loadingOrgs, setLoadingOrgs] = useState(false);
   const [addingOrg, setAddingOrg] = useState(false);
   const [removingOrgId, setRemovingOrgId] = useState<string | null>(null);
-  const [selectedOrgToAdd, setSelectedOrgToAdd] = useState("");
   const [orgSearchQuery, setOrgSearchQuery] = useState("");
 
   useEffect(() => {
@@ -86,10 +102,10 @@ export function EditUserAccessDialog({
       setEmail(user.email || "");
       setIsBlocked(user.is_blocked || false);
       setBlockedReason(user.blocked_reason || "");
+      setSelectedRole(user.role || "");
     }
   }, [user]);
 
-  // Fetch user's organizations and all organizations when dialog opens
   useEffect(() => {
     if (user && open) {
       fetchUserOrgs();
@@ -140,61 +156,62 @@ export function EditUserAccessDialog({
     }
   };
 
-  const handleAddOrg = async () => {
-    if (!user || !selectedOrgToAdd) return;
-    setAddingOrg(true);
-    try {
-      const { error } = await supabase
-        .from("organization_members")
-        .insert({
-          user_id: user.id,
-          organization_id: selectedOrgToAdd,
-          role: (user.role as AppRole) || "user"
-        });
-      if (error) throw error;
-      toast.success("Base adicionada com sucesso!");
-      setSelectedOrgToAdd("");
-      fetchUserOrgs();
-    } catch (error: any) {
-      if (error.code === '23505') {
-        toast.error("Usuário já tem acesso a esta base");
-      } else {
-        toast.error("Erro ao adicionar base: " + error.message);
+  const handleToggleOrg = async (orgId: string, isLinked: boolean) => {
+    if (!user) return;
+
+    if (isLinked) {
+      // Remove
+      const userOrg = userOrgs.find(o => o.id === orgId);
+      if (!userOrg) return;
+      setRemovingOrgId(orgId);
+      try {
+        const { error } = await supabase
+          .from("organization_members")
+          .delete()
+          .eq("id", userOrg.org_member_id);
+        if (error) throw error;
+        toast.success("Acesso à base removido!");
+        fetchUserOrgs();
+      } catch (error: any) {
+        toast.error("Erro ao remover base: " + error.message);
+      } finally {
+        setRemovingOrgId(null);
       }
-    } finally {
-      setAddingOrg(false);
+    } else {
+      // Add
+      setAddingOrg(true);
+      try {
+        const { error } = await supabase
+          .from("organization_members")
+          .insert({
+            user_id: user.id,
+            organization_id: orgId,
+            role: (user.role as AppRole) || "user"
+          });
+        if (error) throw error;
+        toast.success("Base adicionada com sucesso!");
+        fetchUserOrgs();
+      } catch (error: any) {
+        if (error.code === '23505') {
+          toast.error("Usuário já tem acesso a esta base");
+        } else {
+          toast.error("Erro ao adicionar base: " + error.message);
+        }
+      } finally {
+        setAddingOrg(false);
+      }
     }
   };
 
-  const handleRemoveOrg = async (orgMemberId: string) => {
-    setRemovingOrgId(orgMemberId);
-    try {
-      const { error } = await supabase
-        .from("organization_members")
-        .delete()
-        .eq("id", orgMemberId);
-      if (error) throw error;
-      toast.success("Acesso à base removido!");
-      fetchUserOrgs();
-    } catch (error: any) {
-      toast.error("Erro ao remover base: " + error.message);
-    } finally {
-      setRemovingOrgId(null);
-    }
-  };
-
-  const availableOrgs = allOrgs.filter(o => !userOrgs.some(uo => uo.id === o.id));
-  const filteredAvailableOrgs = availableOrgs.filter(o => 
+  const filteredOrgs = allOrgs.filter(o =>
     !orgSearchQuery || o.name.toLowerCase().includes(orgSearchQuery.toLowerCase())
   );
 
   const handleUpdateEmail = async () => {
     if (!user || !email.trim()) return;
-
     setIsUpdatingEmail(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
       const response = await fetch(
         `https://umqehhhpedwqdfjmdjqv.supabase.co/functions/v1/manage-user-access`,
         {
@@ -210,17 +227,11 @@ export function EditUserAccessDialog({
           }),
         }
       );
-
       const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to update email');
-      }
-
+      if (!response.ok) throw new Error(result.error || 'Failed to update email');
       toast.success("Email atualizado com sucesso!");
       onSuccess();
     } catch (error: unknown) {
-      console.error("Error updating email:", error);
       const errorMessage = error instanceof Error ? error.message : "Erro ao atualizar email";
       toast.error(errorMessage);
     } finally {
@@ -230,11 +241,9 @@ export function EditUserAccessDialog({
 
   const handleResetPassword = async () => {
     if (!user) return;
-
     setIsResettingPassword(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
       const response = await fetch(
         `https://umqehhhpedwqdfjmdjqv.supabase.co/functions/v1/manage-user-access`,
         {
@@ -249,16 +258,10 @@ export function EditUserAccessDialog({
           }),
         }
       );
-
       const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to send reset email');
-      }
-
+      if (!response.ok) throw new Error(result.error || 'Failed to send reset email');
       toast.success("Email de redefinição de senha enviado!");
     } catch (error: unknown) {
-      console.error("Error resetting password:", error);
       const errorMessage = error instanceof Error ? error.message : "Erro ao enviar email de redefinição";
       toast.error(errorMessage);
     } finally {
@@ -268,13 +271,10 @@ export function EditUserAccessDialog({
 
   const handleToggleBlock = async () => {
     if (!user) return;
-
     const newBlockedState = !user.is_blocked;
-    
     setIsTogglingBlock(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
       const response = await fetch(
         `https://umqehhhpedwqdfjmdjqv.supabase.co/functions/v1/manage-user-access`,
         {
@@ -291,19 +291,13 @@ export function EditUserAccessDialog({
           }),
         }
       );
-
       const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to toggle block status');
-      }
-
+      if (!response.ok) throw new Error(result.error || 'Failed to toggle block status');
       setIsBlocked(newBlockedState);
       toast.success(newBlockedState ? "Usuário bloqueado!" : "Usuário desbloqueado!");
       onSuccess();
       onOpenChange(false);
     } catch (error: unknown) {
-      console.error("Error toggling block:", error);
       const errorMessage = error instanceof Error ? error.message : "Erro ao alterar status de bloqueio";
       toast.error(errorMessage);
     } finally {
@@ -311,129 +305,183 @@ export function EditUserAccessDialog({
     }
   };
 
+  const handleChangeRole = async () => {
+    if (!user || !selectedRole || selectedRole === user.role) return;
+    setIsChangingRole(true);
+    try {
+      if (selectedRole === "none") {
+        // Remove role
+        const { data: existingRole } = await supabase
+          .from("user_roles")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (existingRole) {
+          const { error } = await supabase
+            .from("user_roles")
+            .delete()
+            .eq("id", existingRole.id);
+          if (error) throw error;
+        }
+      } else {
+        const { data: existingRole } = await supabase
+          .from("user_roles")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (existingRole) {
+          const { error } = await supabase
+            .from("user_roles")
+            .update({ role: selectedRole as any })
+            .eq("id", existingRole.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from("user_roles")
+            .insert({ user_id: user.id, role: selectedRole as any });
+          if (error) throw error;
+        }
+      }
+      toast.success("Perfil atualizado com sucesso!");
+      onSuccess();
+    } catch (error: any) {
+      toast.error("Erro ao alterar perfil: " + error.message);
+    } finally {
+      setIsChangingRole(false);
+    }
+  };
+
   if (!user) return null;
 
   const isClientRole = user.role === "cliente";
-  const showBaseAccess = !isClientRole; // Bases for internal users only
+  const showBaseAccess = !isClientRole;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <User className="h-4 w-4" />
             Editar Acesso
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* User Info */}
-          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+        <div className="space-y-4 py-2">
+          {/* User Info - Compact */}
+          <div className="flex items-center gap-3 p-2.5 bg-muted/50 rounded-lg">
             <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{user.full_name || "Sem nome"}</p>
-              <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+              <p className="font-medium text-sm truncate">{user.full_name || "Sem nome"}</p>
+              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
             </div>
             {user.role && (
-              <Badge variant="outline">{ROLE_LABELS[user.role]}</Badge>
+              <Badge variant="outline" className="text-xs shrink-0">{ROLE_LABELS[user.role]}</Badge>
             )}
           </div>
 
-          {/* Bases de Acesso Section - Only for internal users */}
+          {/* Role Change Section */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-xs font-medium">
+              <Shield className="h-3.5 w-3.5" />
+              Perfil de Acesso
+            </Label>
+            <div className="flex gap-2">
+              <Select value={selectedRole || "none"} onValueChange={setSelectedRole}>
+                <SelectTrigger className="flex-1 h-9 text-sm">
+                  <SelectValue placeholder="Selecionar perfil" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">
+                    <span className="text-muted-foreground">Sem perfil</span>
+                  </SelectItem>
+                  {(["admin", "supervisor", "fa", "kam", "projetista", "cliente"] as AppRole[]).map((r) => (
+                    <SelectItem key={r} value={r}>
+                      <div className="flex items-center gap-2">
+                        {ROLE_ICONS[r]}
+                        {ROLE_LABELS[r]}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                className="h-9"
+                onClick={handleChangeRole}
+                disabled={isChangingRole || selectedRole === (user.role || "none")}
+              >
+                {isChangingRole ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+              </Button>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Bases de Acesso Section */}
           {showBaseAccess && (
             <>
-              <div className="space-y-3">
-                <Label className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-xs font-medium">
+                  <Building2 className="h-3.5 w-3.5" />
                   Bases de Acesso
+                  <Badge variant="secondary" className="text-[10px] ml-1">
+                    {userOrgs.length} vinculada{userOrgs.length !== 1 ? "s" : ""}
+                  </Badge>
                 </Label>
-                <p className="text-xs text-muted-foreground">
-                  Configure quais bases (clientes) este usuário pode acessar.
+                <p className="text-[11px] text-muted-foreground">
+                  Usuário só acessa bases vinculadas. Sem base = sem acesso.
                 </p>
 
-                {/* Current bases */}
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar base..."
+                    value={orgSearchQuery}
+                    onChange={(e) => setOrgSearchQuery(e.target.value)}
+                    className="pl-8 h-8 text-sm"
+                  />
+                </div>
+
+                {/* Organization list with checkboxes */}
                 {loadingOrgs ? (
                   <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                  </div>
-                ) : userOrgs.length === 0 ? (
-                  <div className="text-center py-4 text-muted-foreground border border-dashed rounded-lg">
-                    <Building2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Nenhuma base vinculada</p>
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {userOrgs.map((org) => (
-                      <div
-                        key={org.id}
-                        className="flex items-center justify-between p-2 border rounded-lg bg-card"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm font-medium">{org.name}</span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveOrg(org.org_member_id)}
-                          disabled={removingOrgId === org.org_member_id}
-                          className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          {removingOrgId === org.org_member_id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <X className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Add new base */}
-                {availableOrgs.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="relative">
-                      <Input
-                        placeholder="Pesquisar base pelo nome..."
-                        value={orgSearchQuery}
-                        onChange={(e) => setOrgSearchQuery(e.target.value)}
-                        className="text-sm"
-                      />
+                  <ScrollArea className="h-[180px] rounded-md border">
+                    <div className="p-1.5 space-y-0.5">
+                      {filteredOrgs.length === 0 ? (
+                        <p className="text-xs text-muted-foreground text-center py-4">
+                          Nenhuma base encontrada
+                        </p>
+                      ) : (
+                        filteredOrgs.map((org) => {
+                          const isLinked = userOrgs.some(uo => uo.id === org.id);
+                          const isProcessing = removingOrgId === org.id || (addingOrg && !isLinked);
+                          return (
+                            <label
+                              key={org.id}
+                              className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted/50 cursor-pointer transition-colors"
+                            >
+                              <Checkbox
+                                checked={isLinked}
+                                onCheckedChange={() => handleToggleOrg(org.id, isLinked)}
+                                disabled={isProcessing}
+                                className="h-4 w-4"
+                              />
+                              <span className="text-sm flex-1 truncate">{org.name}</span>
+                              {isLinked && (
+                                <Badge variant="outline" className="text-[10px] h-4 px-1 shrink-0">
+                                  Vinculada
+                                </Badge>
+                              )}
+                            </label>
+                          );
+                        })
+                      )}
                     </div>
-                    <div className="flex gap-2">
-                      <Select
-                        value={selectedOrgToAdd}
-                        onValueChange={setSelectedOrgToAdd}
-                      >
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder="Selecionar base..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {filteredAvailableOrgs.map((org) => (
-                            <SelectItem key={org.id} value={org.id}>
-                              {org.name}
-                            </SelectItem>
-                          ))}
-                          {filteredAvailableOrgs.length === 0 && (
-                            <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-                              Nenhuma base encontrada
-                            </div>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        size="sm"
-                        onClick={handleAddOrg}
-                        disabled={!selectedOrgToAdd || addingOrg}
-                      >
-                        {addingOrg ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Plus className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
+                  </ScrollArea>
                 )}
               </div>
 
@@ -441,10 +489,10 @@ export function EditUserAccessDialog({
             </>
           )}
 
-          {/* Email Section */}
-          <div className="space-y-3">
-            <Label className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
+          {/* Email Section - Compact */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-xs font-medium">
+              <Mail className="h-3.5 w-3.5" />
               Email
             </Label>
             <div className="flex gap-2">
@@ -453,65 +501,59 @@ export function EditUserAccessDialog({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="email@exemplo.com"
+                className="h-8 text-sm"
               />
               <Button 
                 onClick={handleUpdateEmail} 
                 disabled={isUpdatingEmail || email === user.email}
                 size="sm"
+                className="h-8"
               >
-                {isUpdatingEmail ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Salvar"
-                )}
+                {isUpdatingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Salvar"}
               </Button>
             </div>
           </div>
 
           <Separator />
 
-          {/* Password Reset Section */}
-          <div className="space-y-3">
-            <Label className="flex items-center gap-2">
-              <KeyRound className="h-4 w-4" />
+          {/* Password Reset - Compact */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-xs font-medium">
+              <KeyRound className="h-3.5 w-3.5" />
               Senha
             </Label>
             <Button 
               variant="outline" 
               onClick={handleResetPassword}
               disabled={isResettingPassword}
-              className="w-full"
+              className="w-full h-8 text-sm"
+              size="sm"
             >
               {isResettingPassword ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
               ) : (
-                <Send className="h-4 w-4 mr-2" />
+                <Send className="h-3.5 w-3.5 mr-2" />
               )}
               Enviar Email de Redefinição
             </Button>
-            <p className="text-xs text-muted-foreground">
-              Um email será enviado para {user.email} com instruções para redefinir a senha.
-            </p>
           </div>
 
           <Separator />
 
-          {/* Block Access Section */}
-          <div className="space-y-3">
-            <Label className="flex items-center gap-2">
-              {isBlocked ? <Lock className="h-4 w-4 text-destructive" /> : <Unlock className="h-4 w-4 text-primary" />}
-              Bloquear Acesso do Usuário
+          {/* Block Access Section - Compact */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-xs font-medium">
+              {isBlocked ? <Lock className="h-3.5 w-3.5 text-destructive" /> : <Unlock className="h-3.5 w-3.5 text-primary" />}
+              Bloquear Acesso
             </Label>
             
-            <div className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex items-center justify-between p-2.5 border rounded-lg">
               <div className="space-y-0.5">
-                <p className="text-sm font-medium">
+                <p className="text-xs font-medium">
                   {isBlocked ? "Acesso Bloqueado" : "Acesso Liberado"}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  {isBlocked 
-                    ? "O usuário não conseguirá fazer login" 
-                    : "O usuário pode acessar o sistema normalmente"}
+                <p className="text-[11px] text-muted-foreground">
+                  {isBlocked ? "Não conseguirá fazer login" : "Acesso normal"}
                 </p>
               </div>
               <Switch
@@ -528,19 +570,21 @@ export function EditUserAccessDialog({
                   onChange={(e) => setBlockedReason(e.target.value)}
                   placeholder="Motivo do bloqueio (ex: Inadimplência)"
                   rows={2}
+                  className="text-sm"
                 />
                 <Button 
                   variant="destructive" 
                   onClick={handleToggleBlock}
                   disabled={isTogglingBlock}
-                  className="w-full"
+                  className="w-full h-8 text-sm"
+                  size="sm"
                 >
                   {isTogglingBlock ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
                   ) : (
-                    <Lock className="h-4 w-4 mr-2" />
+                    <Lock className="h-3.5 w-3.5 mr-2" />
                   )}
-                  {user.is_blocked ? "Desbloquear Usuário" : "Confirmar Bloqueio"}
+                  {user.is_blocked ? "Desbloquear" : "Confirmar Bloqueio"}
                 </Button>
               </div>
             )}
@@ -550,24 +594,24 @@ export function EditUserAccessDialog({
                 variant="outline" 
                 onClick={handleToggleBlock}
                 disabled={isTogglingBlock}
-                className="w-full text-primary border-primary"
+                className="w-full h-8 text-sm text-primary border-primary"
+                size="sm"
               >
                 {isTogglingBlock ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
                 ) : (
-                  <Unlock className="h-4 w-4 mr-2" />
+                  <Unlock className="h-3.5 w-3.5 mr-2" />
                 )}
                 Desbloquear Usuário
               </Button>
             )}
 
             {isClientRole && (
-              <div className="flex items-start gap-2 p-3 bg-accent border border-border rounded-lg">
-                <AlertTriangle className="h-4 w-4 text-foreground shrink-0 mt-0.5" />
-                <p className="text-xs text-muted-foreground">
-                  <strong className="text-foreground">Atenção:</strong> Bloquear o acesso do cliente NÃO bloqueia a base dele. 
-                  O KAM e FA continuarão tendo acesso aos dados. Para bloquear a base, 
-                  use a opção de bloqueio na aba "Gerenciar Clientes".
+              <div className="flex items-start gap-2 p-2 bg-accent border border-border rounded-lg">
+                <AlertTriangle className="h-3.5 w-3.5 text-foreground shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground">
+                  <strong className="text-foreground">Atenção:</strong> Bloquear acesso do cliente NÃO bloqueia a base. 
+                  KAM e FA continuam com acesso.
                 </p>
               </div>
             )}
@@ -575,7 +619,7 @@ export function EditUserAccessDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
             Fechar
           </Button>
         </DialogFooter>
