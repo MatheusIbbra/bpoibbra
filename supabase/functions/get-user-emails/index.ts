@@ -36,10 +36,11 @@ serve(async (req) => {
     });
 
     // Get the user from the token
+    const token = authHeader.replace("Bearer ", "");
     const {
       data: { user },
       error: userError,
-    } = await supabaseClient.auth.getUser();
+    } = await supabaseClient.auth.getUser(token);
 
     if (userError || !user) {
       console.log("Invalid token or user error:", userError);
