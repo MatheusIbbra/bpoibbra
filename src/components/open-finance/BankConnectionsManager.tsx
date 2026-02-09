@@ -95,30 +95,56 @@ export function BankConnectionsManager() {
   };
 
   const handlePluggySuccess = async (itemData: any) => {
-    console.log("[OpenFinance] Pluggy success:", itemData);
+    console.log("[OpenFinance] Pluggy success callback fired:", JSON.stringify(itemData));
     setShowPluggyWidget(false);
     setConnectToken(null);
 
     if (pendingOrgId && itemData) {
-      try {
-        const itemId = itemData.item?.id || itemData.id;
-        const connectorName = itemData.connector?.name;
+      const itemId = itemData.item?.id || itemData.id;
+      const connectorName = itemData.item?.connector?.name || itemData.connector?.name;
 
+      if (!itemId) {
+        console.error("[OpenFinance] No itemId found in callback data:", itemData);
+        toast.error("Erro: ID do item não encontrado na resposta do widget.");
+        setIsConnecting(false);
+        setPendingOrgId(null);
+        return;
+      }
+
+      // Step 1: Save the connection
+      try {
+        toast.info("Salvando conexão bancária...");
         await savePluggyItem.mutateAsync({
           organizationId: pendingOrgId,
           itemId,
           connectorName
         });
+        toast.success("Conexão bancária salva!");
+      } catch (err: any) {
+        console.error("[OpenFinance] Failed to save Pluggy item:", err);
+        toast.error("Erro ao salvar conexão: " + (err?.message || 'Erro desconhecido'));
+        setIsConnecting(false);
+        setPendingOrgId(null);
+        return;
+      }
 
-        await syncConnection.mutateAsync({
+      // Step 2: Sync transactions
+      try {
+        toast.info("Sincronizando transações...");
+        const result = await syncConnection.mutateAsync({
           organizationId: pendingOrgId,
           itemId
         });
-
-        refetch();
-      } catch (err) {
-        console.error("[OpenFinance] Failed to save/sync Pluggy item:", err);
+        toast.success(`Sincronização concluída: ${result.imported} transações importadas`);
+      } catch (err: any) {
+        console.error("[OpenFinance] Failed to sync:", err);
+        toast.warning("Conexão salva, mas a sincronização automática falhou. Use o botão 'Sincronizar' manualmente.");
       }
+
+      refetch();
+    } else {
+      console.warn("[OpenFinance] onSuccess called without pendingOrgId or itemData", { pendingOrgId, itemData });
+      toast.warning("Conexão finalizada. Clique em 'Sincronizar' para importar transações.");
     }
 
     setIsConnecting(false);
