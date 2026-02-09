@@ -118,12 +118,12 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
           <InsightsHeaderButton />
         </div>
 
-        {/* Theme toggle */}
+        {/* Theme toggle - always visible */}
         <Button 
           variant="ghost" 
           size="icon" 
           onClick={toggleTheme} 
-          className="hidden md:inline-flex h-9 w-9 text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+          className="h-9 w-9 text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
         >
           {theme === "light" ? (
             <Moon className="h-4 w-4" />
