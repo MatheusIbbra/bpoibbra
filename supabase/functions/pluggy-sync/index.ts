@@ -127,7 +127,7 @@ async function classifyTransaction(
     .update({ normalized_description: normalizedDescription })
     .eq("id", txId);
 
-  // STEP 1: Reconciliation Rules (>= 70% similarity)
+  // STEP 1: Reconciliation Rules (>= 80% similarity)
   const { data: rules } = await supabaseAdmin
     .from("reconciliation_rules")
     .select("id, description, category_id, cost_center_id, transaction_type, amount")
@@ -139,6 +139,9 @@ async function classifyTransaction(
     let bestMatch: { rule: any; similarity: number } | null = null;
 
     for (const rule of rules) {
+      // Skip rules for transfers - never auto-conciliate transfers
+      if (type === 'transfer') continue;
+
       const keywordSim = containsKeyword(description, rule.description);
       const normalizedSim = calculateSimilarity(normalizedDescription, normalizeText(rule.description));
       let similarity = Math.max(keywordSim, normalizedSim);
@@ -147,12 +150,12 @@ async function classifyTransaction(
         similarity = Math.min(similarity + 0.1, 1.0);
       }
 
-      if (similarity >= 0.70 && (!bestMatch || similarity > bestMatch.similarity)) {
+      if (similarity >= 0.80 && (!bestMatch || similarity > bestMatch.similarity)) {
         bestMatch = { rule, similarity };
       }
     }
 
-    if (bestMatch && bestMatch.similarity >= 0.8) {
+    if (bestMatch && bestMatch.similarity >= 0.80) {
       await supabaseAdmin
         .from("transactions")
         .update({
@@ -169,44 +172,75 @@ async function classifyTransaction(
   }
 
   // STEP 2: Transaction Patterns (confidence >= 85%, occurrences >= 3)
-  const { data: patterns } = await supabaseAdmin
-    .from("transaction_patterns")
-    .select("id, normalized_description, category_id, cost_center_id, confidence, occurrences")
-    .eq("organization_id", organizationId)
-    .eq("transaction_type", type)
-    .gte("confidence", 0.6)
-    .order("confidence", { ascending: false })
-    .limit(50);
+  // Skip pattern matching for transfers
+  if (type !== 'transfer') {
+    const { data: patterns } = await supabaseAdmin
+      .from("transaction_patterns")
+      .select("id, normalized_description, category_id, cost_center_id, confidence, occurrences")
+      .eq("organization_id", organizationId)
+      .eq("transaction_type", type)
+      .gte("confidence", 0.6)
+      .order("confidence", { ascending: false })
+      .limit(50);
 
-  if (patterns && patterns.length > 0) {
-    let bestPattern: { pattern: any; similarity: number } | null = null;
+    if (patterns && patterns.length > 0) {
+      let bestPattern: { pattern: any; similarity: number } | null = null;
 
-    for (const pattern of patterns) {
-      const similarity = calculateSimilarity(normalizedDescription, pattern.normalized_description);
-      if (similarity >= 0.70 && (!bestPattern || similarity > bestPattern.similarity)) {
-        bestPattern = { pattern, similarity };
+      for (const pattern of patterns) {
+        const similarity = calculateSimilarity(normalizedDescription, pattern.normalized_description);
+        if (similarity >= 0.70 && (!bestPattern || similarity > bestPattern.similarity)) {
+          bestPattern = { pattern, similarity };
+        }
       }
-    }
 
-    if (bestPattern) {
-      const patternConfidence = bestPattern.pattern.confidence || 0.5;
-      const finalConfidence = Math.min(bestPattern.similarity * patternConfidence * 1.2, 0.95);
-      const shouldAutoValidate = finalConfidence >= 0.85 && (bestPattern.pattern.occurrences || 1) >= 3;
+      if (bestPattern) {
+        const patternConfidence = bestPattern.pattern.confidence || 0.5;
+        const finalConfidence = Math.min(bestPattern.similarity * patternConfidence * 1.2, 0.95);
+        const shouldAutoValidate = finalConfidence >= 0.85 && (bestPattern.pattern.occurrences || 1) >= 3;
 
-      await supabaseAdmin
-        .from("transactions")
-        .update({
-          category_id: bestPattern.pattern.category_id,
-          cost_center_id: bestPattern.pattern.cost_center_id,
-          classification_source: "pattern",
-          ...(shouldAutoValidate ? {
-            validation_status: "validated",
-            validated_at: new Date().toISOString(),
-          } : {}),
-        })
-        .eq("id", txId);
-      console.log(`[CLASSIFY] TX ${txId}: pattern match (conf=${(finalConfidence * 100).toFixed(0)}%, auto=${shouldAutoValidate})`);
-      return;
+        await supabaseAdmin
+          .from("transactions")
+          .update({
+            category_id: bestPattern.pattern.category_id,
+            cost_center_id: bestPattern.pattern.cost_center_id,
+            classification_source: "pattern",
+            ...(shouldAutoValidate ? {
+              validation_status: "validated",
+              validated_at: new Date().toISOString(),
+            } : {}),
+          })
+          .eq("id", txId);
+        
+        // AUTO-SAVE: Save learned pattern as a reconciliation rule
+        if (shouldAutoValidate && bestPattern.pattern.category_id) {
+          const { data: existingRule } = await supabaseAdmin
+            .from("reconciliation_rules")
+            .select("id")
+            .eq("organization_id", organizationId)
+            .eq("description", description)
+            .eq("transaction_type", type)
+            .maybeSingle();
+
+          if (!existingRule) {
+            await supabaseAdmin
+              .from("reconciliation_rules")
+              .insert({
+                organization_id: organizationId,
+                user_id: (await supabaseAdmin.from("organization_members").select("user_id").eq("organization_id", organizationId).limit(1).single()).data?.user_id || '',
+                description: description,
+                amount: amount,
+                transaction_type: type,
+                category_id: bestPattern.pattern.category_id,
+                cost_center_id: bestPattern.pattern.cost_center_id,
+                is_active: true,
+              });
+            console.log(`[CLASSIFY] TX ${txId}: auto-saved pattern as reconciliation rule`);
+          }
+        }
+
+        console.log(`[CLASSIFY] TX ${txId}: pattern match (conf=${(finalConfidence * 100).toFixed(0)}%, auto=${shouldAutoValidate})`);
+        return;
+      }
     }
   }
 
@@ -758,28 +792,26 @@ Deno.serve(async (req) => {
             // Check dates within 1 day
             if (dateDiffDays(txA.date, txB.date) > 1) continue;
             
-            // All criteria met — convert both to transfer and link them
-            console.log(`[TRANSFER-DETECT] Pair found: ${txA.id} (${txA.type}) <-> ${txB.id} (${txB.type}), amount=${txA.amount}`);
+            // All criteria met — mark both as is_ignored (not excluded, still visible)
+            console.log(`[TRANSFER-DETECT] Pair found: ${txA.id} (${txA.type}) <-> ${txB.id} (${txB.type}), amount=${txA.amount} — marking as ignored`);
             
             await supabaseAdmin
               .from('transactions')
               .update({
-                type: 'transfer',
+                is_ignored: true,
                 linked_transaction_id: txB.id,
                 classification_source: 'system',
-                validation_status: 'validated',
-                validated_at: new Date().toISOString(),
+                notes: 'Transferência interna detectada automaticamente (ignorada)',
               })
               .eq('id', txA.id);
             
             await supabaseAdmin
               .from('transactions')
               .update({
-                type: 'transfer',
+                is_ignored: true,
                 linked_transaction_id: txA.id,
                 classification_source: 'system',
-                validation_status: 'validated',
-                validated_at: new Date().toISOString(),
+                notes: 'Transferência interna detectada automaticamente (ignorada)',
               })
               .eq('id', txB.id);
             

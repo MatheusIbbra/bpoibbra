@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { MaskedValue } from "@/contexts/ValuesVisibilityContext";
 
 interface StatCardProps {
   title: string;
@@ -55,7 +56,7 @@ export function StatCard({
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
             <p className="text-xs text-muted-foreground truncate">{title}</p>
-            <p className="text-lg font-bold tracking-tight mt-0.5 truncate">{value}</p>
+            <p className="text-lg font-bold tracking-tight mt-0.5 truncate"><MaskedValue>{value}</MaskedValue></p>
             {trend && (
               <div className="flex items-center gap-1 mt-0.5">
                 {trend.isPositive ? (

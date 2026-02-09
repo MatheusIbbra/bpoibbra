@@ -326,9 +326,9 @@ export function BankConnectionsManager() {
           <AlertDialogHeader>
             <AlertDialogTitle>Desconectar banco?</AlertDialogTitle>
             <AlertDialogDescription>
-              Isso irá desconectar o banco {selectedConnection?.provider_name || 'selecionado'}. 
-              As transações já importadas serão mantidas, mas você não poderá sincronizar novas transações
-              até reconectar.
+              Isso irá desconectar o banco {selectedConnection?.provider_name || 'selecionado'},
+              <strong> excluir a conta e todas as movimentações vinculadas</strong>. 
+              Esta ação é irreversível.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

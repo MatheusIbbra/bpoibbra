@@ -15,6 +15,8 @@ import {
   Loader2,
   AlertCircle,
   RefreshCw,
+  EyeOff,
+  Eye,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -40,8 +42,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { TransactionDialog } from "@/components/transactions/TransactionDialog";
 import { useTransactions, useDeleteTransaction, Transaction } from "@/hooks/useTransactions";
+import { useToggleIgnoreTransaction } from "@/hooks/useToggleIgnore";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
+import { MaskedValue } from "@/contexts/ValuesVisibilityContext";
 import { cn } from "@/lib/utils";
 import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 import { getAutoIcon } from "@/lib/category-icons";
@@ -97,6 +101,7 @@ export default function Movimentacoes() {
   });
 
   const deleteTransaction = useDeleteTransaction();
+  const toggleIgnore = useToggleIgnoreTransaction();
 
   const getFilteredTransactions = () => {
     if (!allTransactions) return [];
@@ -278,19 +283,20 @@ export default function Movimentacoes() {
                   <div>
                     {grouped.map((group) => (
                       <div key={group.label}>
-                        {/* Date group header */}
                         <div className="px-4 py-2 bg-muted/30 border-y border-border/40">
                           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                             {group.label}
                           </p>
                         </div>
 
-                        {/* Transactions in group */}
                         <div className="divide-y divide-border/30">
                           {group.transactions.map((transaction) => (
                             <div
                               key={transaction.id}
-                              className="flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors"
+                              className={cn(
+                                "flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors",
+                                transaction.is_ignored && "opacity-50"
+                              )}
                             >
                               <div
                                 className={cn(
@@ -311,11 +317,28 @@ export default function Movimentacoes() {
                                       {getTransactionLabel(transaction.type)}
                                     </Badge>
                                   )}
+                                  {transaction.is_ignored && (
+                                    <Badge variant="secondary" className="shrink-0 text-[10px] h-5 px-1.5">
+                                      Ignorada
+                                    </Badge>
+                                  )}
                                 </div>
                                 <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                                   <span>{transaction.categories?.name || transaction.accounts?.name || "—"}</span>
                                   <span>·</span>
                                   <span>{format(parseLocalDate(transaction.date), "dd/MM/yy", { locale: ptBR })}</span>
+                                  {transaction.accounts?.bank_name && (
+                                    <>
+                                      <span className="hidden sm:inline">·</span>
+                                      <span className="hidden sm:inline">{transaction.accounts.bank_name}</span>
+                                    </>
+                                  )}
+                                  {transaction.cost_centers?.name && (
+                                    <>
+                                      <span className="hidden md:inline">·</span>
+                                      <span className="hidden md:inline">{transaction.cost_centers.name}</span>
+                                    </>
+                                  )}
                                 </div>
                               </div>
 
@@ -325,8 +348,10 @@ export default function Movimentacoes() {
                                   transaction.type === "income" && "text-success",
                                   transaction.type === "expense" && "text-destructive"
                                 )}>
-                                  {transaction.type === "income" ? "+" : transaction.type === "expense" ? "-" : ""}
-                                  {formatCurrency(Number(transaction.amount))}
+                                  <MaskedValue>
+                                    {transaction.type === "income" ? "+" : transaction.type === "expense" ? "-" : ""}
+                                    {formatCurrency(Number(transaction.amount))}
+                                  </MaskedValue>
                                 </p>
                               </div>
 
@@ -340,6 +365,26 @@ export default function Movimentacoes() {
                                   <DropdownMenuItem onClick={() => handleEdit(transaction)}>
                                     <Pencil className="h-4 w-4 mr-2" />
                                     Editar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      toggleIgnore.mutate({
+                                        id: transaction.id,
+                                        is_ignored: !transaction.is_ignored,
+                                      })
+                                    }
+                                  >
+                                    {transaction.is_ignored ? (
+                                      <>
+                                        <Eye className="h-4 w-4 mr-2" />
+                                        Não Ignorar
+                                      </>
+                                    ) : (
+                                      <>
+                                        <EyeOff className="h-4 w-4 mr-2" />
+                                        Ignorar
+                                      </>
+                                    )}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     onClick={() => setDeleteId(transaction.id)}

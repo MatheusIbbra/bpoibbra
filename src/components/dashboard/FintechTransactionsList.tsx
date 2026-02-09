@@ -1,7 +1,5 @@
 import { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowUpRight,
   ArrowDownLeft,
@@ -10,9 +8,8 @@ import {
   TrendingDown,
   ChevronRight,
   ChevronDown,
-  ChevronUp,
 } from "lucide-react";
-import { format, isToday, isYesterday, differenceInDays, startOfWeek } from "date-fns";
+import { format, isToday, isYesterday, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { useTransactions, Transaction } from "@/hooks/useTransactions";
@@ -20,6 +17,7 @@ import { formatCurrency } from "@/lib/formatters";
 import { parseLocalDate } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { getAutoIcon } from "@/lib/category-icons";
+import { MaskedValue } from "@/contexts/ValuesVisibilityContext";
 import * as LucideIcons from "lucide-react";
 
 interface GroupedTransactions {
@@ -100,9 +98,8 @@ export function FintechTransactionsList() {
   const { data: transactions, isLoading } = useTransactions({});
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // Take the last 10 transactions (smaller)
   const recentTransactions = useMemo(
-    () => (transactions || []).slice(0, 10),
+    () => (transactions || []).slice(0, 15),
     [transactions]
   );
 
@@ -113,18 +110,18 @@ export function FintechTransactionsList() {
 
   if (isLoading) {
     return (
-      <Card className="card-executive">
-        <CardHeader className="pb-2 px-4 pt-4">
-          <CardTitle className="text-sm">Últimas Movimentações</CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pb-4">
-          <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-1">
+        <div className="px-1">
+          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            Últimas Movimentações
+          </p>
+        </div>
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-12 bg-muted/30 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </div>
     );
   }
 
@@ -165,7 +162,10 @@ export function FintechTransactionsList() {
                 {group.transactions.map((tx) => (
                   <div
                     key={tx.id}
-                    className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer"
+                    className={cn(
+                      "flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer",
+                      tx.is_ignored && "opacity-50"
+                    )}
                     onClick={() => navigate("/movimentacoes")}
                   >
                     <div
@@ -176,10 +176,33 @@ export function FintechTransactionsList() {
                     >
                       {getTransactionIcon(tx.type, tx.categories?.icon)}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate leading-tight">
-                        {tx.description || "Movimentação"}
-                      </p>
+                    <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-x-2 items-center">
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium truncate leading-tight">
+                          {tx.description || "Movimentação"}
+                        </p>
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground truncate">
+                          <span>{format(parseLocalDate(tx.date), "dd/MM", { locale: ptBR })}</span>
+                          {tx.accounts?.bank_name && (
+                            <>
+                              <span>·</span>
+                              <span className="truncate">{tx.accounts.bank_name}</span>
+                            </>
+                          )}
+                          {tx.categories?.name && (
+                            <>
+                              <span>·</span>
+                              <span className="truncate hidden sm:inline">{tx.categories.name}</span>
+                            </>
+                          )}
+                          {tx.cost_centers?.name && (
+                            <>
+                              <span className="hidden md:inline">·</span>
+                              <span className="truncate hidden md:inline">{tx.cost_centers.name}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
                     <p
                       className={cn(
@@ -189,8 +212,10 @@ export function FintechTransactionsList() {
                         tx.type !== "income" && tx.type !== "expense" && "text-muted-foreground"
                       )}
                     >
-                      {tx.type === "income" ? "+" : tx.type === "expense" ? "−" : ""}
-                      {formatCurrency(tx.amount)}
+                      <MaskedValue>
+                        {tx.type === "income" ? "+" : tx.type === "expense" ? "−" : ""}
+                        {formatCurrency(tx.amount)}
+                      </MaskedValue>
                     </p>
                   </div>
                 ))}
