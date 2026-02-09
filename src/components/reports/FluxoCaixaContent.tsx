@@ -208,60 +208,43 @@ export function FluxoCaixaContent() {
         </div>
       ) : (
         <>
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
             <Card className="shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between py-2 px-3">
-                <CardTitle className="text-xs font-medium text-muted-foreground">
-                  Saldo Inicial
-                </CardTitle>
-                <Wallet className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent className="py-2 px-3">
-                <p className="text-lg font-bold">
-                  {formatCurrency(data?.openingBalance || 0)}
-                </p>
+              <CardContent className="flex items-center gap-2 p-3">
+                <Wallet className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] text-muted-foreground truncate">Saldo Inicial</p>
+                  <p className="text-sm font-bold truncate">{formatCurrency(data?.openingBalance || 0)}</p>
+                </div>
               </CardContent>
             </Card>
-
             <Card className="shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between py-2 px-3">
-                <CardTitle className="text-xs font-medium text-muted-foreground">
-                  Total Entradas
-                </CardTitle>
-                <TrendingUp className="h-4 w-4 text-success" />
-              </CardHeader>
-              <CardContent className="py-2 px-3">
-                <p className="text-lg font-bold text-success">
-                  {formatCurrency(data?.totalInflows || 0)}
-                </p>
+              <CardContent className="flex items-center gap-2 p-3">
+                <TrendingUp className="h-4 w-4 text-success shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] text-muted-foreground truncate">Entradas</p>
+                  <p className="text-sm font-bold text-success truncate">{formatCurrency(data?.totalInflows || 0)}</p>
+                </div>
               </CardContent>
             </Card>
-
             <Card className="shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between py-2 px-3">
-                <CardTitle className="text-xs font-medium text-muted-foreground">
-                  Total Saídas
-                </CardTitle>
-                <TrendingDown className="h-4 w-4 text-destructive" />
-              </CardHeader>
-              <CardContent className="py-2 px-3">
-                <p className="text-lg font-bold text-destructive">
-                  {formatCurrency(data?.totalOutflows || 0)}
-                </p>
+              <CardContent className="flex items-center gap-2 p-3">
+                <TrendingDown className="h-4 w-4 text-destructive shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] text-muted-foreground truncate">Saídas</p>
+                  <p className="text-sm font-bold text-destructive truncate">{formatCurrency(data?.totalOutflows || 0)}</p>
+                </div>
               </CardContent>
             </Card>
-
             <Card className="shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between py-2 px-3">
-                <CardTitle className="text-xs font-medium text-muted-foreground">
-                  Saldo Final
-                </CardTitle>
-                <ArrowRightLeft className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent className="py-2 px-3">
-                <p className={`text-lg font-bold ${(data?.closingBalance || 0) >= 0 ? "text-success" : "text-destructive"}`}>
-                  {formatCurrency(data?.closingBalance || 0)}
-                </p>
+              <CardContent className="flex items-center gap-2 p-3">
+                <ArrowRightLeft className="h-4 w-4 text-primary shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] text-muted-foreground truncate">Saldo Final</p>
+                  <p className={`text-sm font-bold truncate ${(data?.closingBalance || 0) >= 0 ? "text-success" : "text-destructive"}`}>
+                    {formatCurrency(data?.closingBalance || 0)}
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -307,7 +290,8 @@ export function FluxoCaixaContent() {
               <CardTitle className="text-sm">Detalhamento por Período</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
+              {/* Desktop table */}
+              <div className="hidden sm:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="text-xs">
@@ -324,28 +308,51 @@ export function FluxoCaixaContent() {
                     {displayPeriods.map((period, index) => (
                       <TableRow key={index} className="text-sm">
                         <TableCell className="font-medium">{period.period}</TableCell>
-                        <TableCell className="text-right text-success">
-                          {formatCurrency(period.inflows)}
-                        </TableCell>
-                        <TableCell className="text-right text-destructive">
-                          {formatCurrency(period.outflows)}
-                        </TableCell>
-                        <TableCell className="text-right text-orange-500">
-                          {formatCurrency(period.investments)}
-                        </TableCell>
-                        <TableCell className="text-right text-blue-500">
-                          {formatCurrency(period.redemptions)}
-                        </TableCell>
-                        <TableCell className={`text-right font-medium ${period.netFlow >= 0 ? "text-success" : "text-destructive"}`}>
-                          {formatCurrency(period.netFlow)}
-                        </TableCell>
-                        <TableCell className={`text-right font-bold ${period.cumulativeBalance >= 0 ? "text-success" : "text-destructive"}`}>
-                          {formatCurrency(period.cumulativeBalance)}
-                        </TableCell>
+                        <TableCell className="text-right text-success">{formatCurrency(period.inflows)}</TableCell>
+                        <TableCell className="text-right text-destructive">{formatCurrency(period.outflows)}</TableCell>
+                        <TableCell className="text-right text-orange-500">{formatCurrency(period.investments)}</TableCell>
+                        <TableCell className="text-right text-blue-500">{formatCurrency(period.redemptions)}</TableCell>
+                        <TableCell className={`text-right font-medium ${period.netFlow >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(period.netFlow)}</TableCell>
+                        <TableCell className={`text-right font-bold ${period.cumulativeBalance >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(period.cumulativeBalance)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+
+              {/* Mobile card list */}
+              <div className="sm:hidden divide-y">
+                {displayPeriods.map((period, index) => (
+                  <div key={index} className="p-3 space-y-1.5">
+                    <p className="text-xs font-semibold">{period.period}</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Entradas</span>
+                        <span className="text-success font-medium">{formatCurrency(period.inflows)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Saídas</span>
+                        <span className="text-destructive font-medium">{formatCurrency(period.outflows)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Invest.</span>
+                        <span className="text-orange-500 font-medium">{formatCurrency(period.investments)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Resgates</span>
+                        <span className="text-blue-500 font-medium">{formatCurrency(period.redemptions)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Fluxo Líq.</span>
+                        <span className={`font-medium ${period.netFlow >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(period.netFlow)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Saldo</span>
+                        <span className={`font-bold ${period.cumulativeBalance >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(period.cumulativeBalance)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
