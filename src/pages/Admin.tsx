@@ -498,15 +498,15 @@ export default function Admin() {
               }`}
               onClick={() => setSelectedRoleDetail(selectedRoleDetail === role ? null : role)}
             >
-              <CardContent className="pt-4 sm:pt-6 pb-4">
-                <div className="flex items-center justify-between mb-3 sm:mb-4">
-                  <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center ${ROLE_COLORS[role]}`}>
+              <CardContent className="pt-3 pb-3 px-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center ${ROLE_COLORS[role]}`}>
                     {ROLE_ICONS[role]}
                   </div>
-                  <span className="text-2xl sm:text-3xl font-bold">{getRoleCount(role)}</span>
+                  <span className="text-xl sm:text-2xl font-bold">{getRoleCount(role)}</span>
                 </div>
-                <h3 className="font-semibold text-xs sm:text-sm truncate">{ROLE_LABELS[role]}</h3>
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-1 hidden sm:block">
+                <h3 className="font-semibold text-xs truncate">{ROLE_LABELS[role]}</h3>
+                <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1 hidden sm:block">
                   {ROLE_DESCRIPTIONS[role][0]}
                 </p>
               </CardContent>
