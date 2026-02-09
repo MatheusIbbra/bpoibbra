@@ -22,7 +22,6 @@ async function getPluggyToken(clientId: string, clientSecret: string): Promise<s
   }
 
   const data = await response.json();
-  // Pluggy API returns the token in the 'apiKey' field
   const token = data.apiKey;
   if (!token) {
     console.error('Pluggy auth response missing apiKey:', JSON.stringify(data));
@@ -34,13 +33,9 @@ async function getPluggyToken(clientId: string, clientSecret: string): Promise<s
 
 // ========================================
 // CREDIT CARD PAYMENT DETECTION HELPER
-// CREDIT CARD RULE:
-// credit_card accounts are liabilities (passivo).
-// Payments must be classified as TRANSFER, never income.
 // ========================================
 function isCreditCardPayment(description: string): boolean {
   const text = (description || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  // Very strict patterns - only explicit credit card bill payment descriptions
   const strictPatterns = [
     "pagamento fatura",
     "pgto fatura",
@@ -54,31 +49,23 @@ function isCreditCardPayment(description: string): boolean {
 }
 
 // ========================================
-// STRICT INTERNAL TRANSFER DETECTION
-// Only detect transfers between accounts when ALL criteria are met:
-// 1. Two transactions exist (one income, one expense)
-// 2. Same organization_id
-// 3. Same absolute amount
-// 4. Dates within 1 day
-// 5. Different account_ids
-// 6. Neither account is credit_card
-// 7. Description contains transfer keywords
+// DEDUPLICATION KEY GENERATOR
+// Creates a composite key from date + amount + description for robust dedup
 // ========================================
-const TRANSFER_KEYWORDS = ["pix", "ted", "transfer", "transf", "doc", "tev"];
-
-function hasTransferKeyword(description: string): boolean {
-  const text = (description || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  return TRANSFER_KEYWORDS.some(kw => text.includes(kw));
-}
-
-function dateDiffDays(d1: string, d2: string): number {
-  const date1 = new Date(d1);
-  const date2 = new Date(d2);
-  return Math.abs(date1.getTime() - date2.getTime()) / (1000 * 60 * 60 * 24);
+function generateDedupKey(date: string, amount: number, description: string, externalId: string): string {
+  // Primary: use external ID if available
+  if (externalId && externalId !== `${date}-${amount}-${description}`) {
+    return `ext:${externalId}`;
+  }
+  // Fallback: composite key
+  const normalizedDesc = (description || '').toLowerCase().trim().replace(/\s+/g, ' ').substring(0, 100);
+  return `comp:${date}|${Math.abs(amount).toFixed(2)}|${normalizedDesc}`;
 }
 
 // ========================================
 // INLINE CLASSIFICATION (rules + patterns only, no AI)
+// Only classifies based on >= 80% similarity with rules or learned patterns
+// NEVER auto-classifies as transfer
 // ========================================
 function normalizeText(text: string): string {
   let result = text.toLowerCase();
@@ -139,9 +126,6 @@ async function classifyTransaction(
     let bestMatch: { rule: any; similarity: number } | null = null;
 
     for (const rule of rules) {
-      // Skip rules for transfers - never auto-conciliate transfers
-      if (type === 'transfer') continue;
-
       const keywordSim = containsKeyword(description, rule.description);
       const normalizedSim = calculateSimilarity(normalizedDescription, normalizeText(rule.description));
       let similarity = Math.max(keywordSim, normalizedSim);
@@ -172,75 +156,72 @@ async function classifyTransaction(
   }
 
   // STEP 2: Transaction Patterns (confidence >= 85%, occurrences >= 3)
-  // Skip pattern matching for transfers
-  if (type !== 'transfer') {
-    const { data: patterns } = await supabaseAdmin
-      .from("transaction_patterns")
-      .select("id, normalized_description, category_id, cost_center_id, confidence, occurrences")
-      .eq("organization_id", organizationId)
-      .eq("transaction_type", type)
-      .gte("confidence", 0.6)
-      .order("confidence", { ascending: false })
-      .limit(50);
+  const { data: patterns } = await supabaseAdmin
+    .from("transaction_patterns")
+    .select("id, normalized_description, category_id, cost_center_id, confidence, occurrences")
+    .eq("organization_id", organizationId)
+    .eq("transaction_type", type)
+    .gte("confidence", 0.6)
+    .order("confidence", { ascending: false })
+    .limit(50);
 
-    if (patterns && patterns.length > 0) {
-      let bestPattern: { pattern: any; similarity: number } | null = null;
+  if (patterns && patterns.length > 0) {
+    let bestPattern: { pattern: any; similarity: number } | null = null;
 
-      for (const pattern of patterns) {
-        const similarity = calculateSimilarity(normalizedDescription, pattern.normalized_description);
-        if (similarity >= 0.70 && (!bestPattern || similarity > bestPattern.similarity)) {
-          bestPattern = { pattern, similarity };
-        }
+    for (const pattern of patterns) {
+      const similarity = calculateSimilarity(normalizedDescription, pattern.normalized_description);
+      if (similarity >= 0.80 && (!bestPattern || similarity > bestPattern.similarity)) {
+        bestPattern = { pattern, similarity };
       }
+    }
 
-      if (bestPattern) {
-        const patternConfidence = bestPattern.pattern.confidence || 0.5;
-        const finalConfidence = Math.min(bestPattern.similarity * patternConfidence * 1.2, 0.95);
-        const shouldAutoValidate = finalConfidence >= 0.85 && (bestPattern.pattern.occurrences || 1) >= 3;
+    if (bestPattern) {
+      const patternConfidence = bestPattern.pattern.confidence || 0.5;
+      const finalConfidence = Math.min(bestPattern.similarity * patternConfidence * 1.2, 0.95);
+      const shouldAutoValidate = finalConfidence >= 0.85 && (bestPattern.pattern.occurrences || 1) >= 3;
 
-        await supabaseAdmin
-          .from("transactions")
-          .update({
-            category_id: bestPattern.pattern.category_id,
-            cost_center_id: bestPattern.pattern.cost_center_id,
-            classification_source: "pattern",
-            ...(shouldAutoValidate ? {
-              validation_status: "validated",
-              validated_at: new Date().toISOString(),
-            } : {}),
-          })
-          .eq("id", txId);
-        
-        // AUTO-SAVE: Save learned pattern as a reconciliation rule
-        if (shouldAutoValidate && bestPattern.pattern.category_id) {
-          const { data: existingRule } = await supabaseAdmin
+      await supabaseAdmin
+        .from("transactions")
+        .update({
+          category_id: bestPattern.pattern.category_id,
+          cost_center_id: bestPattern.pattern.cost_center_id,
+          classification_source: "pattern",
+          ...(shouldAutoValidate ? {
+            validation_status: "validated",
+            validated_at: new Date().toISOString(),
+          } : {}),
+        })
+        .eq("id", txId);
+      
+      // AUTO-SAVE: Save learned pattern as a reconciliation rule
+      if (shouldAutoValidate && bestPattern.pattern.category_id) {
+        const { data: existingRule } = await supabaseAdmin
+          .from("reconciliation_rules")
+          .select("id")
+          .eq("organization_id", organizationId)
+          .eq("description", description)
+          .eq("transaction_type", type)
+          .maybeSingle();
+
+        if (!existingRule) {
+          await supabaseAdmin
             .from("reconciliation_rules")
-            .select("id")
-            .eq("organization_id", organizationId)
-            .eq("description", description)
-            .eq("transaction_type", type)
-            .maybeSingle();
-
-          if (!existingRule) {
-            await supabaseAdmin
-              .from("reconciliation_rules")
-              .insert({
-                organization_id: organizationId,
-                user_id: (await supabaseAdmin.from("organization_members").select("user_id").eq("organization_id", organizationId).limit(1).single()).data?.user_id || '',
-                description: description,
-                amount: amount,
-                transaction_type: type,
-                category_id: bestPattern.pattern.category_id,
-                cost_center_id: bestPattern.pattern.cost_center_id,
-                is_active: true,
-              });
-            console.log(`[CLASSIFY] TX ${txId}: auto-saved pattern as reconciliation rule`);
-          }
+            .insert({
+              organization_id: organizationId,
+              user_id: (await supabaseAdmin.from("organization_members").select("user_id").eq("organization_id", organizationId).limit(1).single()).data?.user_id || '',
+              description: description,
+              amount: amount,
+              transaction_type: type,
+              category_id: bestPattern.pattern.category_id,
+              cost_center_id: bestPattern.pattern.cost_center_id,
+              is_active: true,
+            });
+          console.log(`[CLASSIFY] TX ${txId}: auto-saved pattern as reconciliation rule`);
         }
-
-        console.log(`[CLASSIFY] TX ${txId}: pattern match (conf=${(finalConfidence * 100).toFixed(0)}%, auto=${shouldAutoValidate})`);
-        return;
       }
+
+      console.log(`[CLASSIFY] TX ${txId}: pattern match (conf=${(finalConfidence * 100).toFixed(0)}%, auto=${shouldAutoValidate})`);
+      return;
     }
   }
 
@@ -391,7 +372,7 @@ Deno.serve(async (req) => {
     console.log(`Fetching accounts for item ${pluggyItemId}...`);
 
     // ========================================
-    // FETCH ITEM DETAILS (connector info, bank name, logo)
+    // FETCH ITEM DETAILS
     // ========================================
     let itemDetails: any = null;
     try {
@@ -462,7 +443,7 @@ Deno.serve(async (req) => {
       item_status: itemDetails?.status || null,
     };
 
-    // Update connection with metadata and connector name
+    // Update connection with metadata
     await supabaseAdmin
       .from('bank_connections')
       .update({
@@ -475,9 +456,9 @@ Deno.serve(async (req) => {
     console.log(`Saved metadata for connection ${connectionToSync.id}: bank=${connectorName}, accounts=${accounts.length}, balance=${totalBalance}`);
 
     // ========================================
-    // CREATE/UPDATE ACCOUNTS IN accounts TABLE
+    // CREATE/UPDATE ACCOUNTS + SAVE OFFICIAL BALANCE
     // ========================================
-    const pluggyAccountToLocalAccount: Record<string, string> = {}; // pluggyAccountId -> local account id
+    const pluggyAccountToLocalAccount: Record<string, string> = {};
 
     function mapPluggyAccountType(pluggyType: string): string {
       const typeMap: Record<string, string> = {
@@ -493,9 +474,8 @@ Deno.serve(async (req) => {
     for (const acc of accounts) {
       const accountType = mapPluggyAccountType(acc.type || acc.subtype || 'BANK');
       const accountName = acc.name || `${connectorName} - ${acc.type || 'Conta'}`;
-      const accountNumber = acc.number || null;
-      const agency = acc.bankData?.branch || null;
-      const balance = acc.balance ?? 0;
+      const apiBalance = acc.balance ?? 0;
+      const now = new Date().toISOString();
 
       // Check if we already have a local account for this Pluggy account
       const { data: existingAccount } = await supabaseAdmin
@@ -507,19 +487,21 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (existingAccount) {
-        // Update existing account balance
+        // Update existing account with OFFICIAL balance from API
         await supabaseAdmin
           .from('accounts')
           .update({
-            current_balance: balance,
-            updated_at: new Date().toISOString()
+            official_balance: apiBalance,
+            last_official_balance_at: now,
+            current_balance: apiBalance,
+            updated_at: now,
           })
           .eq('id', existingAccount.id);
         
         pluggyAccountToLocalAccount[acc.id] = existingAccount.id;
-        console.log(`[ACCOUNTS] Updated existing account ${existingAccount.id}: balance=${balance}`);
+        console.log(`[ACCOUNTS] Updated account ${existingAccount.id}: official_balance=${apiBalance}`);
       } else {
-        // Create new account
+        // Create new account with official balance
         const { data: newAccount, error: accountError } = await supabaseAdmin
           .from('accounts')
           .insert({
@@ -528,8 +510,10 @@ Deno.serve(async (req) => {
             name: accountName,
             account_type: accountType,
             bank_name: connectorName,
-            current_balance: balance,
-            initial_balance: balance,
+            current_balance: apiBalance,
+            initial_balance: apiBalance,
+            official_balance: apiBalance,
+            last_official_balance_at: now,
             status: 'active',
             start_date: new Date().toISOString().split('T')[0],
           })
@@ -540,15 +524,15 @@ Deno.serve(async (req) => {
           console.error(`[ACCOUNTS] Failed to create account for ${acc.id}:`, accountError);
         } else {
           pluggyAccountToLocalAccount[acc.id] = newAccount.id;
-          console.log(`[ACCOUNTS] Created new account ${newAccount.id}: ${accountName}, balance=${balance}`);
+          console.log(`[ACCOUNTS] Created account ${newAccount.id}: ${accountName}, official_balance=${apiBalance}`);
         }
       }
     }
 
-    console.log(`[ACCOUNTS] Mapped ${Object.keys(pluggyAccountToLocalAccount).length} Pluggy accounts to local accounts`);
+    console.log(`[ACCOUNTS] Mapped ${Object.keys(pluggyAccountToLocalAccount).length} Pluggy accounts`);
 
     // ========================================
-    // FETCH AND IMPORT TRANSACTIONS
+    // FETCH AND IMPORT TRANSACTIONS WITH IMPROVED DEDUPLICATION
     // ========================================
     let allTransactions: any[] = [];
     for (const account of accounts) {
@@ -579,7 +563,7 @@ Deno.serve(async (req) => {
 
     console.log(`[TX] Total transactions fetched: ${allTransactions.length}`);
 
-    // Fallback: if no pluggy accounts mapped, try to find an existing account
+    // Fallback account
     let fallbackAccountId: string | null = null;
     if (Object.keys(pluggyAccountToLocalAccount).length === 0) {
       const { data: fallbackAccount } = await supabaseAdmin
@@ -593,7 +577,6 @@ Deno.serve(async (req) => {
       fallbackAccountId = fallbackAccount?.id || null;
       
       if (!fallbackAccountId && allTransactions.length > 0) {
-        console.warn('[TX] No accounts available and transactions to import. Creating a default account.');
         const { data: createdDefault } = await supabaseAdmin
           .from('accounts')
           .insert({
@@ -604,6 +587,8 @@ Deno.serve(async (req) => {
             bank_name: connectorName,
             current_balance: 0,
             initial_balance: 0,
+            official_balance: 0,
+            last_official_balance_at: new Date().toISOString(),
             status: 'active',
             start_date: new Date().toISOString().split('T')[0],
           })
@@ -616,63 +601,97 @@ Deno.serve(async (req) => {
 
     let imported = 0;
     let skipped = 0;
+    let duplicatesDetected = 0;
     const newTransactionIds: { id: string; description: string; amount: number; type: string }[] = [];
 
-    // Process each transaction
     for (const tx of allTransactions) {
       const externalId = tx.id || `${tx.date}-${tx.amount}-${tx.description}`;
+      const rawAmount = tx.amount || 0;
+      const amount = Math.abs(rawAmount);
+      const txDate = tx.date ? tx.date.split('T')[0] : new Date().toISOString().split('T')[0];
+      const description = tx.description || tx.descriptionRaw || 'Movimentação via Open Finance';
       
-      // Check for duplicate
-      const { data: existing } = await supabaseAdmin
+      // Generate dedup key for composite deduplication
+      const dedupKey = generateDedupKey(txDate, rawAmount, description, externalId);
+      
+      // CHECK 1: By external_transaction_id (legacy)
+      const { data: existingByExtId } = await supabaseAdmin
         .from('transactions')
         .select('id')
         .eq('external_transaction_id', externalId)
         .eq('bank_connection_id', connectionToSync.id)
         .maybeSingle();
 
-      if (existing) {
+      if (existingByExtId) {
         skipped++;
+        duplicatesDetected++;
+        continue;
+      }
+      
+      // CHECK 2: By sync_dedup_key (composite: date + amount + description)
+      const { data: existingByDedup } = await supabaseAdmin
+        .from('transactions')
+        .select('id')
+        .eq('bank_connection_id', connectionToSync.id)
+        .eq('sync_dedup_key', dedupKey)
+        .maybeSingle();
+
+      if (existingByDedup) {
+        skipped++;
+        duplicatesDetected++;
+        console.log(`[DEDUP] Skipped duplicate by composite key: ${dedupKey}`);
         continue;
       }
 
-      const rawAmount = tx.amount || 0;
-      const amount = Math.abs(rawAmount);
+      // CHECK 3: By date + amount + similar description (fuzzy dedup)
+      const { data: existingByComposite } = await supabaseAdmin
+        .from('transactions')
+        .select('id, description')
+        .eq('bank_connection_id', connectionToSync.id)
+        .eq('date', txDate)
+        .eq('amount', amount)
+        .limit(5);
+      
+      if (existingByComposite && existingByComposite.length > 0) {
+        const normalizedNewDesc = normalizeText(description);
+        const isDuplicate = existingByComposite.some(existing => {
+          const similarity = calculateSimilarity(normalizedNewDesc, normalizeText(existing.description || ''));
+          return similarity >= 0.90; // Very high threshold for fuzzy dedup
+        });
+        
+        if (isDuplicate) {
+          skipped++;
+          duplicatesDetected++;
+          console.log(`[DEDUP] Skipped fuzzy duplicate: ${description} on ${txDate}`);
+          continue;
+        }
+      }
+
       let type = tx.type === 'CREDIT' || rawAmount > 0 ? 'income' : 'expense';
-      const txDate = tx.date ? tx.date.split('T')[0] : new Date().toISOString().split('T')[0];
-      const description = tx.description || tx.descriptionRaw || 'Movimentação via Open Finance';
 
       // Map to the correct local account
       const localAccountId = pluggyAccountToLocalAccount[tx.pluggyAccountId] || fallbackAccountId;
       if (!localAccountId) {
-        console.warn(`[TX] No local account for Pluggy account ${tx.pluggyAccountId}, skipping transaction`);
+        console.warn(`[TX] No local account for Pluggy account ${tx.pluggyAccountId}, skipping`);
         skipped++;
         continue;
       }
 
       // ========================================
-      // CREDIT CARD PAYMENT DETECTION (STRICT)
-      // CREDIT CARD RULE:
-      // credit_card accounts are liabilities (passivo).
-      // Only reclassify in very specific cases:
-      // 1. Income on credit_card account = bill payment received → transfer
-      // 2. Expense on checking/savings with VERY specific CC payment description → transfer
-      // NEVER convert: regular expenses, supplier payments, auto-debits
+      // CREDIT CARD PAYMENT DETECTION (STRICT ONLY)
       // ========================================
       const accountForTx = accounts.find((a: any) => a.id === tx.pluggyAccountId);
       const pluggyAccountType = accountForTx ? mapPluggyAccountType(accountForTx.type || accountForTx.subtype || 'BANK') : 'checking';
       let isCreditCardPaymentTx = false;
       
       if (pluggyAccountType === 'credit_card' && type === 'income') {
-        // Income on credit card = bill payment received → mark as transfer
         type = 'transfer';
         isCreditCardPaymentTx = true;
-        console.log(`[CC-RULE] TX on credit_card account reclassified: income → transfer (payment received): ${description}`);
+        console.log(`[CC-RULE] Income on credit_card → transfer: ${description}`);
       } else if (pluggyAccountType !== 'credit_card' && type === 'expense' && isCreditCardPayment(description)) {
-        // ONLY convert expense on non-credit-card accounts if description STRICTLY matches
-        // credit card bill payment patterns. Never convert income or other types.
         type = 'transfer';
         isCreditCardPaymentTx = true;
-        console.log(`[CC-RULE] TX on ${pluggyAccountType} reclassified: expense → transfer (strict bill payment match): ${description}`);
+        console.log(`[CC-RULE] Strict bill payment match → transfer: ${description}`);
       }
 
       const { data: inserted, error: insertError } = await supabaseAdmin
@@ -682,6 +701,7 @@ Deno.serve(async (req) => {
           user_id: connectionToSync.user_id,
           bank_connection_id: connectionToSync.id,
           external_transaction_id: externalId,
+          sync_dedup_key: dedupKey,
           account_id: localAccountId,
           date: txDate,
           description: description,
@@ -689,7 +709,6 @@ Deno.serve(async (req) => {
           amount: amount,
           type: type,
           status: 'completed',
-          // CREDIT CARD RULE: payments are system-classified transfers with no category
           ...(isCreditCardPaymentTx ? {
             classification_source: 'system',
             validation_status: 'validated',
@@ -701,8 +720,15 @@ Deno.serve(async (req) => {
         .single();
 
       if (insertError) {
-        console.error('Failed to insert transaction:', insertError);
-        skipped++;
+        // Handle unique constraint violation (dedup index)
+        if (insertError.code === '23505') {
+          skipped++;
+          duplicatesDetected++;
+          console.log(`[DEDUP] Unique constraint prevented duplicate: ${dedupKey}`);
+        } else {
+          console.error('Failed to insert transaction:', insertError);
+          skipped++;
+        }
       } else {
         imported++;
         newTransactionIds.push({ id: inserted.id, description, amount, type });
@@ -710,7 +736,8 @@ Deno.serve(async (req) => {
     }
 
     // ========================================
-    // CLASSIFY NEW TRANSACTIONS (rules + patterns)
+    // CLASSIFY NEW TRANSACTIONS (rules + patterns ONLY, >= 80% similarity)
+    // NO automatic transfer detection — removed completely
     // ========================================
     if (newTransactionIds.length > 0) {
       console.log(`[CLASSIFY] Starting classification for ${newTransactionIds.length} new transactions...`);
@@ -736,95 +763,53 @@ Deno.serve(async (req) => {
     }
 
     // ========================================
-    // STRICT INTERNAL TRANSFER PAIR DETECTION
-    // After classification, detect matching transaction pairs
-    // that are clearly internal transfers between accounts.
-    // Requirements (ALL must be met):
-    // 1. Same organization_id
-    // 2. Same absolute amount
-    // 3. Dates within 1 day
-    // 4. One income, one expense
-    // 5. Different account_ids
-    // 6. Neither account is credit_card
-    // 7. Description contains transfer keyword (pix, ted, transfer, transf, doc)
-    // If ANY doubt → do NOT convert.
+    // NO MORE AUTOMATIC TRANSFER PAIR DETECTION
+    // Transfers are ONLY classified via rules/patterns with >= 80% similarity
     // ========================================
-    if (newTransactionIds.length > 1) {
-      console.log(`[TRANSFER-DETECT] Checking ${newTransactionIds.length} new transactions for internal transfer pairs...`);
+
+    // ========================================
+    // CALCULATE SYSTEM BALANCE FOR RECONCILIATION
+    // ========================================
+    let totalApiBalance = 0;
+    let totalSystemBalance = 0;
+    
+    for (const acc of accounts) {
+      const localId = pluggyAccountToLocalAccount[acc.id];
+      if (!localId) continue;
       
-      // Fetch full transaction data for newly imported ones
-      const newIds = newTransactionIds.map(t => t.id);
-      const { data: newTxFull } = await supabaseAdmin
-        .from('transactions')
-        .select('id, amount, type, date, account_id, description')
-        .in('id', newIds);
+      const apiBalance = acc.balance ?? 0;
+      totalApiBalance += apiBalance;
       
-      if (newTxFull && newTxFull.length > 1) {
-        // Build account type map (only for accounts in this sync)
-        const accountTypeMap: Record<string, string> = {};
-        for (const acc of accounts) {
-          const localId = pluggyAccountToLocalAccount[acc.id];
-          if (localId) {
-            accountTypeMap[localId] = mapPluggyAccountType(acc.type || acc.subtype || 'BANK');
-          }
-        }
-        
-        const paired = new Set<string>();
-        let transferPairs = 0;
-        
-        for (const txA of newTxFull) {
-          if (paired.has(txA.id)) continue;
-          if (txA.type !== 'income' && txA.type !== 'expense') continue;
-          if (accountTypeMap[txA.account_id] === 'credit_card') continue;
-          if (!hasTransferKeyword(txA.description || '')) continue;
-          
-          for (const txB of newTxFull) {
-            if (txB.id === txA.id || paired.has(txB.id)) continue;
-            if (txB.type !== 'income' && txB.type !== 'expense') continue;
-            if (txA.type === txB.type) continue; // Must be one income + one expense
-            if (txA.account_id === txB.account_id) continue; // Must be different accounts
-            if (accountTypeMap[txB.account_id] === 'credit_card') continue;
-            if (!hasTransferKeyword(txB.description || '')) continue;
-            
-            // Check same absolute amount
-            if (Math.abs(Number(txA.amount) - Number(txB.amount)) > 0.01) continue;
-            
-            // Check dates within 1 day
-            if (dateDiffDays(txA.date, txB.date) > 1) continue;
-            
-            // All criteria met — mark both as is_ignored (not excluded, still visible)
-            console.log(`[TRANSFER-DETECT] Pair found: ${txA.id} (${txA.type}) <-> ${txB.id} (${txB.type}), amount=${txA.amount} — marking as ignored`);
-            
-            await supabaseAdmin
-              .from('transactions')
-              .update({
-                is_ignored: true,
-                linked_transaction_id: txB.id,
-                classification_source: 'system',
-                notes: 'Transferência interna detectada automaticamente (ignorada)',
-              })
-              .eq('id', txA.id);
-            
-            await supabaseAdmin
-              .from('transactions')
-              .update({
-                is_ignored: true,
-                linked_transaction_id: txA.id,
-                classification_source: 'system',
-                notes: 'Transferência interna detectada automaticamente (ignorada)',
-              })
-              .eq('id', txB.id);
-            
-            paired.add(txA.id);
-            paired.add(txB.id);
-            transferPairs++;
-            break; // Move to next txA
-          }
-        }
-        
-        console.log(`[TRANSFER-DETECT] Detected ${transferPairs} internal transfer pairs`);
-      }
+      // Calculate system balance using the DB function
+      const { data: systemBalance } = await supabaseAdmin.rpc('calculate_account_balance', {
+        account_uuid: localId
+      });
+      totalSystemBalance += (systemBalance ?? 0);
     }
+    
+    const balanceDifference = Math.abs(totalApiBalance - totalSystemBalance);
+
+    // ========================================
+    // CREATE DETAILED SYNC AUDIT LOG
+    // ========================================
+    await supabaseAdmin.from('sync_audit_logs').insert({
+      organization_id: connectionToSync.organization_id,
+      bank_connection_id: connectionToSync.id,
+      sync_date: new Date().toISOString(),
+      api_balance: totalApiBalance,
+      system_balance: totalSystemBalance,
+      balance_difference: balanceDifference,
+      transactions_imported: imported,
+      transactions_skipped: skipped,
+      transactions_total: allTransactions.length,
+      duplicates_detected: duplicatesDetected,
+      details: {
+        connector_name: connectorName,
+        accounts_count: accounts.length,
+        item_id: pluggyItemId,
+        reconciliation_needed: balanceDifference > 0.01,
+      }
+    });
 
     // ========================================
     // UPDATE CONNECTION STATUS
@@ -847,8 +832,18 @@ Deno.serve(async (req) => {
       provider: 'pluggy',
       event_type: 'sync',
       status: 'success',
-      message: `Sync completed: ${imported} imported, ${skipped} skipped`,
-      payload: { imported, skipped, total: allTransactions.length, accounts_count: accounts.length }
+      message: `Sync: ${imported} imported, ${skipped} skipped, ${duplicatesDetected} duplicates. Balance diff: R$${balanceDifference.toFixed(2)}`,
+      payload: { 
+        imported, 
+        skipped, 
+        duplicates_detected: duplicatesDetected,
+        total: allTransactions.length, 
+        accounts_count: accounts.length,
+        api_balance: totalApiBalance,
+        system_balance: totalSystemBalance,
+        balance_difference: balanceDifference,
+        reconciliation_needed: balanceDifference > 0.01,
+      }
     });
 
     return new Response(
@@ -856,9 +851,14 @@ Deno.serve(async (req) => {
         success: true,
         imported,
         skipped,
+        duplicates_detected: duplicatesDetected,
         total: allTransactions.length,
         accounts: accounts.length,
-        connection_id: connectionToSync.id
+        connection_id: connectionToSync.id,
+        api_balance: totalApiBalance,
+        system_balance: totalSystemBalance,
+        balance_difference: balanceDifference,
+        reconciliation_needed: balanceDifference > 0.01,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

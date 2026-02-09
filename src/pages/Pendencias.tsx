@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { parseLocalDate } from "@/lib/formatters";
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Check, X, ChevronLeft, ChevronRight, Filter, Sparkles, Loader2, ArrowLeftRight, TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowRight, Building2, BookOpen, Brain, Zap, Search, Calendar, RefreshCw, Trash2 } from "lucide-react";
+import { AlertCircle, Check, X, ChevronLeft, ChevronRight, Filter, Sparkles, Loader2, ArrowLeftRight, TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowRight, Building2, BookOpen, Brain, Zap, Search, Calendar, RefreshCw, Trash2, Wand2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -77,6 +77,8 @@ export default function Pendencias() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [classifyingId, setClassifyingId] = useState<string | null>(null);
   const [isClearingAll, setIsClearingAll] = useState(false);
+  const [isBulkClassifying, setIsBulkClassifying] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
   
   const { data: allTransactions, isLoading, refetch } = useTransactions();
   const { data: categories } = useCategories();
@@ -145,7 +147,7 @@ export default function Pendencias() {
     return org?.name || null;
   };
 
-  // AI Classification handler
+  // AI Classification handler - with immediate refetch
   const handleClassifyWithAI = async (transaction: any) => {
     setClassifyingId(transaction.id);
     
@@ -155,11 +157,19 @@ export default function Pendencias() {
         description: transaction.description || transaction.raw_description || "",
         amount: Number(transaction.amount),
         type: transaction.type as "income" | "expense",
+        organization_id: transaction.organization_id,
       });
       
       if (result.category_id) {
-        toast.success("Transação classificada pela IA!");
-        refetch();
+        // If auto-validated, the transaction will disappear from pending list
+        if (result.auto_validated) {
+          toast.success("Transação classificada e validada pela IA!");
+        } else {
+          toast.success("Sugestão da IA aplicada! Revise e valide.");
+        }
+        // Immediate refetch - no need to change screens
+        await queryClient.invalidateQueries({ queryKey: ["transactions"] });
+        await refetch();
       } else {
         toast.info("IA não encontrou classificação para esta transação");
       }
@@ -170,6 +180,62 @@ export default function Pendencias() {
       setClassifyingId(null);
     }
   };
+
+  // Bulk AI Classification - classify ALL pending transactions at once
+  const handleBulkClassifyWithAI = useCallback(async () => {
+    const pending = pendingTransactions.filter(t => 
+      !t.classification_source && (t.type === 'income' || t.type === 'expense')
+    );
+    
+    if (pending.length === 0) {
+      toast.info("Nenhuma transação pendente para classificar");
+      return;
+    }
+
+    setIsBulkClassifying(true);
+    setBulkProgress({ done: 0, total: pending.length });
+    
+    let classified = 0;
+    let autoValidated = 0;
+    let failed = 0;
+    
+    for (let i = 0; i < pending.length; i++) {
+      const tx = pending[i];
+      try {
+        const result = await aiClassification.mutateAsync({
+          transaction_id: tx.id,
+          description: tx.description || tx.raw_description || "",
+          amount: Number(tx.amount),
+          type: tx.type as "income" | "expense",
+          organization_id: tx.organization_id,
+        });
+        
+        if (result.category_id) {
+          classified++;
+          if (result.auto_validated) autoValidated++;
+        }
+      } catch (error) {
+        console.error(`Error classifying TX ${tx.id}:`, error);
+        failed++;
+      }
+      
+      setBulkProgress({ done: i + 1, total: pending.length });
+    }
+    
+    // Refetch all data immediately
+    await queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    await queryClient.invalidateQueries({ queryKey: ["pending-transactions-count"] });
+    await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+    await refetch();
+    
+    setIsBulkClassifying(false);
+    setBulkProgress({ done: 0, total: 0 });
+    
+    toast.success(
+      `IA classificou ${classified} de ${pending.length} transações. ` +
+      `${autoValidated} auto-validadas. ${failed > 0 ? `${failed} erros.` : ''}`
+    );
+  }, [pendingTransactions, aiClassification, queryClient, refetch]);
 
   const handleValidate = async (
     transactionId: string, 
@@ -189,7 +255,7 @@ export default function Pendencias() {
         status: "completed" as const,
       });
       
-      // Atualizar validation status
+      // Update validation status
       await supabase
         .from("transactions")
         .update({ 
@@ -200,7 +266,11 @@ export default function Pendencias() {
         
       toast.success("Transação validada com sucesso!");
       
-      // Retornar dados para o feedback loop
+      // Immediate refetch - transaction disappears from list without page change
+      await queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      await queryClient.invalidateQueries({ queryKey: ["pending-transactions-count"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      
       return { categoryId, costCenterId, type, description, amount, organizationId };
     } catch (error) {
       toast.error("Erro ao validar transação");
@@ -216,7 +286,9 @@ export default function Pendencias() {
         .eq("id", transactionId);
         
       toast.info("Transação rejeitada");
-      refetch();
+      // Immediate refetch
+      await queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      await queryClient.invalidateQueries({ queryKey: ["pending-transactions-count"] });
     } catch (error) {
       toast.error("Erro ao rejeitar transação");
     }
@@ -278,7 +350,7 @@ export default function Pendencias() {
               )}
             </h2>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 h-7 text-xs">
                 <X className="h-3 w-3" />
@@ -286,28 +358,49 @@ export default function Pendencias() {
               </Button>
             )}
             {pendingTransactions.length > 0 && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm" className="gap-1.5 h-7 text-xs" disabled={isClearingAll}>
-                    {isClearingAll ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-                    Limpar todas ({pendingTransactions.length})
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Excluir todas as pendências?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Isso irá excluir permanentemente {pendingTransactions.length} movimentação(ões) pendente(s). Esta ação não pode ser desfeita.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleClearAllPending}>
-                      Confirmar
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="gap-1.5 h-7 text-xs"
+                  onClick={handleBulkClassifyWithAI}
+                  disabled={isBulkClassifying}
+                >
+                  {isBulkClassifying ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      {bulkProgress.done}/{bulkProgress.total}
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="h-3 w-3" />
+                      Classificar Tudo (IA)
+                    </>
+                  )}
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" className="gap-1.5 h-7 text-xs" disabled={isClearingAll}>
+                      {isClearingAll ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                      Limpar todas ({pendingTransactions.length})
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir todas as pendências?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Isso irá excluir permanentemente {pendingTransactions.length} movimentação(ões) pendente(s). Esta ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleClearAllPending}>
+                        Confirmar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
             )}
           </div>
         </div>
