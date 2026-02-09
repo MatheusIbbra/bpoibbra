@@ -78,7 +78,7 @@ export default function CentrosCusto() {
         {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold">Centros de Custo</h1>
+            <h1 className="text-lg md:text-3xl font-bold">Centros de Custo</h1>
             <p className="text-muted-foreground">Organize suas despesas por departamento ou projeto</p>
           </div>
           <Button 
@@ -138,20 +138,20 @@ export default function CentrosCusto() {
                 {costCenters?.map((center) => (
                   <div
                     key={center.id}
-                    className="flex items-center justify-between p-4 rounded-lg border"
+                    className="flex items-center justify-between p-3 md:p-4 rounded-lg border gap-2"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <FolderKanban className="h-5 w-5 text-primary" />
+                    <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+                      <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <FolderKanban className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                       </div>
-                      <div>
-                        <p className="font-medium">{center.name}</p>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm md:text-base truncate">{center.name}</p>
                         {center.description && (
-                          <p className="text-sm text-muted-foreground">{center.description}</p>
+                          <p className="text-xs md:text-sm text-muted-foreground truncate">{center.description}</p>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
                       <Badge variant={center.is_active ? "default" : "secondary"}>
                         {center.is_active ? "Ativo" : "Inativo"}
                       </Badge>

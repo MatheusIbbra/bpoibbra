@@ -221,11 +221,11 @@ export default function Transacoes() {
                 {transactions.map((transaction) => (
                   <div
                     key={transaction.id}
-                    className="flex items-center gap-4 rounded-lg border p-4 hover:bg-muted/50 transition-colors"
+                    className="flex items-center gap-3 md:gap-4 rounded-lg border p-3 md:p-4 hover:bg-muted/50 transition-colors"
                   >
                     <div
                       className={cn(
-                        "flex h-10 w-10 items-center justify-center rounded-full shrink-0",
+                        "hidden sm:flex h-10 w-10 items-center justify-center rounded-full shrink-0",
                         getTransactionColor(transaction.type)
                       )}
                     >
@@ -233,28 +233,28 @@ export default function Transacoes() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium truncate">{transaction.description}</p>
-                        <Badge variant="outline" className="shrink-0">
+                      <div className="flex items-center gap-1.5 md:gap-2">
+                        <p className="font-medium text-sm md:text-base truncate">{transaction.description}</p>
+                        <Badge variant="outline" className="shrink-0 text-[10px] md:text-xs">
                           {getTransactionLabel(transaction.type)}
                         </Badge>
                         {transaction.status === "pending" && (
-                          <Badge variant="outline" className="shrink-0">
+                          <Badge variant="outline" className="shrink-0 text-[10px] md:text-xs">
                             Pendente
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>{transaction.accounts?.name || "Conta"}</span>
+                      <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
+                        <span className="truncate">{transaction.accounts?.name || "Conta"}</span>
                         <span>•</span>
-                        <span>
+                        <span className="shrink-0">
                           {format(parseLocalDate(transaction.date), "dd/MM/yyyy", { locale: ptBR })}
                         </span>
                       </div>
                     </div>
 
                     <div className="text-right shrink-0">
-                      <p className="font-semibold">
+                      <p className="font-semibold text-sm md:text-base">
                         {formatCurrency(Number(transaction.amount))}
                       </p>
                     </div>

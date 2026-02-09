@@ -130,7 +130,7 @@ export default function Contas() {
         {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold">Contas Bancárias</h1>
+            <h1 className="text-lg md:text-3xl font-bold">Contas Bancárias</h1>
             <p className="text-muted-foreground">Gerencie suas contas e transferências</p>
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -181,7 +181,7 @@ export default function Contas() {
         </Card>
 
         {/* Accounts Grid */}
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {loadingAccounts ? (
             <p className="text-muted-foreground col-span-full text-center py-8">Carregando...</p>
           ) : accounts?.length === 0 ? (
@@ -273,21 +273,21 @@ export default function Contas() {
             ) : (
               <div className="space-y-3">
                 {transfers?.slice(0, 5).map((transfer) => (
-                  <div key={transfer.id} className="flex items-center justify-between p-3 rounded-lg border">
-                    <div className="flex items-center gap-3">
-                      <ArrowRightLeft className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium text-sm">
+                  <div key={transfer.id} className="flex items-center justify-between p-2.5 md:p-3 rounded-lg border gap-2">
+                    <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+                      <ArrowRightLeft className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-medium text-xs md:text-sm truncate">
                           {transfer.origin_account?.name} → {transfer.destination_account?.name}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[10px] md:text-xs text-muted-foreground truncate">
                           {format(new Date(transfer.transfer_date), "dd/MM/yyyy", { locale: ptBR })}
                           {transfer.description && ` • ${transfer.description}`}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{formatCurrency(Number(transfer.amount))}</span>
+                    <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+                      <span className="font-medium text-xs md:text-sm">{formatCurrency(Number(transfer.amount))}</span>
                       <Button
                         variant="ghost"
                         size="icon"
