@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { BaseFilterProvider } from "@/contexts/BaseFilterContext";
+import { ValuesVisibilityProvider } from "@/contexts/ValuesVisibilityContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
@@ -42,6 +43,7 @@ const App = () => (
     <ThemeProvider>
       <AuthProvider>
         <BaseFilterProvider>
+          <ValuesVisibilityProvider>
           <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -78,6 +80,7 @@ const App = () => (
               </Routes>
             </BrowserRouter>
           </TooltipProvider>
+          </ValuesVisibilityProvider>
         </BaseFilterProvider>
       </AuthProvider>
     </ThemeProvider>

@@ -1,4 +1,4 @@
-import { Moon, Sun, LogOut, User, Settings } from "lucide-react";
+import { Moon, Sun, LogOut, User, Settings, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useValuesVisibility } from "@/contexts/ValuesVisibilityContext";
 import { BaseSelectorEnhanced } from "./BaseSelectorEnhanced";
 import { InsightsHeaderButton } from "./InsightsHeaderButton";
 import { useQuery } from "@tanstack/react-query";
@@ -25,6 +26,7 @@ interface AppHeaderProps {
 export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const { user, signOut } = useAuth();
+  const { showValues, toggleValues } = useValuesVisibility();
 
   const { data: profile } = useQuery({
     queryKey: ["user-profile", user?.id],
@@ -80,11 +82,11 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
   const displayName = profile?.full_name || "Usuário";
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-sidebar-border/60 bg-sidebar px-4 md:px-6 shadow-sm">
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-sidebar-border/60 bg-sidebar px-3 md:px-6 shadow-sm">
       {/* Sidebar toggle */}
       <SidebarTrigger className="shrink-0 h-8 w-8 text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors" />
       
-      <div className="flex flex-1 items-center gap-4 min-w-0">
+      <div className="flex flex-1 items-center gap-2 md:gap-4 min-w-0">
         {/* Title */}
         <div className="hidden md:flex flex-col">
           <h1 className="text-base font-semibold text-sidebar-foreground tracking-tight">
@@ -98,7 +100,19 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 md:gap-2">
+        {/* Eye toggle - show/hide values */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleValues}
+          className="h-9 w-9 text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+          title={showValues ? "Ocultar valores" : "Mostrar valores"}
+        >
+          {showValues ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+          <span className="sr-only">{showValues ? "Ocultar valores" : "Mostrar valores"}</span>
+        </Button>
+
         {/* Insights button */}
         <div className="hidden md:block">
           <InsightsHeaderButton />

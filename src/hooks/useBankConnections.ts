@@ -182,11 +182,41 @@ export function useDisconnectBank() {
 
   return useMutation({
     mutationFn: async (bankConnectionId: string) => {
-      // For Pluggy, we just mark as disconnected in DB
-      // The actual disconnection happens in Pluggy dashboard
+      // 1. Delete all transactions linked to this bank connection
+      const { error: txError } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('bank_connection_id', bankConnectionId);
+      
+      if (txError) {
+        console.error('Failed to delete transactions:', txError);
+        throw new Error('Erro ao excluir movimentações vinculadas');
+      }
+
+      // 2. Get accounts linked to this connection (via organization + bank_name)
+      const { data: connection } = await supabase
+        .from('bank_connections')
+        .select('organization_id, provider_name')
+        .eq('id', bankConnectionId)
+        .single();
+
+      if (connection) {
+        // Delete accounts that were created by this connection
+        const { error: accError } = await supabase
+          .from('accounts')
+          .delete()
+          .eq('organization_id', connection.organization_id)
+          .eq('bank_name', connection.provider_name || '');
+
+        if (accError) {
+          console.warn('Failed to delete linked accounts:', accError);
+        }
+      }
+
+      // 3. Delete the bank connection itself
       const { error } = await supabase
         .from('bank_connections')
-        .update({ status: 'disconnected', updated_at: new Date().toISOString() })
+        .delete()
         .eq('id', bankConnectionId);
 
       if (error) throw error;
@@ -194,7 +224,10 @@ export function useDisconnectBank() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bank-connections"] });
-      toast.success("Banco desconectado com sucesso");
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      toast.success("Banco desconectado e dados removidos com sucesso");
     },
     onError: (error) => {
       toast.error("Erro ao desconectar: " + error.message);
