@@ -237,44 +237,45 @@ export function BankConnectionsManager() {
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Building2 className="h-4 w-4" />
                 Open Finance
               </CardTitle>
-              <CardDescription>
-                Conecte suas contas bancárias via Open Finance
+              <CardDescription className="text-xs mt-1">
+                Conecte suas contas bancárias
                 {selectedOrganization && (
-                  <span className="block mt-1 text-xs">
-                    Base: {selectedOrganization.name}
-                  </span>
+                  <span className="block">Base: {selectedOrganization.name}</span>
                 )}
               </CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button 
                 variant="outline"
+                size="sm"
                 onClick={handleFirstSync}
                 disabled={syncingId === 'new'}
               >
                 {syncingId === 'new' ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
                 ) : (
-                  <RefreshCw className="h-4 w-4 mr-2" />
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
                 )}
-                Sincronizar
+                <span className="hidden sm:inline">Sincronizar</span>
               </Button>
               <Button 
+                size="sm"
                 onClick={handleConnect}
                 disabled={isConnecting}
               >
                 {isConnecting ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
                 ) : (
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
                 )}
-                Conectar Conta Bancária
+                <span className="hidden sm:inline">Conectar Banco</span>
+                <span className="sm:hidden">Conectar</span>
               </Button>
             </div>
           </div>
@@ -361,8 +362,8 @@ function ConnectionCard({ connection, onSync, onDisconnect, isSyncing, isDisconn
   const bankLogo = meta?.bank_logo_url;
 
   return (
-    <div className="flex items-center justify-between p-4 border rounded-lg bg-card">
-      <div className="flex items-center gap-4">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:p-4 border rounded-lg bg-card">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
         {bankLogo ? (
           <img
             src={bankLogo}
@@ -404,7 +405,7 @@ function ConnectionCard({ connection, onSync, onDisconnect, isSyncing, isDisconn
         </div>
       </div>
       
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
         <Button
           variant="outline"
           size="sm"
@@ -412,11 +413,11 @@ function ConnectionCard({ connection, onSync, onDisconnect, isSyncing, isDisconn
           disabled={!isActive || isSyncing || isDisconnecting}
         >
           {isSyncing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
           ) : (
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className="h-3.5 w-3.5" />
           )}
-          <span className="ml-2 hidden sm:inline">Sincronizar</span>
+          <span className="ml-1.5">Sync</span>
         </Button>
         <Button
           variant="ghost"
@@ -426,11 +427,10 @@ function ConnectionCard({ connection, onSync, onDisconnect, isSyncing, isDisconn
           className="text-destructive hover:text-destructive"
         >
           {isDisconnecting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
           ) : (
-            <Unlink className="h-4 w-4" />
+            <Unlink className="h-3.5 w-3.5" />
           )}
-          <span className="ml-2 hidden sm:inline">Desconectar</span>
         </Button>
       </div>
     </div>

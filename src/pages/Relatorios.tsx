@@ -39,25 +39,25 @@ export default function Relatorios() {
       <div className="space-y-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full justify-start bg-muted/50 p-1 h-auto flex-wrap gap-1">
-            <TabsTrigger value="extrato" className="gap-2 data-[state=active]:bg-background text-xs sm:text-sm">
-              <ArrowUpDown className="h-4 w-4" />
-              <span className="hidden sm:inline">Extrato</span>
+            <TabsTrigger value="extrato" className="gap-1.5 data-[state=active]:bg-background text-xs sm:text-sm">
+              <ArrowUpDown className="h-3.5 w-3.5 shrink-0" />
+              Extrato
             </TabsTrigger>
-            <TabsTrigger value="analise" className="gap-2 data-[state=active]:bg-background text-xs sm:text-sm">
-              <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Análise Orçamento</span>
+            <TabsTrigger value="analise" className="gap-1.5 data-[state=active]:bg-background text-xs sm:text-sm">
+              <BarChart3 className="h-3.5 w-3.5 shrink-0" />
+              Orçamento
             </TabsTrigger>
-            <TabsTrigger value="dre" className="gap-2 data-[state=active]:bg-background text-xs sm:text-sm">
-              <PieChart className="h-4 w-4" />
-              <span className="hidden sm:inline">DRE</span>
+            <TabsTrigger value="dre" className="gap-1.5 data-[state=active]:bg-background text-xs sm:text-sm">
+              <PieChart className="h-3.5 w-3.5 shrink-0" />
+              DRE
             </TabsTrigger>
-            <TabsTrigger value="demonstrativo" className="gap-2 data-[state=active]:bg-background text-xs sm:text-sm">
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Demonstrativo</span>
+            <TabsTrigger value="demonstrativo" className="gap-1.5 data-[state=active]:bg-background text-xs sm:text-sm">
+              <FileText className="h-3.5 w-3.5 shrink-0" />
+              Demonstrativo
             </TabsTrigger>
-            <TabsTrigger value="fluxo" className="gap-2 data-[state=active]:bg-background text-xs sm:text-sm">
-              <CircleDollarSign className="h-4 w-4" />
-              <span className="hidden sm:inline">Fluxo de Caixa</span>
+            <TabsTrigger value="fluxo" className="gap-1.5 data-[state=active]:bg-background text-xs sm:text-sm">
+              <CircleDollarSign className="h-3.5 w-3.5 shrink-0" />
+              Fluxo Caixa
             </TabsTrigger>
           </TabsList>
 
