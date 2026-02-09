@@ -343,7 +343,7 @@ export function DemonstrativoContent() {
         </div>
       ) : (
         <>
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
             <Card className="border-l-4 border-l-green-500 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between py-2 px-3">
                 <CardTitle className="text-xs font-medium text-muted-foreground">

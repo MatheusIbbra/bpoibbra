@@ -133,7 +133,7 @@ export function DREContent() {
         </div>
       ) : (
         <>
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <Card className="shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between py-2 px-3">
                 <CardTitle className="text-xs font-medium text-muted-foreground">
