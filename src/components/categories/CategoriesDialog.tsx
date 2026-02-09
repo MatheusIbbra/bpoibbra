@@ -242,7 +242,7 @@ export function CategoriesDialog({ open: externalOpen, onOpenChange: externalOnO
       )}
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Gerenciar Categorias</DialogTitle>
+          <DialogTitle>{editingCategory ? "Editar Categoria" : "Nova Categoria"}</DialogTitle>
         </DialogHeader>
 
         <div className="flex gap-4">
