@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -81,9 +81,10 @@ interface CategoryFormData {
 interface CategoriesDialogProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  category?: Category | null;
 }
 
-export function CategoriesDialog({ open: externalOpen, onOpenChange: externalOnOpenChange }: CategoriesDialogProps = {}) {
+export function CategoriesDialog({ open: externalOpen, onOpenChange: externalOnOpenChange, category: initialCategory }: CategoriesDialogProps = {}) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = externalOnOpenChange || setInternalOpen;
@@ -105,6 +106,15 @@ export function CategoriesDialog({ open: externalOpen, onOpenChange: externalOnO
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
+
+  // Auto-load category for editing when initialCategory is passed
+  useEffect(() => {
+    if (initialCategory && open) {
+      handleEdit(initialCategory);
+    } else if (!initialCategory && open) {
+      handleCreate();
+    }
+  }, [initialCategory, open]);
 
   // Filter parent categories (categories without parent_id)
   const parentCategories = useMemo(() => {

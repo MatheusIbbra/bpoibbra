@@ -34,7 +34,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAccounts, useDeleteAccount, AccountType } from "@/hooks/useAccounts";
 import { useCategoriesHierarchy, useCategories, Category, useCreateCategory } from "@/hooks/useCategories";
@@ -81,6 +80,7 @@ export default function Cadastros() {
   
   // Category state
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<any>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   
   // Cost center state
@@ -92,6 +92,7 @@ export default function Cadastros() {
   const [deleteRuleId, setDeleteRuleId] = useState<string | null>(null);
   const [showClearRulesConfirmation, setShowClearRulesConfirmation] = useState(false);
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState<any>(null);
 
   // Data hooks
   const { data: accounts, isLoading: loadingAccounts } = useAccounts();
@@ -203,7 +204,10 @@ export default function Cadastros() {
               variant="ghost"
               size="icon"
               className="h-7 w-7"
-              onClick={() => navigate("/categorias")}
+              onClick={() => {
+                setEditingCategory(category);
+                setCategoryDialogOpen(true);
+              }}
               title="Editar categoria"
             >
               <Pencil className="h-3 w-3" />
@@ -261,7 +265,7 @@ export default function Cadastros() {
                   )}
                   <span className="hidden sm:inline">Criar Iniciais</span>
                 </Button>
-                <Button size="sm" onClick={() => setCategoryDialogOpen(true)}>
+                <Button size="sm" onClick={() => { setEditingCategory(null); setCategoryDialogOpen(true); }}>
                   <Plus className="h-4 w-4 mr-1" />
                   <span className="hidden sm:inline">Nova Categoria</span>
                 </Button>
@@ -304,7 +308,7 @@ export default function Cadastros() {
                   <span className="hidden sm:inline">Limpar</span>
                 </Button>
 
-                <Button size="sm" onClick={() => setRuleDialogOpen(true)}>
+                <Button size="sm" onClick={() => { setEditingRule(null); setRuleDialogOpen(true); }}>
                   <Plus className="h-4 w-4 mr-1" />
                   <span className="hidden sm:inline">Incluir Nova Regra</span>
                   <span className="sm:hidden">Nova</span>
@@ -515,67 +519,66 @@ export default function Cadastros() {
 
           {/* Regras de Conciliação Tab */}
           <TabsContent value="regras" className="mt-4">
-            <Card>
-              <CardHeader className="py-3 px-4">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Scale className="h-4 w-4" />
-                  {loadingRules ? "Carregando..." : `${rules?.length || 0} regras`}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                {loadingRules ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : !rules || rules.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8">
-                    <Scale className="h-10 w-10 text-muted-foreground mb-3" />
-                    <p className="text-sm text-muted-foreground">Nenhuma regra cadastrada</p>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-xs">Descrição</TableHead>
-                        <TableHead className="text-xs text-right">Valor</TableHead>
-                        <TableHead className="text-xs">Tipo</TableHead>
-                        <TableHead className="text-xs">Categoria</TableHead>
-                        <TableHead className="text-xs text-right">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {rules.map((rule) => {
-                        const category = allCategories?.find(c => c.id === rule.category_id);
-                        return (
-                          <TableRow key={rule.id}>
-                            <TableCell className="text-xs font-medium py-2">{rule.description}</TableCell>
-                            <TableCell className="text-xs text-right py-2">{formatCurrency(rule.amount)}</TableCell>
-                            <TableCell className="py-2">
-                              <Badge variant={rule.transaction_type === "income" ? "default" : "destructive"} className="text-[10px] h-5">
-                                {rule.transaction_type === "income" ? "Receita" : "Despesa"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-xs text-muted-foreground py-2">
-                              {category?.name || "-"}
-                            </TableCell>
-                            <TableCell className="text-right py-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => setDeleteRuleId(rule.id)}
-                              >
-                                <Trash2 className="h-3 w-3 text-destructive" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
+            {loadingRules ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : !rules || rules.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-8">
+                  <Scale className="h-10 w-10 text-muted-foreground mb-3" />
+                  <p className="text-sm text-muted-foreground">Nenhuma regra cadastrada</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-2">
+                {rules.map((rule) => {
+                  const category = allCategories?.find(c => c.id === rule.category_id);
+                  const costCenter = costCenters?.find((cc: any) => cc.id === rule.cost_center_id);
+                  const isIncome = rule.transaction_type === "income";
+                  return (
+                    <div
+                      key={rule.id}
+                      className={cn(
+                        "flex items-center justify-between px-3 py-2.5 rounded-lg border bg-card transition-colors hover:bg-muted/30",
+                        isIncome ? "border-l-2 border-l-primary" : "border-l-2 border-l-destructive"
+                      )}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium truncate">{rule.description}</p>
+                          <span className="text-sm font-semibold tabular-nums shrink-0">
+                            {formatCurrency(rule.amount)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <Badge variant={isIncome ? "default" : "destructive"} className="text-[10px] h-4 px-1">
+                            {isIncome ? "Receita" : "Despesa"}
+                          </Badge>
+                          {category && (
+                            <span className="text-[11px] text-muted-foreground">{category.name}</span>
+                          )}
+                          {costCenter && (
+                            <span className="text-[11px] text-muted-foreground">• {costCenter.name}</span>
+                          )}
+                          {rule.due_day && (
+                            <span className="text-[11px] text-muted-foreground">• Dia {rule.due_day}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-0.5 shrink-0 ml-2">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingRule(rule); setRuleDialogOpen(true); }}>
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteRuleId(rule.id)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
@@ -595,6 +598,7 @@ export default function Cadastros() {
       <CategoriesDialog
         open={categoryDialogOpen}
         onOpenChange={setCategoryDialogOpen}
+        category={editingCategory}
       />
 
       <CostCenterDialog
@@ -606,6 +610,7 @@ export default function Cadastros() {
       <RuleDialog
         open={ruleDialogOpen}
         onOpenChange={setRuleDialogOpen}
+        rule={editingRule}
       />
 
       {/* Delete Dialogs */}

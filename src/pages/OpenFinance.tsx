@@ -155,20 +155,20 @@ export default function OpenFinance() {
 
   return (
     <AppLayout title="Open Finance">
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Open Finance</h1>
-          <p className="text-muted-foreground">
-            Conecte suas contas bancárias e importe transações automaticamente via Open Finance
+          <h1 className="text-xl md:text-3xl font-bold tracking-tight">Open Finance</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
+            Conecte suas contas bancárias e importe transações automaticamente
           </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <BankConnectionsManager />
           </div>
 
-        <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Activity Log - Admin only */}
             {isAdmin && (
               <Card>
