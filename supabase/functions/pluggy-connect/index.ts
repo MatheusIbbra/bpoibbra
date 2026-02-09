@@ -40,11 +40,12 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'Authorization required' }, 401);
     }
 
+    const token = authHeader.replace('Bearer ', '');
     const supabaseUser = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY')!, {
       global: { headers: { Authorization: authHeader } }
     });
 
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+    const { data: { user }, error: userError } = await supabaseUser.auth.getUser(token);
     if (userError || !user) {
       console.warn('Invalid auth token:', userError?.message);
       return jsonResponse({ error: 'Token de autenticação inválido' }, 401);
