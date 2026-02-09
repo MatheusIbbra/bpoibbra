@@ -57,6 +57,7 @@ export function useReportsData(startDate: Date, endDate: Date, basis: ReportBasi
         `)
         .gte(dateField, format(startDate, "yyyy-MM-dd"))
         .lte(dateField, format(endDate, "yyyy-MM-dd"))
+        .neq("is_ignored", true)
         .order("date", { ascending: false });
 
       // Aplicar filtro de organização

@@ -7,8 +7,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const RULE_SIMILARITY_THRESHOLD = 0.70;
-const PATTERN_SIMILARITY_THRESHOLD = 0.70;
+const RULE_SIMILARITY_THRESHOLD = 0.80;
+const PATTERN_SIMILARITY_THRESHOLD = 0.80;
 const AUTO_VALIDATE_CONFIDENCE = 0.85;
 const SUGGEST_CONFIDENCE = 0.60;
 
@@ -375,7 +375,7 @@ REGRAS IMPORTANTES:
 1. Você DEVE retornar um JSON válido
 2. NÃO crie categorias ou centros de custo novos - use apenas os IDs fornecidos
 3. Se não encontrar uma categoria adequada, retorne category_id como null
-4. Identifique transferências entre contas (PIX para mesma pessoa, TED entre bancos próprios, etc.)
+4. NUNCA classifique como transferência (is_transfer deve ser SEMPRE false). Transferências são definidas APENAS manualmente pelo usuário.
 
 CATEGORIAS DISPONÍVEIS (${type}):
 ${categoryList}
@@ -390,7 +390,7 @@ Responda APENAS com um JSON no formato:
   "cost_center_id": "uuid ou null",
   "cost_center_name": "nome do centro de custo ou null",
   "confidence": 0.0 a 1.0,
-  "is_transfer": true/false,
+  "is_transfer": false,
   "reasoning": "breve explicação da classificação"
 }`;
 
@@ -475,7 +475,7 @@ Tipo: ${type === "income" ? "Receita" : "Despesa"}`;
       cost_center_id: aiClassification.cost_center_id || null,
       cost_center_name: aiClassification.cost_center_name || null,
       confidence: Math.min(aiClassification.confidence || 0, 0.75), // Cap IA confidence at 75%
-      is_transfer: aiClassification.is_transfer || false,
+      is_transfer: false, // NEVER auto-detect transfers
       reasoning: aiClassification.reasoning || "Classificado pela IA",
       source: "ai",
       auto_validated: false, // NUNCA auto-validar IA

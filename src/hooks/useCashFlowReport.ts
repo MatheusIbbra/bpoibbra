@@ -45,11 +45,13 @@ export function useCashFlowReport(
     queryKey: ["cashflow-report", user?.id, orgFilter.type, orgFilter.ids, format(startDate, "yyyy-MM-dd"), format(endDate, "yyyy-MM-dd"), basis, granularity],
     queryFn: async (): Promise<CashFlowData> => {
       // Get transactions for the period - join accounts to get account_type
+      // Exclude ignored and non-validated transactions from reports
       let transactionsQuery = supabase
         .from("transactions")
         .select("id, amount, type, date, accounts(account_type)")
         .gte(dateField, format(startDate, "yyyy-MM-dd"))
         .lte(dateField, format(endDate, "yyyy-MM-dd"))
+        .neq("is_ignored", true)
         .order("date", { ascending: true });
 
       if (orgFilter.type === 'single') {
@@ -65,7 +67,8 @@ export function useCashFlowReport(
       let priorQuery = supabase
         .from("transactions")
         .select("amount, type, accounts(account_type)")
-        .lt(dateField, format(startDate, "yyyy-MM-dd"));
+        .lt(dateField, format(startDate, "yyyy-MM-dd"))
+        .neq("is_ignored", true);
 
       if (orgFilter.type === 'single') {
         priorQuery = priorQuery.eq("organization_id", orgFilter.ids[0]);
