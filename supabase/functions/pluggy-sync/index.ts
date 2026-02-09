@@ -64,7 +64,7 @@ function generateDedupKey(date: string, amount: number, description: string, ext
 
 // ========================================
 // INLINE CLASSIFICATION (rules + patterns only, no AI)
-// Only classifies based on >= 80% similarity with rules or learned patterns
+// Only classifies if: similarity >= 80%, value match, single match found
 // NEVER auto-classifies as transfer
 // ========================================
 function normalizeText(text: string): string {
@@ -139,7 +139,18 @@ async function classifyTransaction(
       }
     }
 
-    if (bestMatch && bestMatch.similarity >= 0.80) {
+    // Only auto-classify if exactly ONE match found (avoid ambiguity)
+    const allMatches = rules.filter((rule: any) => {
+      const keywordSim = containsKeyword(description, rule.description);
+      const normalizedSim = calculateSimilarity(normalizedDescription, normalizeText(rule.description));
+      let similarity = Math.max(keywordSim, normalizedSim);
+      if (rule.amount && Math.abs(amount - rule.amount) / rule.amount <= 0.01) {
+        similarity = Math.min(similarity + 0.1, 1.0);
+      }
+      return similarity >= 0.80;
+    });
+
+    if (bestMatch && bestMatch.similarity >= 0.80 && allMatches.length === 1) {
       await supabaseAdmin
         .from("transactions")
         .update({
@@ -150,8 +161,26 @@ async function classifyTransaction(
           validated_at: new Date().toISOString(),
         })
         .eq("id", txId);
+
+      // Audit log for auto-classification
+      await supabaseAdmin.from('integration_logs').insert({
+        organization_id: organizationId,
+        provider: 'system',
+        event_type: 'auto_classification',
+        status: 'info',
+        message: `TX ${txId} auto-classified by rule "${bestMatch.rule.description}" (${(bestMatch.similarity * 100).toFixed(0)}%)`,
+        payload: {
+          transaction_id: txId,
+          rule_id: bestMatch.rule.id,
+          similarity: bestMatch.similarity,
+          source: 'rule',
+        }
+      });
+
       console.log(`[CLASSIFY] TX ${txId}: rule match (${(bestMatch.similarity * 100).toFixed(0)}%)`);
       return;
+    } else if (bestMatch && allMatches.length > 1) {
+      console.log(`[CLASSIFY] TX ${txId}: multiple rule matches (${allMatches.length}), leaving as pending`);
     }
   }
 
@@ -761,6 +790,69 @@ Deno.serve(async (req) => {
       }
       
       console.log(`[CLASSIFY] Classification complete: ${classified}/${newTransactionIds.length} processed`);
+    }
+
+    // ========================================
+    // MIRROR TRANSACTION DETECTION
+    // Same account, same day, same amount, one income + one expense → both ignored
+    // ========================================
+    if (newTransactionIds.length > 0) {
+      console.log(`[MIRROR] Checking for mirror transactions...`);
+      let mirrorPairsFound = 0;
+
+      // Group new transactions by account+date+amount
+      const txByKey = new Map<string, typeof newTransactionIds>();
+      for (const tx of newTransactionIds) {
+        // Fetch the account_id and date from DB
+        const { data: txData } = await supabaseAdmin
+          .from('transactions')
+          .select('account_id, date')
+          .eq('id', tx.id)
+          .single();
+        
+        if (!txData) continue;
+        const key = `${txData.account_id}|${txData.date}|${tx.amount.toFixed(2)}`;
+        if (!txByKey.has(key)) txByKey.set(key, []);
+        txByKey.get(key)!.push(tx);
+      }
+
+      for (const [key, txGroup] of txByKey.entries()) {
+        const incomes = txGroup.filter(t => t.type === 'income');
+        const expenses = txGroup.filter(t => t.type === 'expense');
+
+        // For each income-expense pair on same account/date/amount → ignore both
+        const pairCount = Math.min(incomes.length, expenses.length);
+        for (let i = 0; i < pairCount; i++) {
+          const incomeId = incomes[i].id;
+          const expenseId = expenses[i].id;
+
+          await supabaseAdmin
+            .from('transactions')
+            .update({ is_ignored: true, notes: 'Movimento espelhado detectado automaticamente (entrada+saída mesmo valor/conta/dia)' })
+            .in('id', [incomeId, expenseId]);
+
+          // Audit log
+          await supabaseAdmin.from('integration_logs').insert({
+            organization_id: connectionToSync.organization_id,
+            bank_connection_id: connectionToSync.id,
+            provider: 'pluggy',
+            event_type: 'mirror_detection',
+            status: 'info',
+            message: `Mirror pair ignored: income=${incomeId}, expense=${expenseId}, amount=${txGroup[0].amount}`,
+            payload: {
+              income_id: incomeId,
+              expense_id: expenseId,
+              amount: txGroup[0].amount,
+              key,
+              rule: 'same_account_same_day_same_amount',
+            }
+          });
+
+          mirrorPairsFound++;
+          console.log(`[MIRROR] Ignored pair: income=${incomeId}, expense=${expenseId}`);
+        }
+      }
+      console.log(`[MIRROR] Found ${mirrorPairsFound} mirror pairs`);
     }
 
     // ========================================

@@ -32,13 +32,15 @@ export function useDashboardStats() {
       const startOfLastMonth = `${lastMonthYear}-${String(lastMonth).padStart(2, "0")}-01`;
       const endOfLastMonth = new Date(lastMonthYear, lastMonth, 0).toISOString().split("T")[0];
       
-      // Build base query for transactions
+      // Build base query for transactions - exclude ignored and pending
       const buildTransactionQuery = (start: string, end: string) => {
         let query = supabase
           .from("transactions")
           .select("amount, type")
           .gte("date", start)
-          .lte("date", end);
+          .lte("date", end)
+          .neq("is_ignored", true)
+          .in("validation_status", ["validated", "pending_validation"]);
         
         if (orgFilter.type === 'single') {
           query = query.eq("organization_id", orgFilter.ids[0]);

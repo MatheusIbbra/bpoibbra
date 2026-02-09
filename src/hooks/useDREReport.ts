@@ -51,7 +51,8 @@ export function useDREReport(startDate: Date, endDate: Date, basis: ReportBasis)
           )
         `)
         .gte(dateField, format(startDate, "yyyy-MM-dd"))
-        .lte(dateField, format(endDate, "yyyy-MM-dd"));
+        .lte(dateField, format(endDate, "yyyy-MM-dd"))
+        .neq("is_ignored", true);
 
       // Aplicar filtro de organização
       if (orgFilter.type === 'single') {

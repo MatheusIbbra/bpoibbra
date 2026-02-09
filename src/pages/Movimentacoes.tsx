@@ -295,7 +295,7 @@ export default function Movimentacoes() {
                               key={transaction.id}
                               className={cn(
                                 "flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors",
-                                transaction.is_ignored && "opacity-50"
+                                transaction.is_ignored && "opacity-40"
                               )}
                             >
                               <div
@@ -346,7 +346,8 @@ export default function Movimentacoes() {
                                 <p className={cn(
                                   "text-sm font-semibold tabular-nums",
                                   transaction.type === "income" && "text-success",
-                                  transaction.type === "expense" && "text-destructive"
+                                  transaction.type === "expense" && "text-destructive",
+                                  transaction.is_ignored && "line-through text-muted-foreground"
                                 )}>
                                   <MaskedValue>
                                     {transaction.type === "income" ? "+" : transaction.type === "expense" ? "-" : ""}
