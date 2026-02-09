@@ -47,6 +47,7 @@ import { AccountDialog } from "@/components/accounts/AccountDialog";
 import { CategoriesDialog } from "@/components/categories/CategoriesDialog";
 import { CostCenterDialog } from "@/components/cost-centers/CostCenterDialog";
 import { TransferDialog } from "@/components/transfers/TransferDialog";
+import { RuleDialog } from "@/components/rules/RuleDialog";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { cn } from "@/lib/utils";
@@ -90,6 +91,7 @@ export default function Cadastros() {
   // Rule state
   const [deleteRuleId, setDeleteRuleId] = useState<string | null>(null);
   const [showClearRulesConfirmation, setShowClearRulesConfirmation] = useState(false);
+  const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
 
   // Data hooks
   const { data: accounts, isLoading: loadingAccounts } = useAccounts();
@@ -259,7 +261,7 @@ export default function Cadastros() {
                   )}
                   <span className="hidden sm:inline">Criar Iniciais</span>
                 </Button>
-                <Button size="sm" onClick={() => navigate("/categorias")}>
+                <Button size="sm" onClick={() => setCategoryDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-1" />
                   <span className="hidden sm:inline">Nova Categoria</span>
                 </Button>
@@ -302,7 +304,7 @@ export default function Cadastros() {
                   <span className="hidden sm:inline">Limpar</span>
                 </Button>
 
-                <Button size="sm" onClick={() => navigate("/regras-conciliacao")}>
+                <Button size="sm" onClick={() => setRuleDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-1" />
                   <span className="hidden sm:inline">Incluir Nova Regra</span>
                   <span className="sm:hidden">Nova</span>
@@ -599,6 +601,11 @@ export default function Cadastros() {
         open={costCenterDialogOpen}
         onOpenChange={setCostCenterDialogOpen}
         costCenter={selectedCostCenter}
+      />
+
+      <RuleDialog
+        open={ruleDialogOpen}
+        onOpenChange={setRuleDialogOpen}
       />
 
       {/* Delete Dialogs */}
