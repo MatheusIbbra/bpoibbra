@@ -196,6 +196,17 @@ export default function Cadastros() {
               </div>
             </div>
           </div>
+          <div className="flex gap-0.5 shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => navigate("/categorias")}
+              title="Editar categoria"
+            >
+              <Pencil className="h-3 w-3" />
+            </Button>
+          </div>
         </div>
 
         {hasChildren && isExpanded && (
@@ -248,7 +259,7 @@ export default function Cadastros() {
                   )}
                   <span className="hidden sm:inline">Criar Iniciais</span>
                 </Button>
-                <Button size="sm" onClick={() => setCategoryDialogOpen(true)}>
+                <Button size="sm" onClick={() => navigate("/categorias")}>
                   <Plus className="h-4 w-4 mr-1" />
                   <span className="hidden sm:inline">Nova Categoria</span>
                 </Button>
@@ -289,6 +300,12 @@ export default function Cadastros() {
                     <Trash2 className="h-3 w-3 mr-1" />
                   )}
                   <span className="hidden sm:inline">Limpar</span>
+                </Button>
+
+                <Button size="sm" onClick={() => navigate("/regras-conciliacao")}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">Incluir Nova Regra</span>
+                  <span className="sm:hidden">Nova</span>
                 </Button>
               </div>
             )}
