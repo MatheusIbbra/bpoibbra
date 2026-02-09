@@ -168,32 +168,32 @@ export default function Receitas() {
                 {classifiedTransactions.map((transaction) => (
                   <div
                     key={transaction.id}
-                    className="flex items-center gap-4 rounded-lg border p-4 hover:bg-muted/50 transition-colors"
+                    className="flex items-center gap-3 md:gap-4 rounded-lg border p-3 md:p-4 hover:bg-muted/50 transition-colors"
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success/10 text-success shrink-0">
+                    <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-full bg-success/10 text-success shrink-0">
                       <ArrowUpRight className="h-5 w-5" />
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium truncate">{transaction.description}</p>
+                        <p className="font-medium text-sm md:text-base truncate">{transaction.description}</p>
                         {transaction.status === "pending" && (
-                          <Badge variant="outline" className="shrink-0">
+                          <Badge variant="outline" className="shrink-0 text-[10px] md:text-xs">
                             Pendente
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>{transaction.categories?.name || "Sem categoria"}</span>
+                      <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
+                        <span className="truncate">{transaction.categories?.name || "Sem categoria"}</span>
                         <span>•</span>
-                        <span>
+                        <span className="shrink-0">
                           {format(parseLocalDate(transaction.date), "dd/MM/yyyy", { locale: ptBR })}
                         </span>
                       </div>
                     </div>
 
                     <div className="text-right shrink-0">
-                      <p className="font-semibold text-success">
+                      <p className="font-semibold text-sm md:text-base text-success">
                         +{formatCurrency(Number(transaction.amount))}
                       </p>
                     </div>

@@ -39,8 +39,8 @@ export default function Importacoes() {
     <AppLayout title="Importação de Extratos">
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Importação de Extratos</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-lg md:text-3xl font-bold tracking-tight">Importação de Extratos</h1>
+          <p className="text-xs md:text-base text-muted-foreground">
             Importe extratos bancários e deixe a IA classificar suas transações
           </p>
         </div>
