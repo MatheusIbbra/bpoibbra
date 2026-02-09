@@ -64,7 +64,7 @@ const Index = () => {
     <AppLayout title="Home">
       <div className="space-y-3">
         {/* Bloco 1: StatCards — Saldo, Receitas, Despesas, Economia */}
-        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-2 sm:gap-3 grid-cols-2 lg:grid-cols-4">
           <StatCard
             title="Saldo Disponível"
             value={formatCurrency(stats?.totalBalance ?? 0)}

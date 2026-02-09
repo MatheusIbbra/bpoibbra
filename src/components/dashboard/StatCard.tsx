@@ -52,11 +52,11 @@ export function StatCard({
       )}
       onClick={onClick}
     >
-      <CardContent className="p-3">
-        <div className="flex items-center justify-between">
+      <CardContent className="p-2.5 sm:p-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground truncate">{title}</p>
-            <p className="text-lg font-bold tracking-tight mt-0.5 truncate"><MaskedValue>{value}</MaskedValue></p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{title}</p>
+            <p className="text-sm sm:text-lg font-bold tracking-tight mt-0.5 truncate"><MaskedValue>{value}</MaskedValue></p>
             {trend && (
               <div className="flex items-center gap-1 mt-0.5">
                 {trend.isPositive ? (
@@ -80,7 +80,7 @@ export function StatCard({
           </div>
           <div
             className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-lg shrink-0 ml-2",
+              "hidden sm:flex h-8 w-8 items-center justify-center rounded-lg shrink-0 ml-2",
               iconVariantStyles[variant]
             )}
           >
