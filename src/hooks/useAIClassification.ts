@@ -10,6 +10,8 @@ export interface ClassificationResult {
   confidence: number;
   is_transfer: boolean;
   reasoning: string;
+  source?: "rule" | "pattern" | "ai" | "none";
+  auto_validated?: boolean;
 }
 
 interface ClassifyTransactionParams {
@@ -17,6 +19,7 @@ interface ClassifyTransactionParams {
   description: string;
   amount: number;
   type: "income" | "expense";
+  organization_id?: string | null;
 }
 
 export function useAIClassification() {

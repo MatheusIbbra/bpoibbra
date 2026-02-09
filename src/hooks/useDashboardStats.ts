@@ -40,7 +40,6 @@ export function useDashboardStats() {
           .gte("date", start)
           .lte("date", end);
         
-        // Aplicar filtro de organização
         if (orgFilter.type === 'single') {
           query = query.eq("organization_id", orgFilter.ids[0]);
         } else if (orgFilter.type === 'multiple' && orgFilter.ids.length > 0) {
@@ -56,12 +55,11 @@ export function useDashboardStats() {
       // Last month transactions
       const { data: lastMonthData } = await buildTransactionQuery(startOfLastMonth, endOfLastMonth);
       
-      // Get total balance from accounts (excluding credit cards)
+      // Get accounts - prioritize official_balance from Open Finance API
       let accountsQuery = supabase
         .from("accounts")
-        .select("id, initial_balance, account_type");
+        .select("id, initial_balance, account_type, official_balance, last_official_balance_at");
       
-      // Aplicar filtro de organização
       if (orgFilter.type === 'single') {
         accountsQuery = accountsQuery.eq("organization_id", orgFilter.ids[0]);
       } else if (orgFilter.type === 'multiple' && orgFilter.ids.length > 0) {
@@ -73,15 +71,20 @@ export function useDashboardStats() {
       let totalAccountBalance = 0;
       if (accountsData) {
         for (const account of accountsData) {
-          // CREDIT CARD RULE:
-          // credit_card accounts are liabilities (passivo).
-          // Never include in available balance calculations.
+          // CREDIT CARD RULE: Never include in available balance
           if (account.account_type === 'credit_card') continue;
           
+          // PRIORITY: Use official_balance from API if available (Open Finance accounts)
+          if (account.official_balance !== null && account.official_balance !== undefined) {
+            totalAccountBalance += Number(account.official_balance);
+            continue;
+          }
+          
+          // FALLBACK: Use calculate_account_balance for manual accounts
           const { data: balanceData } = await supabase.rpc("calculate_account_balance", {
             account_uuid: account.id,
           });
-          totalAccountBalance += balanceData ?? account.initial_balance;
+          totalAccountBalance += balanceData ?? Number(account.initial_balance) ?? 0;
         }
       }
       
@@ -89,13 +92,11 @@ export function useDashboardStats() {
         if (!data) return { income: 0, expenses: 0 };
         return data.reduce(
           (acc, t) => {
-            // Only count income and expense types - exclude transfer, investment, redemption
             if (t.type === "income") {
               acc.income += Number(t.amount);
             } else if (t.type === "expense") {
               acc.expenses += Number(t.amount);
             }
-            // Other types (transfer, investment, redemption) are not included
             return acc;
           },
           { income: 0, expenses: 0 }

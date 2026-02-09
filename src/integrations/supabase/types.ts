@@ -23,7 +23,9 @@ export type Database = {
           current_balance: number | null
           id: string
           initial_balance: number | null
+          last_official_balance_at: string | null
           name: string
+          official_balance: number | null
           organization_id: string | null
           start_date: string | null
           status: Database["public"]["Enums"]["account_status"] | null
@@ -38,7 +40,9 @@ export type Database = {
           current_balance?: number | null
           id?: string
           initial_balance?: number | null
+          last_official_balance_at?: string | null
           name: string
+          official_balance?: number | null
           organization_id?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["account_status"] | null
@@ -53,7 +57,9 @@ export type Database = {
           current_balance?: number | null
           id?: string
           initial_balance?: number | null
+          last_official_balance_at?: string | null
           name?: string
+          official_balance?: number | null
           organization_id?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["account_status"] | null
@@ -873,6 +879,69 @@ export type Database = {
           },
         ]
       }
+      sync_audit_logs: {
+        Row: {
+          api_balance: number | null
+          balance_difference: number | null
+          bank_connection_id: string | null
+          created_at: string
+          details: Json | null
+          duplicates_detected: number | null
+          id: string
+          organization_id: string
+          sync_date: string
+          system_balance: number | null
+          transactions_imported: number | null
+          transactions_skipped: number | null
+          transactions_total: number | null
+        }
+        Insert: {
+          api_balance?: number | null
+          balance_difference?: number | null
+          bank_connection_id?: string | null
+          created_at?: string
+          details?: Json | null
+          duplicates_detected?: number | null
+          id?: string
+          organization_id: string
+          sync_date?: string
+          system_balance?: number | null
+          transactions_imported?: number | null
+          transactions_skipped?: number | null
+          transactions_total?: number | null
+        }
+        Update: {
+          api_balance?: number | null
+          balance_difference?: number | null
+          bank_connection_id?: string | null
+          created_at?: string
+          details?: Json | null
+          duplicates_detected?: number | null
+          id?: string
+          organization_id?: string
+          sync_date?: string
+          system_balance?: number | null
+          transactions_imported?: number | null
+          transactions_skipped?: number | null
+          transactions_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_audit_logs_bank_connection_id_fkey"
+            columns: ["bank_connection_id"]
+            isOneToOne: false
+            referencedRelation: "bank_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sync_audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transaction_patterns: {
         Row: {
           avg_amount: number | null
@@ -966,6 +1035,7 @@ export type Database = {
           payment_method: string | null
           raw_description: string | null
           status: Database["public"]["Enums"]["transaction_status"] | null
+          sync_dedup_key: string | null
           transaction_hash: string | null
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at: string
@@ -1001,6 +1071,7 @@ export type Database = {
           payment_method?: string | null
           raw_description?: string | null
           status?: Database["public"]["Enums"]["transaction_status"] | null
+          sync_dedup_key?: string | null
           transaction_hash?: string | null
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
@@ -1036,6 +1107,7 @@ export type Database = {
           payment_method?: string | null
           raw_description?: string | null
           status?: Database["public"]["Enums"]["transaction_status"] | null
+          sync_dedup_key?: string | null
           transaction_hash?: string | null
           type?: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string

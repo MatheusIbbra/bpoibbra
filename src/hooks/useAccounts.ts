@@ -12,9 +12,11 @@ type AccountUpdate = Database["public"]["Tables"]["accounts"]["Update"];
 export type AccountType = "checking" | "savings" | "investment" | "credit_card" | "cash";
 export type AccountStatus = "active" | "inactive";
 
-export interface Account extends Omit<AccountRow, 'initial_balance' | 'current_balance' | 'start_date'> {
+export interface Account extends Omit<AccountRow, 'initial_balance' | 'current_balance' | 'start_date' | 'official_balance' | 'last_official_balance_at'> {
   initial_balance: number;
   current_balance: number;
+  official_balance?: number | null;
+  last_official_balance_at?: string | null;
   start_date?: string | null;
 }
 
@@ -31,7 +33,6 @@ export function useAccounts() {
         .select("*")
         .order("name");
 
-      // Aplicar filtro de organização
       if (orgFilter.type === 'single') {
         query = query.eq("organization_id", orgFilter.ids[0]);
       } else if (orgFilter.type === 'multiple' && orgFilter.ids.length > 0) {
@@ -45,6 +46,21 @@ export function useAccounts() {
       // Calculate current balance for each account
       const accountsWithBalance = await Promise.all(
         (data || []).map(async (account) => {
+          const officialBalance = (account as any).official_balance;
+          const lastOfficialAt = (account as any).last_official_balance_at;
+          
+          // PRIORITY: Use official_balance from Open Finance API if available
+          if (officialBalance !== null && officialBalance !== undefined) {
+            return {
+              ...account,
+              initial_balance: Number(account.initial_balance) || 0,
+              current_balance: Number(officialBalance),
+              official_balance: Number(officialBalance),
+              last_official_balance_at: lastOfficialAt,
+            } as Account;
+          }
+          
+          // FALLBACK: Calculate balance for manual accounts
           const { data: balanceData } = await supabase
             .rpc("calculate_account_balance", { account_uuid: account.id });
           
@@ -53,6 +69,8 @@ export function useAccounts() {
             ...account,
             initial_balance: Number(account.initial_balance) || 0,
             current_balance: balance,
+            official_balance: null,
+            last_official_balance_at: null,
           } as Account;
         })
       );
@@ -97,11 +115,6 @@ export function useCreateAccount() {
         .single();
 
       if (error) throw error;
-
-      // Nota: O saldo inicial é armazenado apenas no campo initial_balance da conta.
-      // A função calculate_account_balance já considera esse valor, portanto
-      // NÃO criamos uma transação separada para evitar duplicação.
-
       return data;
     },
     onSuccess: () => {
