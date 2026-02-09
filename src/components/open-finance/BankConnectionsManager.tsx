@@ -151,11 +151,57 @@ export function BankConnectionsManager() {
     setPendingOrgId(null);
   };
 
-  const handlePluggyError = (error: any) => {
+  const handlePluggyError = async (error: any) => {
     console.error("[OpenFinance] Pluggy error:", error);
-    toast.error("Erro na conexão: " + (error?.message || 'Erro desconhecido'));
     setShowPluggyWidget(false);
     setConnectToken(null);
+
+    // Extract item data from the error - Pluggy sends item info even on partial errors
+    const itemId = error?.data?.item?.id || error?.item?.id;
+    const connectorName = error?.data?.item?.connector?.name || error?.item?.connector?.name;
+    const errorMessage = error?.message || error?.data?.message || 'Erro desconhecido';
+
+    // "Item was not sync successfully" = partial success (item created, sync failed)
+    // We should still save the connection and try our own sync
+    if (itemId && pendingOrgId) {
+      console.log(`[OpenFinance] Partial error with itemId=${itemId}, attempting save+sync anyway`);
+      toast.warning("O banco reportou um erro parcial. Tentando salvar e sincronizar...");
+
+      try {
+        await savePluggyItem.mutateAsync({
+          organizationId: pendingOrgId,
+          itemId,
+          connectorName
+        });
+        toast.success("Conexão bancária salva!");
+      } catch (err: any) {
+        console.error("[OpenFinance] Failed to save after partial error:", err);
+        toast.error("Erro ao salvar conexão: " + (err?.message || 'Erro'));
+        setIsConnecting(false);
+        setPendingOrgId(null);
+        return;
+      }
+
+      try {
+        toast.info("Sincronizando transações...");
+        const result = await syncConnection.mutateAsync({
+          organizationId: pendingOrgId,
+          itemId
+        });
+        toast.success(`Sincronização concluída: ${result.imported} transações importadas`);
+      } catch (err: any) {
+        console.error("[OpenFinance] Sync after partial error failed:", err);
+        toast.warning("Conexão salva. Use o botão 'Sync' para importar transações manualmente.");
+      }
+
+      refetch();
+      setIsConnecting(false);
+      setPendingOrgId(null);
+      return;
+    }
+
+    // True error - no item created
+    toast.error("Erro na conexão: " + errorMessage);
     setIsConnecting(false);
     setPendingOrgId(null);
   };
