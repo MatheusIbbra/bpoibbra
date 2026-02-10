@@ -37,15 +37,42 @@ async function getPluggyToken(clientId: string, clientSecret: string): Promise<s
 function isCreditCardPayment(description: string): boolean {
   const text = (description || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const strictPatterns = [
+    "pagamento recebido",
+    "pagamento da fatura",
     "pagamento fatura",
     "pgto fatura",
     "pagamento cartao",
     "pgto cartao",
     "liq fatura",
+    "liquidacao fatura",
     "liquidacao cartao",
     "pag fatura cartao",
+    "pagto fatura",
   ];
   return strictPatterns.some(keyword => text.includes(keyword));
+}
+
+// ========================================
+// SAFE API RESPONSE EXTRACTION
+// Handles various Pluggy API response structures
+// ========================================
+function extractItems<T>(response: unknown): T[] {
+  if (!response || typeof response !== "object") {
+    console.error("[EXTRACT] Invalid response:", typeof response);
+    return [];
+  }
+  const r = response as Record<string, unknown>;
+  if (Array.isArray(r)) return r;
+  if (Array.isArray(r.results)) return r.results;
+  if (Array.isArray(r.data)) return r.data;
+  if (Array.isArray(r.items)) return r.items;
+  if (r.data && typeof r.data === "object") {
+    const d = r.data as Record<string, unknown>;
+    if (Array.isArray(d.items)) return d.items;
+    if (Array.isArray(d.results)) return d.results;
+  }
+  console.error("[EXTRACT] Unknown response structure:", Object.keys(r));
+  return [];
 }
 
 // ========================================
@@ -402,7 +429,7 @@ Deno.serve(async (req) => {
     console.log(`Fetching accounts for item ${pluggyItemId}...`);
 
     // ========================================
-    // FETCH ITEM DETAILS
+    // FETCH ITEM DETAILS & VALIDATE CONSENT
     // ========================================
     let itemDetails: any = null;
     try {
@@ -412,10 +439,23 @@ Deno.serve(async (req) => {
       });
       if (itemResponse.ok) {
         itemDetails = await itemResponse.json();
-        console.log(`Item details: connector=${itemDetails?.connector?.name}, status=${itemDetails?.status}`);
+        console.log(`[ITEM] Details: connector=${itemDetails?.connector?.name}, status=${itemDetails?.status}`);
+        
+        // Validate that consent includes ACCOUNTS and TRANSACTIONS
+        const products = itemDetails?.parameter?.products || itemDetails?.products || [];
+        console.log(`[ITEM] Consent products: ${JSON.stringify(products)}`);
+        if (products.length > 0) {
+          const hasAccounts = products.some((p: string) => p.toUpperCase().includes('ACCOUNT'));
+          const hasTransactions = products.some((p: string) => p.toUpperCase().includes('TRANSACTION'));
+          if (!hasAccounts) console.warn('[CONSENT] ⚠️ Consent may NOT include ACCOUNTS scope');
+          if (!hasTransactions) console.warn('[CONSENT] ⚠️ Consent may NOT include TRANSACTIONS scope');
+        }
+      } else {
+        const errorText = await itemResponse.text();
+        console.warn(`[ITEM] Failed to fetch item details (${itemResponse.status}):`, errorText);
       }
     } catch (itemError) {
-      console.warn('Error fetching item details:', itemError);
+      console.warn('[ITEM] Error fetching item details:', itemError);
     }
 
     // ========================================
@@ -430,8 +470,12 @@ Deno.serve(async (req) => {
 
       if (accountsResponse.ok) {
         const accountsData = await accountsResponse.json();
-        accounts = accountsData.results || [];
-        console.log(`Received ${accounts.length} accounts from Pluggy`);
+        accounts = extractItems(accountsData);
+        console.log(`[ACCOUNTS] Received ${accounts.length} accounts from Pluggy. Response keys: ${Object.keys(accountsData || {}).join(', ')}`);
+        
+        if (accounts.length === 0) {
+          console.warn('[ACCOUNTS] No accounts returned. Full response:', JSON.stringify(accountsData).substring(0, 500));
+        }
       } else {
         const errorText = await accountsResponse.text();
         console.warn('Failed to fetch accounts:', accountsResponse.status, errorText);
@@ -579,8 +623,8 @@ Deno.serve(async (req) => {
 
         if (transactionsResponse.ok) {
           const transactionsData = await transactionsResponse.json();
-          const transactions = transactionsData.results || [];
-          console.log(`[TX] Received ${transactions.length} transactions for account ${account.id}`);
+          const transactions = extractItems(transactionsData);
+          console.log(`[TX] Received ${transactions.length} transactions for account ${account.id}. Response keys: ${Object.keys(transactionsData || {}).join(', ')}`);
           allTransactions.push(...transactions.map((tx: any) => ({ ...tx, pluggyAccountId: account.id })));
         } else {
           const errorText = await transactionsResponse.text();
@@ -697,8 +741,6 @@ Deno.serve(async (req) => {
         }
       }
 
-      let type = tx.type === 'CREDIT' || rawAmount > 0 ? 'income' : 'expense';
-
       // Map to the correct local account
       const localAccountId = pluggyAccountToLocalAccount[tx.pluggyAccountId] || fallbackAccountId;
       if (!localAccountId) {
@@ -708,20 +750,36 @@ Deno.serve(async (req) => {
       }
 
       // ========================================
-      // CREDIT CARD PAYMENT DETECTION (STRICT ONLY)
+      // DETERMINE TRANSACTION TYPE
+      // For credit cards: ALL movements are expense EXCEPT bill payments (transfer)
+      // Credit card APIs report all values as positive, so sign is NOT reliable
       // ========================================
       const accountForTx = accounts.find((a: any) => a.id === tx.pluggyAccountId);
       const pluggyAccountType = accountForTx ? mapPluggyAccountType(accountForTx.type || accountForTx.subtype || 'BANK') : 'checking';
       let isCreditCardPaymentTx = false;
-      
-      if (pluggyAccountType === 'credit_card' && type === 'income') {
-        type = 'transfer';
-        isCreditCardPaymentTx = true;
-        console.log(`[CC-RULE] Income on credit_card → transfer: ${description}`);
-      } else if (pluggyAccountType !== 'credit_card' && type === 'expense' && isCreditCardPayment(description)) {
-        type = 'transfer';
-        isCreditCardPaymentTx = true;
-        console.log(`[CC-RULE] Strict bill payment match → transfer: ${description}`);
+      let type: string;
+
+      if (pluggyAccountType === 'credit_card') {
+        // Credit card: check description for bill payment keywords
+        if (isCreditCardPayment(description)) {
+          type = 'transfer';
+          isCreditCardPaymentTx = true;
+          console.log(`[CC-RULE] Credit card bill payment → transfer: "${description}"`);
+        } else {
+          // ALL other credit card movements are expenses (purchases, installments, reversals, adjustments)
+          type = 'expense';
+          console.log(`[CC-RULE] Credit card movement → expense: "${description}"`);
+        }
+      } else {
+        // Non-credit-card accounts: use normal sign-based logic
+        type = tx.type === 'CREDIT' || rawAmount > 0 ? 'income' : 'expense';
+        
+        // Check if it's a bill payment from checking/savings account
+        if (type === 'expense' && isCreditCardPayment(description)) {
+          type = 'transfer';
+          isCreditCardPaymentTx = true;
+          console.log(`[CC-RULE] Bill payment from regular account → transfer: "${description}"`);
+        }
       }
 
       const { data: inserted, error: insertError } = await supabaseAdmin
