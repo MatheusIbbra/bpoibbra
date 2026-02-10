@@ -2,144 +2,144 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Premium Executive Financial SaaS Design System */
-/* Velvety Blue with Golden Accents */
+/* IBBRA Brand Identity Design System */
+/* Navy Deep + Azul Institucional + Coral */
 
 @layer base {
   :root {
-    /* Brand Colors - Rich Velvety Navy & Warm Gold */
-    --brand-navy-deep: 222 47% 8%;
-    --brand-navy: 222 44% 14%;
-    --brand-navy-soft: 222 38% 20%;
-    --brand-slate: 220 22% 32%;
-    --brand-ivory: 48 30% 97%;
-    --brand-gold: 40 82% 52%;
-    --brand-gold-light: 40 70% 62%;
-    --brand-gold-muted: 40 40% 78%;
+    /* Brand Colors - IBBRA Brandbook */
+    --brand-navy-deep: 213 62% 11%;
+    --brand-navy: 213 55% 16%;
+    --brand-navy-soft: 213 42% 24%;
+    --brand-slate: 213 22% 38%;
+    --brand-sand: 28 22% 82%;
+    --brand-blue: 213 55% 38%;
+    --brand-blue-light: 213 48% 52%;
+    --brand-coral: 12 75% 55%;
     
-    /* Core backgrounds - Warm ivory */
-    --background: 48 28% 98%;
-    --foreground: 222 47% 8%;
+    /* Core backgrounds - Warm sand/ivory */
+    --background: 30 18% 97%;
+    --foreground: 213 62% 11%;
 
     /* Cards - Pure white with warmth */
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 8%;
+    --card-foreground: 213 62% 11%;
 
     /* Popovers */
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 8%;
+    --popover-foreground: 213 62% 11%;
 
-    /* Primary - Rich Velvety Blue */
-    --primary: 222 44% 14%;
-    --primary-foreground: 48 28% 98%;
+    /* Primary - IBBRA Deep Navy */
+    --primary: 213 55% 16%;
+    --primary-foreground: 30 18% 97%;
 
-    /* Secondary - Warm Ivory */
-    --secondary: 48 22% 93%;
-    --secondary-foreground: 222 44% 14%;
+    /* Secondary - Sand/Beige */
+    --secondary: 28 18% 92%;
+    --secondary-foreground: 213 55% 16%;
 
     /* Muted - Subtle warmth */
-    --muted: 222 18% 94%;
-    --muted-foreground: 220 22% 42%;
+    --muted: 213 14% 94%;
+    --muted-foreground: 213 22% 42%;
 
-    /* Accent - Rich Warm Gold */
-    --accent: 40 82% 52%;
-    --accent-foreground: 222 47% 8%;
+    /* Accent - IBBRA Blue */
+    --accent: 213 55% 38%;
+    --accent-foreground: 0 0% 100%;
 
     /* Status colors - Refined palette */
-    --destructive: 0 68% 48%;
+    --destructive: 12 75% 50%;
     --destructive-foreground: 0 0% 100%;
     
     --success: 152 58% 40%;
     --success-foreground: 0 0% 100%;
     
-    --warning: 40 95% 52%;
-    --warning-foreground: 222 47% 8%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 213 62% 11%;
     
-    --info: 212 88% 52%;
+    --info: 213 55% 38%;
     --info-foreground: 0 0% 100%;
 
     /* Borders and inputs - Refined edges */
-    --border: 222 18% 86%;
-    --input: 222 18% 86%;
-    --ring: 222 44% 14%;
+    --border: 213 14% 86%;
+    --input: 213 14% 86%;
+    --ring: 213 55% 16%;
 
-    --radius: 0.75rem;
+    --radius: 0.625rem;
 
-    /* Sidebar - Deep velvety navy */
-    --sidebar-background: 222 47% 8%;
-    --sidebar-foreground: 48 22% 93%;
-    --sidebar-primary: 40 82% 55%;
-    --sidebar-primary-foreground: 222 47% 8%;
-    --sidebar-accent: 222 44% 16%;
-    --sidebar-accent-foreground: 48 22% 98%;
-    --sidebar-border: 222 38% 18%;
-    --sidebar-ring: 40 82% 52%;
-    --sidebar-muted: 220 18% 52%;
+    /* Sidebar - IBBRA Deep Navy */
+    --sidebar-background: 213 62% 11%;
+    --sidebar-foreground: 28 18% 92%;
+    --sidebar-primary: 213 48% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 213 55% 18%;
+    --sidebar-accent-foreground: 28 18% 97%;
+    --sidebar-border: 213 42% 20%;
+    --sidebar-ring: 213 55% 38%;
+    --sidebar-muted: 213 18% 52%;
 
-    /* Chart colors - Executive palette */
-    --chart-1: 222 44% 14%;
-    --chart-2: 40 82% 52%;
+    /* Chart colors - IBBRA palette */
+    --chart-1: 213 55% 16%;
+    --chart-2: 213 55% 38%;
     --chart-3: 152 58% 40%;
-    --chart-4: 212 88% 52%;
-    --chart-5: 0 68% 48%;
+    --chart-4: 12 75% 55%;
+    --chart-5: 38 92% 50%;
   }
 
   .dark {
-    /* Dark mode - Executive night theme */
-    --background: 222 47% 5%;
-    --foreground: 48 22% 93%;
+    /* Dark mode - IBBRA night theme */
+    --background: 213 62% 5%;
+    --foreground: 28 18% 93%;
 
-    --card: 222 47% 8%;
-    --card-foreground: 48 22% 93%;
+    --card: 213 62% 8%;
+    --card-foreground: 28 18% 93%;
 
-    --popover: 222 47% 8%;
-    --popover-foreground: 48 22% 93%;
+    --popover: 213 62% 8%;
+    --popover-foreground: 28 18% 93%;
 
-    --primary: 40 82% 55%;
-    --primary-foreground: 222 47% 5%;
+    --primary: 213 48% 52%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 222 32% 14%;
-    --secondary-foreground: 48 22% 93%;
+    --secondary: 213 32% 14%;
+    --secondary-foreground: 28 18% 93%;
 
-    --muted: 222 32% 14%;
-    --muted-foreground: 220 18% 52%;
+    --muted: 213 32% 14%;
+    --muted-foreground: 213 18% 52%;
 
-    --accent: 40 82% 55%;
-    --accent-foreground: 222 47% 5%;
+    --accent: 213 48% 52%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 58% 42%;
+    --destructive: 12 65% 45%;
     --destructive-foreground: 0 0% 100%;
     
     --success: 152 58% 40%;
     --success-foreground: 0 0% 100%;
     
-    --warning: 40 95% 52%;
-    --warning-foreground: 222 47% 5%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 213 62% 5%;
     
-    --info: 212 88% 55%;
+    --info: 213 48% 55%;
     --info-foreground: 0 0% 100%;
 
-    --border: 222 32% 18%;
-    --input: 222 32% 18%;
-    --ring: 40 82% 55%;
+    --border: 213 32% 18%;
+    --input: 213 32% 18%;
+    --ring: 213 48% 52%;
 
     /* Sidebar Dark */
-    --sidebar-background: 222 47% 4%;
-    --sidebar-foreground: 48 22% 93%;
-    --sidebar-primary: 40 82% 55%;
-    --sidebar-primary-foreground: 222 47% 5%;
-    --sidebar-accent: 222 44% 10%;
-    --sidebar-accent-foreground: 48 22% 98%;
-    --sidebar-border: 222 32% 12%;
-    --sidebar-ring: 40 82% 55%;
-    --sidebar-muted: 220 18% 48%;
+    --sidebar-background: 213 62% 4%;
+    --sidebar-foreground: 28 18% 93%;
+    --sidebar-primary: 213 48% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 213 55% 10%;
+    --sidebar-accent-foreground: 28 18% 98%;
+    --sidebar-border: 213 32% 12%;
+    --sidebar-ring: 213 48% 52%;
+    --sidebar-muted: 213 18% 48%;
 
     /* Chart colors dark */
-    --chart-1: 40 82% 55%;
-    --chart-2: 212 88% 55%;
+    --chart-1: 213 48% 52%;
+    --chart-2: 12 75% 55%;
     --chart-3: 152 58% 40%;
-    --chart-4: 40 95% 52%;
-    --chart-5: 0 58% 48%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 28 22% 72%;
   }
 }
 
@@ -197,17 +197,17 @@
     @apply bg-card/95 backdrop-blur-2xl border border-border/80 shadow-lg;
   }
 
-  /* Executive Gradient Text */
+  /* IBBRA Gradient Text */
   .gradient-text {
-    @apply bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent;
   }
 
-  /* Gold Accent Border */
-  .border-gold {
+  /* Brand Accent Border */
+  .border-brand {
     border-color: hsl(var(--accent));
   }
 
-  .border-gold-subtle {
+  .border-brand-subtle {
     border-color: hsl(var(--accent) / 0.3);
   }
 
@@ -226,7 +226,7 @@
       0 24px 48px -8px rgb(0 0 0 / 0.08);
   }
 
-  .shadow-gold {
+  .shadow-accent {
     box-shadow: 
       0 0 0 1px hsl(var(--accent) / 0.1),
       0 4px 12px -2px hsl(var(--accent) / 0.15);
@@ -258,36 +258,25 @@
     @apply shadow-executive-lg -translate-y-0.5;
   }
 
-  /* Executive Button Shine */
-  .btn-shine {
-    @apply relative overflow-hidden;
-  }
-
-  .btn-shine::before {
-    content: '';
-    @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full;
-    animation: shine 3s infinite;
-  }
-
-  @keyframes shine {
-    100% { transform: translateX(100%); }
-  }
-
   /* Refined Focus States */
   .focus-ring {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
   }
 
-  /* Gold accent utilities */
-  .text-gold {
+  /* IBBRA accent utilities */
+  .text-brand-blue {
     color: hsl(var(--accent));
   }
 
-  .bg-gold {
+  .text-brand-coral {
+    color: hsl(var(--brand-coral));
+  }
+
+  .bg-brand-blue {
     background-color: hsl(var(--accent));
   }
 
-  .bg-gold-subtle {
+  .bg-brand-blue-subtle {
     background-color: hsl(var(--accent) / 0.1);
   }
 }
@@ -295,37 +284,37 @@
 /* Premium Card Variants */
 @layer components {
   .card-executive {
-    @apply bg-card rounded-xl border border-border/60 shadow-executive;
+    @apply bg-card rounded-lg border border-border/60 shadow-executive;
   }
 
   .card-executive-hover {
     @apply card-executive transition-all duration-300 hover:shadow-executive-lg hover:border-border;
   }
 
-  .card-gold-accent {
+  .card-brand-accent {
     @apply card-executive border-l-2;
     border-left-color: hsl(var(--accent));
   }
 
   /* Premium Input Styling */
   .input-executive {
-    @apply bg-background/50 border-border/60 focus:border-primary/40 focus:ring-2 focus:ring-primary/10 transition-all duration-200;
+    @apply bg-background/50 border-border/60 focus:border-accent/40 focus:ring-2 focus:ring-accent/10 transition-all duration-200;
   }
 
-  /* Sidebar Premium Styling */
+  /* Sidebar IBBRA Styling */
   .sidebar-premium {
     background: linear-gradient(180deg, 
       hsl(var(--sidebar-background)) 0%,
-      hsl(220 45% 8%) 100%
+      hsl(213 60% 8%) 100%
     );
   }
 
-  /* Premium Badge */
+  /* IBBRA Badge */
   .badge-executive {
     @apply bg-accent/10 text-accent border-accent/20 font-medium;
   }
 
-  .badge-gold {
+  .badge-brand {
     @apply bg-accent/15 text-accent border border-accent/30 font-medium;
   }
 }
