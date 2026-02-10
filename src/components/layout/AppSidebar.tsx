@@ -122,7 +122,7 @@ export function AppSidebar() {
   };
   return <Sidebar collapsible="icon" className="border-r-0 transition-all duration-300 sidebar-premium">
       <SidebarHeader className="p-3 pb-2">
-        <div className="gap-2 flex-col flex items-center justify-center border-primary">
+        <div className="gap-2 flex-col flex items-center justify-center border-primary my-[5px] py-[15px]">
           <div className="relative">
             <img src={ibbraLogoWhite} alt="Ibbra" className={`${collapsed ? "h-8 w-8" : "h-10"} object-contain shrink-0`} />
           </div>
@@ -154,7 +154,7 @@ export function AppSidebar() {
                 <SidebarMenuButton asChild isActive={isActive("/admin")} tooltip={collapsed ? "Gerenciar Acessos" : undefined}>
                   <NavLink to="/admin" className={`flex items-center transition-all duration-200 text-sm py-2 rounded-lg ${collapsed ? "justify-center px-0" : "gap-2.5 px-3"} ${isActive("/admin") ? "bg-sidebar-accent/80 text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
                     <Shield className={`h-4 w-4 shrink-0 ${isActive("/admin") ? "text-sidebar-primary" : ""}`} />
-                    {!collapsed && <span className="whitespace-nowrap text-[13px]">Gerenciar Acessos</span>}
+                    {!collapsed && <span className="whitespace-nowrap text-[13px] py-0">Gerenciar Acessos</span>}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
