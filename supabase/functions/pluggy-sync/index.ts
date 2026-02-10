@@ -52,27 +52,81 @@ function isCreditCardPayment(description: string): boolean {
   return strictPatterns.some(keyword => text.includes(keyword));
 }
 
+function isReversalOrRefund(description: string): boolean {
+  const text = (description || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const patterns = [
+    "estorno",
+    "devolucao",
+    "reembolso",
+    "chargeback",
+    "reversal",
+    "refund",
+    "cancelamento",
+    "credito em conta",
+  ];
+  return patterns.some(keyword => text.includes(keyword));
+}
+
 // ========================================
 // SAFE API RESPONSE EXTRACTION
 // Handles various Pluggy API response structures
 // ========================================
-function extractItems<T>(response: unknown): T[] {
+function extractItems<T>(response: unknown): { items: T[]; totalPages: number; page: number } {
   if (!response || typeof response !== "object") {
     console.error("[EXTRACT] Invalid response:", typeof response);
-    return [];
+    return { items: [], totalPages: 1, page: 1 };
   }
   const r = response as Record<string, unknown>;
-  if (Array.isArray(r)) return r;
-  if (Array.isArray(r.results)) return r.results;
-  if (Array.isArray(r.data)) return r.data;
-  if (Array.isArray(r.items)) return r.items;
+  const totalPages = typeof r.totalPages === 'number' ? r.totalPages : 1;
+  const page = typeof r.page === 'number' ? r.page : 1;
+  
+  if (Array.isArray(r)) return { items: r, totalPages, page };
+  if (Array.isArray(r.results)) return { items: r.results, totalPages, page };
+  if (Array.isArray(r.data)) return { items: r.data, totalPages, page };
+  if (Array.isArray(r.items)) return { items: r.items, totalPages, page };
   if (r.data && typeof r.data === "object") {
     const d = r.data as Record<string, unknown>;
-    if (Array.isArray(d.items)) return d.items;
-    if (Array.isArray(d.results)) return d.results;
+    if (Array.isArray(d.items)) return { items: d.items, totalPages, page };
+    if (Array.isArray(d.results)) return { items: d.results, totalPages, page };
   }
   console.error("[EXTRACT] Unknown response structure:", Object.keys(r));
-  return [];
+  return { items: [], totalPages, page };
+}
+
+// ========================================
+// PAGINATED FETCH HELPER
+// Fetches all pages from a Pluggy API endpoint
+// ========================================
+async function fetchAllPages<T>(baseUrl: string, headers: Record<string, string>, label: string): Promise<T[]> {
+  const allItems: T[] = [];
+  let currentPage = 1;
+  let totalPages = 1;
+  const PAGE_SIZE = 500;
+
+  do {
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    const url = `${baseUrl}${separator}page=${currentPage}&pageSize=${PAGE_SIZE}`;
+    console.log(`[${label}] Fetching page ${currentPage}/${totalPages}: ${url}`);
+    
+    const response = await fetch(url, { method: 'GET', headers });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.warn(`[${label}] Failed page ${currentPage} (${response.status}):`, errorText);
+      break;
+    }
+
+    const data = await response.json();
+    const extracted = extractItems<T>(data);
+    allItems.push(...extracted.items);
+    totalPages = extracted.totalPages;
+    
+    console.log(`[${label}] Page ${currentPage}/${totalPages}: got ${extracted.items.length} items (total so far: ${allItems.length})`);
+    currentPage++;
+  } while (currentPage <= totalPages);
+
+  console.log(`[${label}] Fetched all ${allItems.length} items across ${totalPages} page(s)`);
+  return allItems;
 }
 
 // ========================================
@@ -451,7 +505,7 @@ Deno.serve(async (req) => {
           if (!hasTransactions) console.warn('[CONSENT] ⚠️ Consent may NOT include TRANSACTIONS scope');
         }
 
-        // Handle LOGIN_ERROR / OUTDATED - save status and return early with clear message
+        // Handle LOGIN_ERROR / OUTDATED / UPDATING / WAITING
         if (itemDetails?.status === 'LOGIN_ERROR' || itemDetails?.status === 'OUTDATED') {
           console.warn(`[ITEM] Item has status ${itemDetails.status} - consent expired or login failed`);
           
@@ -493,6 +547,12 @@ Deno.serve(async (req) => {
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
+        
+        // Handle UPDATING / WAITING - item is still being processed by Pluggy
+        if (itemDetails?.status === 'UPDATING' || itemDetails?.status === 'WAITING' || itemDetails?.status === 'MERGING') {
+          console.warn(`[ITEM] Item is still syncing: ${itemDetails.status}. Will proceed with available data.`);
+          // Don't return early - try to fetch whatever is available
+        }
       } else {
         const errorText = await itemResponse.text();
         console.warn(`[ITEM] Failed to fetch item details (${itemResponse.status}):`, errorText);
@@ -502,29 +562,37 @@ Deno.serve(async (req) => {
     }
 
     // ========================================
-    // FETCH ACCOUNTS FROM PLUGGY
+    // FETCH ALL ACCOUNTS FROM PLUGGY (with pagination)
     // ========================================
     let accounts: any[] = [];
     try {
-      const accountsResponse = await fetch(`${PLUGGY_API_URL}/accounts?itemId=${pluggyItemId}`, {
-        method: 'GET',
-        headers: pluggyHeaders
-      });
-
-      if (accountsResponse.ok) {
-        const accountsData = await accountsResponse.json();
-        accounts = extractItems(accountsData);
-        console.log(`[ACCOUNTS] Received ${accounts.length} accounts from Pluggy. Response keys: ${Object.keys(accountsData || {}).join(', ')}`);
-        
-        if (accounts.length === 0) {
-          console.warn('[ACCOUNTS] No accounts returned. Full response:', JSON.stringify(accountsData).substring(0, 500));
-        }
-      } else {
-        const errorText = await accountsResponse.text();
-        console.warn('Failed to fetch accounts:', accountsResponse.status, errorText);
+      accounts = await fetchAllPages(
+        `${PLUGGY_API_URL}/accounts?itemId=${pluggyItemId}`,
+        pluggyHeaders,
+        'ACCOUNTS'
+      );
+      console.log(`[ACCOUNTS] Total accounts from Pluggy: ${accounts.length}`);
+      
+      if (accounts.length === 0) {
+        console.warn('[ACCOUNTS] No accounts returned for item', pluggyItemId);
       }
     } catch (accountsError) {
       console.warn('Error fetching accounts:', accountsError);
+    }
+
+    // ========================================
+    // FETCH INVESTMENTS FROM PLUGGY (separate endpoint)
+    // ========================================
+    let investments: any[] = [];
+    try {
+      investments = await fetchAllPages(
+        `${PLUGGY_API_URL}/investments?itemId=${pluggyItemId}`,
+        pluggyHeaders,
+        'INVESTMENTS'
+      );
+      console.log(`[INVESTMENTS] Total investments from Pluggy: ${investments.length}`);
+    } catch (investmentsError) {
+      console.warn('Error fetching investments:', investmentsError);
     }
 
     // ========================================
@@ -646,7 +714,66 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[ACCOUNTS] Mapped ${Object.keys(pluggyAccountToLocalAccount).length} Pluggy accounts`);
+    // ========================================
+    // CREATE/UPDATE ACCOUNTS FOR INVESTMENTS
+    // ========================================
+    const pluggyInvestmentToLocalAccount: Record<string, string> = {};
+    
+    for (const inv of investments) {
+      const investmentName = inv.name || `${connectorName} - Investimento`;
+      const apiBalance = inv.balance ?? inv.amount ?? 0;
+      const now = new Date().toISOString();
+
+      const { data: existingAccount } = await supabaseAdmin
+        .from('accounts')
+        .select('id')
+        .eq('organization_id', connectionToSync.organization_id)
+        .eq('bank_name', connectorName)
+        .eq('name', investmentName)
+        .maybeSingle();
+
+      if (existingAccount) {
+        await supabaseAdmin
+          .from('accounts')
+          .update({
+            official_balance: apiBalance,
+            last_official_balance_at: now,
+            current_balance: apiBalance,
+            updated_at: now,
+          })
+          .eq('id', existingAccount.id);
+        
+        pluggyInvestmentToLocalAccount[inv.id] = existingAccount.id;
+        console.log(`[INVESTMENTS] Updated account ${existingAccount.id}: balance=${apiBalance}`);
+      } else {
+        const { data: newAccount, error: accountError } = await supabaseAdmin
+          .from('accounts')
+          .insert({
+            organization_id: connectionToSync.organization_id,
+            user_id: connectionToSync.user_id,
+            name: investmentName,
+            account_type: 'investment',
+            bank_name: connectorName,
+            current_balance: apiBalance,
+            initial_balance: apiBalance,
+            official_balance: apiBalance,
+            last_official_balance_at: now,
+            status: 'active',
+            start_date: new Date().toISOString().split('T')[0],
+          })
+          .select('id')
+          .single();
+
+        if (accountError) {
+          console.error(`[INVESTMENTS] Failed to create account for ${inv.id}:`, accountError);
+        } else {
+          pluggyInvestmentToLocalAccount[inv.id] = newAccount.id;
+          console.log(`[INVESTMENTS] Created account ${newAccount.id}: ${investmentName}, balance=${apiBalance}`);
+        }
+      }
+    }
+
+    console.log(`[ACCOUNTS] Mapped ${Object.keys(pluggyAccountToLocalAccount).length} bank accounts + ${Object.keys(pluggyInvestmentToLocalAccount).length} investments`);
 
     // ========================================
     // FETCH AND IMPORT TRANSACTIONS WITH IMPROVED DEDUPLICATION
@@ -654,31 +781,44 @@ Deno.serve(async (req) => {
     let allTransactions: any[] = [];
     for (const account of accounts) {
       try {
-        let url = `${PLUGGY_API_URL}/transactions?accountId=${account.id}`;
-        if (from_date) url += `&from=${from_date}`;
-        if (to_date) url += `&to=${to_date}`;
+        let baseUrl = `${PLUGGY_API_URL}/transactions?accountId=${account.id}`;
+        if (from_date) baseUrl += `&from=${from_date}`;
+        if (to_date) baseUrl += `&to=${to_date}`;
 
-        console.log(`[TX] Fetching transactions for Pluggy account ${account.id}...`);
-        const transactionsResponse = await fetch(url, {
-          method: 'GET',
-          headers: pluggyHeaders
-        });
-
-        if (transactionsResponse.ok) {
-          const transactionsData = await transactionsResponse.json();
-          const transactions = extractItems(transactionsData);
-          console.log(`[TX] Received ${transactions.length} transactions for account ${account.id}. Response keys: ${Object.keys(transactionsData || {}).join(', ')}`);
-          allTransactions.push(...transactions.map((tx: any) => ({ ...tx, pluggyAccountId: account.id })));
-        } else {
-          const errorText = await transactionsResponse.text();
-          console.warn(`[TX] Failed to fetch transactions for account ${account.id}:`, transactionsResponse.status, errorText);
-        }
+        console.log(`[TX] Fetching all transactions for Pluggy account ${account.id} (type: ${account.type})...`);
+        const transactions = await fetchAllPages(baseUrl, pluggyHeaders, `TX-${account.type}`);
+        allTransactions.push(...transactions.map((tx: any) => ({ ...tx, pluggyAccountId: account.id })));
       } catch (txError) {
-        console.warn('[TX] Error fetching transactions:', txError);
+        console.warn(`[TX] Error fetching transactions for account ${account.id}:`, txError);
       }
     }
 
-    console.log(`[TX] Total transactions fetched: ${allTransactions.length}`);
+    // Fetch investment transactions (separate Pluggy endpoint)
+    for (const inv of investments) {
+      try {
+        let baseUrl = `${PLUGGY_API_URL}/investments/${inv.id}/transactions`;
+        if (from_date) baseUrl += `?from=${from_date}`;
+        if (to_date) baseUrl += `${from_date ? '&' : '?'}to=${to_date}`;
+
+        console.log(`[INV-TX] Fetching transactions for investment ${inv.id} (${inv.name})...`);
+        const invTransactions = await fetchAllPages(baseUrl, pluggyHeaders, `INV-TX`);
+        
+        // Map investment transactions to the investment's local account
+        const localAccountId = pluggyInvestmentToLocalAccount[inv.id];
+        if (localAccountId) {
+          allTransactions.push(...invTransactions.map((tx: any) => ({ 
+            ...tx, 
+            pluggyAccountId: inv.id,
+            _isInvestmentTx: true,
+            _investmentLocalAccountId: localAccountId
+          })));
+        }
+      } catch (txError) {
+        console.warn(`[INV-TX] Error fetching investment transactions for ${inv.id}:`, txError);
+      }
+    }
+
+    console.log(`[TX] Total transactions fetched (accounts + investments): ${allTransactions.length}`);
 
     // Fallback account
     let fallbackAccountId: string | null = null;
@@ -784,8 +924,8 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Map to the correct local account
-      const localAccountId = pluggyAccountToLocalAccount[tx.pluggyAccountId] || fallbackAccountId;
+      // Map to the correct local account (check investment accounts too)
+      const localAccountId = tx._investmentLocalAccountId || pluggyAccountToLocalAccount[tx.pluggyAccountId] || pluggyInvestmentToLocalAccount[tx.pluggyAccountId] || fallbackAccountId;
       if (!localAccountId) {
         console.warn(`[TX] No local account for Pluggy account ${tx.pluggyAccountId}, skipping`);
         skipped++;
@@ -798,18 +938,32 @@ Deno.serve(async (req) => {
       // Credit card APIs report all values as positive, so sign is NOT reliable
       // ========================================
       const accountForTx = accounts.find((a: any) => a.id === tx.pluggyAccountId);
-      const pluggyAccountType = accountForTx ? mapPluggyAccountType(accountForTx.type || accountForTx.subtype || 'BANK') : 'checking';
+      const pluggyAccountType = accountForTx ? mapPluggyAccountType(accountForTx.type || accountForTx.subtype || 'BANK') : (tx._isInvestmentTx ? 'investment' : 'checking');
       let isCreditCardPaymentTx = false;
       let type: string;
 
-      if (pluggyAccountType === 'credit_card') {
-        // Credit card: check description for bill payment keywords
+      if (tx._isInvestmentTx) {
+        // Investment transactions: applications are expenses (money out), redemptions are income (money in)
+        const invType = (tx.type || '').toUpperCase();
+        if (invType === 'CREDIT' || invType === 'REDEMPTION' || rawAmount > 0) {
+          type = 'redemption';
+          console.log(`[INV-RULE] Investment redemption: "${description}"`);
+        } else {
+          type = 'investment';
+          console.log(`[INV-RULE] Investment application: "${description}"`);
+        }
+      } else if (pluggyAccountType === 'credit_card') {
+        // Credit card: check description for bill payment keywords or reversals
         if (isCreditCardPayment(description)) {
           type = 'transfer';
           isCreditCardPaymentTx = true;
           console.log(`[CC-RULE] Credit card bill payment → transfer: "${description}"`);
+        } else if (isReversalOrRefund(description)) {
+          // Reversals/refunds on credit card reduce the bill, still expense but negative
+          type = 'expense';
+          console.log(`[CC-RULE] Credit card reversal/refund → expense (credit): "${description}"`);
         } else {
-          // ALL other credit card movements are expenses (purchases, installments, reversals, adjustments)
+          // ALL other credit card movements are expenses
           type = 'expense';
           console.log(`[CC-RULE] Credit card movement → expense: "${description}"`);
         }
