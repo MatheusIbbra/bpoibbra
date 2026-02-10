@@ -148,12 +148,18 @@
             connectToken: token,
             
             onSuccess: function(itemData) {
-              log('SUCCESS: Connection completed. Item: ' + JSON.stringify(itemData));
-              notifyOpener('pluggy-success', itemData);
+              log('SUCCESS: Connection completed. Item ID: ' + (itemData && itemData.id) + ', Full data: ' + JSON.stringify(itemData));
+              // Ensure we send the item data in a consistent format
+              var payload = itemData;
+              // If itemData doesn't have .id directly, try to find it
+              if (!payload || !payload.id) {
+                log('WARNING: itemData has no .id field. Keys: ' + (payload ? Object.keys(payload).join(',') : 'null'));
+              }
+              notifyOpener('pluggy-success', payload);
               messageEl.className = '';
-              messageEl.textContent = 'Conexão realizada com sucesso!';
+              messageEl.textContent = 'Conexão realizada com sucesso! Fechando...';
               spinnerEl.style.display = 'none';
-              setTimeout(function() { window.close(); }, 1500);
+              setTimeout(function() { window.close(); }, 2000);
             },
 
             onError: function(error) {
