@@ -1,145 +1,146 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* IBBRA Brand Identity Design System */
-/* Navy Deep + Azul Institucional + Coral */
+/* ============================================
+   IBBRA Brand Identity Design System
+   BrandBook: Precursor Archetype
+   Elegant • Subtle • Secure • Objective • Rational
+   ============================================ */
 
 @layer base {
   :root {
-    /* Brand Colors - IBBRA Brandbook */
-    --brand-navy-deep: 213 62% 11%;
-    --brand-navy: 213 55% 16%;
-    --brand-navy-soft: 213 42% 24%;
-    --brand-slate: 213 22% 38%;
-    --brand-sand: 28 22% 82%;
-    --brand-blue: 213 55% 38%;
-    --brand-blue-light: 213 48% 52%;
-    --brand-coral: 12 75% 55%;
-    
-    /* Core backgrounds - Warm sand/ivory */
-    --background: 30 18% 97%;
-    --foreground: 213 62% 11%;
+    /* Brand Colors - IBBRA BrandBook Official */
+    --brand-deep: 213 80% 13%;       /* #011E41 - Azul Profundo */
+    --brand-highlight: 210 100% 36%;  /* #005CB9 - Azul Highlight */
+    --brand-light-blue: 214 58% 95%;  /* #ECF2FA - Azul Claro */
+    --brand-cream: 18 24% 89%;        /* #EBE1DC - Creme Claro */
+    --brand-coral: 14 100% 54%;       /* #FF4614 - Vermelho/Coral */
 
-    /* Cards - Pure white with warmth */
+    /* Core backgrounds - Clean, airy with warmth */
+    --background: 220 20% 97%;
+    --foreground: 213 80% 13%;
+
+    /* Cards - Clean white */
     --card: 0 0% 100%;
-    --card-foreground: 213 62% 11%;
+    --card-foreground: 213 80% 13%;
 
     /* Popovers */
     --popover: 0 0% 100%;
-    --popover-foreground: 213 62% 11%;
+    --popover-foreground: 213 80% 13%;
 
-    /* Primary - IBBRA Deep Navy */
-    --primary: 213 55% 16%;
-    --primary-foreground: 30 18% 97%;
+    /* Primary - IBBRA Deep Blue */
+    --primary: 213 80% 13%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Sand/Beige */
-    --secondary: 28 18% 92%;
-    --secondary-foreground: 213 55% 16%;
+    /* Secondary - Soft cream */
+    --secondary: 214 58% 95%;
+    --secondary-foreground: 213 80% 13%;
 
-    /* Muted - Subtle warmth */
-    --muted: 213 14% 94%;
-    --muted-foreground: 213 22% 42%;
+    /* Muted - Gentle neutrals */
+    --muted: 220 14% 94%;
+    --muted-foreground: 215 16% 47%;
 
-    /* Accent - IBBRA Blue */
-    --accent: 213 55% 38%;
+    /* Accent - IBBRA Highlight Blue */
+    --accent: 210 100% 36%;
     --accent-foreground: 0 0% 100%;
 
-    /* Status colors - Refined palette */
-    --destructive: 12 75% 50%;
+    /* Status colors */
+    --destructive: 14 100% 54%;
     --destructive-foreground: 0 0% 100%;
-    
-    --success: 152 58% 40%;
+
+    --success: 160 60% 38%;
     --success-foreground: 0 0% 100%;
-    
+
     --warning: 38 92% 50%;
-    --warning-foreground: 213 62% 11%;
-    
-    --info: 213 55% 38%;
+    --warning-foreground: 213 80% 13%;
+
+    --info: 210 100% 36%;
     --info-foreground: 0 0% 100%;
 
-    /* Borders and inputs - Refined edges */
-    --border: 213 14% 86%;
-    --input: 213 14% 86%;
-    --ring: 213 55% 16%;
+    /* Borders and inputs */
+    --border: 220 13% 90%;
+    --input: 220 13% 90%;
+    --ring: 210 100% 36%;
 
-    --radius: 0.625rem;
+    --radius: 0.75rem;
 
-    /* Sidebar - IBBRA Deep Navy */
-    --sidebar-background: 213 62% 11%;
-    --sidebar-foreground: 28 18% 92%;
-    --sidebar-primary: 213 48% 52%;
+    /* Sidebar - IBBRA Deep Blue */
+    --sidebar-background: 213 80% 13%;
+    --sidebar-foreground: 214 40% 90%;
+    --sidebar-primary: 210 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 213 55% 18%;
-    --sidebar-accent-foreground: 28 18% 97%;
-    --sidebar-border: 213 42% 20%;
-    --sidebar-ring: 213 55% 38%;
-    --sidebar-muted: 213 18% 52%;
+    --sidebar-accent: 213 60% 20%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 213 50% 22%;
+    --sidebar-ring: 210 100% 36%;
+    --sidebar-muted: 215 20% 60%;
 
-    /* Chart colors - IBBRA palette */
-    --chart-1: 213 55% 16%;
-    --chart-2: 213 55% 38%;
-    --chart-3: 152 58% 40%;
-    --chart-4: 12 75% 55%;
+    /* Chart colors */
+    --chart-1: 210 100% 36%;
+    --chart-2: 213 80% 13%;
+    --chart-3: 160 60% 38%;
+    --chart-4: 14 100% 54%;
     --chart-5: 38 92% 50%;
   }
 
   .dark {
-    /* Dark mode - IBBRA night theme */
-    --background: 213 62% 5%;
-    --foreground: 28 18% 93%;
+    --background: 213 60% 6%;
+    --foreground: 214 40% 92%;
 
-    --card: 213 62% 8%;
-    --card-foreground: 28 18% 93%;
+    --card: 213 50% 10%;
+    --card-foreground: 214 40% 92%;
 
-    --popover: 213 62% 8%;
-    --popover-foreground: 28 18% 93%;
+    --popover: 213 50% 10%;
+    --popover-foreground: 214 40% 92%;
 
-    --primary: 213 48% 52%;
+    --primary: 210 90% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 213 32% 14%;
-    --secondary-foreground: 28 18% 93%;
+    --secondary: 213 40% 15%;
+    --secondary-foreground: 214 40% 92%;
 
-    --muted: 213 32% 14%;
-    --muted-foreground: 213 18% 52%;
+    --muted: 213 30% 16%;
+    --muted-foreground: 215 18% 55%;
 
-    --accent: 213 48% 52%;
+    --accent: 210 90% 55%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 12 65% 45%;
+    --destructive: 14 85% 50%;
     --destructive-foreground: 0 0% 100%;
-    
-    --success: 152 58% 40%;
+
+    --success: 160 60% 42%;
     --success-foreground: 0 0% 100%;
-    
+
     --warning: 38 92% 50%;
-    --warning-foreground: 213 62% 5%;
-    
-    --info: 213 48% 55%;
+    --warning-foreground: 213 60% 6%;
+
+    --info: 210 90% 55%;
     --info-foreground: 0 0% 100%;
 
-    --border: 213 32% 18%;
-    --input: 213 32% 18%;
-    --ring: 213 48% 52%;
+    --border: 213 30% 20%;
+    --input: 213 30% 20%;
+    --ring: 210 90% 55%;
 
     /* Sidebar Dark */
-    --sidebar-background: 213 62% 4%;
-    --sidebar-foreground: 28 18% 93%;
-    --sidebar-primary: 213 48% 52%;
+    --sidebar-background: 213 70% 5%;
+    --sidebar-foreground: 214 40% 92%;
+    --sidebar-primary: 210 90% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 213 55% 10%;
-    --sidebar-accent-foreground: 28 18% 98%;
-    --sidebar-border: 213 32% 12%;
-    --sidebar-ring: 213 48% 52%;
-    --sidebar-muted: 213 18% 48%;
+    --sidebar-accent: 213 50% 12%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 213 40% 14%;
+    --sidebar-ring: 210 90% 55%;
+    --sidebar-muted: 215 18% 50%;
 
     /* Chart colors dark */
-    --chart-1: 213 48% 52%;
-    --chart-2: 12 75% 55%;
-    --chart-3: 152 58% 40%;
+    --chart-1: 210 90% 55%;
+    --chart-2: 14 85% 55%;
+    --chart-3: 160 60% 42%;
     --chart-4: 38 92% 50%;
-    --chart-5: 28 22% 72%;
+    --chart-5: 18 24% 72%;
   }
 }
 
@@ -150,23 +151,25 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1, "cv11" 1;
-    letter-spacing: -0.011em;
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    letter-spacing: -0.01em;
   }
 
-  /* Premium Typography Scale */
+  /* Premium Typography */
   h1, h2, h3, h4, h5, h6 {
-    @apply tracking-tight font-semibold;
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+    @apply font-semibold tracking-tight;
   }
 
-  h1 { letter-spacing: -0.025em; }
-  h2 { letter-spacing: -0.02em; }
-  h3 { letter-spacing: -0.015em; }
+  h1 { letter-spacing: -0.03em; }
+  h2 { letter-spacing: -0.025em; }
+  h3 { letter-spacing: -0.02em; }
 
-  /* Premium Scrollbar */
+  /* Elegant Scrollbar */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
 
   ::-webkit-scrollbar-track {
@@ -174,65 +177,82 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/15 rounded-full transition-colors;
+    background: hsl(var(--muted-foreground) / 0.12);
+    border-radius: 9999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/25;
+    background: hsl(var(--muted-foreground) / 0.2);
   }
 
   /* Selection */
   ::selection {
-    @apply bg-primary/15 text-foreground;
+    background: hsl(var(--accent) / 0.12);
+    color: hsl(var(--foreground));
   }
 }
 
 @layer utilities {
-  /* Premium Glass Effects */
+  /* Glass Effects */
   .glass {
-    @apply bg-card/85 backdrop-blur-xl border border-border/60 shadow-sm;
+    @apply bg-card/80 backdrop-blur-xl border border-border/50;
   }
 
   .glass-strong {
-    @apply bg-card/95 backdrop-blur-2xl border border-border/80 shadow-lg;
-  }
-
-  /* IBBRA Gradient Text */
-  .gradient-text {
-    @apply bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent;
-  }
-
-  /* Brand Accent Border */
-  .border-brand {
-    border-color: hsl(var(--accent));
-  }
-
-  .border-brand-subtle {
-    border-color: hsl(var(--accent) / 0.3);
+    @apply bg-card/95 backdrop-blur-2xl border border-border/70;
   }
 
   /* Premium Shadows */
   .shadow-executive {
-    box-shadow: 
-      0 1px 2px 0 rgb(0 0 0 / 0.03),
-      0 4px 8px -2px rgb(0 0 0 / 0.04),
-      0 12px 24px -4px rgb(0 0 0 / 0.06);
+    box-shadow:
+      0 1px 3px 0 rgb(0 0 0 / 0.04),
+      0 6px 16px -4px rgb(0 0 0 / 0.06);
   }
 
   .shadow-executive-lg {
-    box-shadow: 
-      0 2px 4px 0 rgb(0 0 0 / 0.03),
-      0 8px 16px -4px rgb(0 0 0 / 0.05),
-      0 24px 48px -8px rgb(0 0 0 / 0.08);
+    box-shadow:
+      0 2px 6px 0 rgb(0 0 0 / 0.04),
+      0 12px 32px -8px rgb(0 0 0 / 0.08);
   }
 
   .shadow-accent {
-    box-shadow: 
-      0 0 0 1px hsl(var(--accent) / 0.1),
-      0 4px 12px -2px hsl(var(--accent) / 0.15);
+    box-shadow:
+      0 0 0 1px hsl(var(--accent) / 0.08),
+      0 4px 16px -4px hsl(var(--accent) / 0.12);
   }
 
-  /* Status Badges - Refined */
+  /* Card Hover */
+  .card-hover {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .card-hover:hover {
+    @apply shadow-executive-lg -translate-y-0.5;
+  }
+
+  /* Focus Ring */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+
+  /* Brand utilities */
+  .text-brand-blue {
+    color: hsl(var(--accent));
+  }
+
+  .text-brand-coral {
+    color: hsl(var(--brand-coral));
+  }
+
+  .bg-brand-blue {
+    background-color: hsl(var(--accent));
+  }
+
+  .bg-brand-blue-subtle {
+    background-color: hsl(var(--accent) / 0.08);
+  }
+
+  /* Status utilities */
   .status-success {
     @apply bg-success/8 text-success border-success/15;
   }
@@ -249,103 +269,72 @@
     @apply bg-info/8 text-info border-info/15;
   }
 
-  /* Premium Card Hover */
-  .card-hover {
-    @apply transition-all duration-300 ease-out;
-  }
-
-  .card-hover:hover {
-    @apply shadow-executive-lg -translate-y-0.5;
-  }
-
-  /* Refined Focus States */
-  .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
-  }
-
-  /* IBBRA accent utilities */
-  .text-brand-blue {
-    color: hsl(var(--accent));
-  }
-
-  .text-brand-coral {
-    color: hsl(var(--brand-coral));
-  }
-
-  .bg-brand-blue {
-    background-color: hsl(var(--accent));
-  }
-
-  .bg-brand-blue-subtle {
-    background-color: hsl(var(--accent) / 0.1);
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent;
   }
 }
 
-/* Premium Card Variants */
+/* Component Variants */
 @layer components {
   .card-executive {
-    @apply bg-card rounded-lg border border-border/60 shadow-executive;
+    @apply bg-card rounded-xl border border-border/50 shadow-executive;
   }
 
   .card-executive-hover {
-    @apply card-executive transition-all duration-300 hover:shadow-executive-lg hover:border-border;
+    @apply card-executive transition-all duration-300 hover:shadow-executive-lg hover:border-border/80;
   }
 
   .card-brand-accent {
-    @apply card-executive border-l-2;
+    @apply card-executive border-l-[3px];
     border-left-color: hsl(var(--accent));
   }
 
-  /* Premium Input Styling */
+  /* Premium Input */
   .input-executive {
-    @apply bg-background/50 border-border/60 focus:border-accent/40 focus:ring-2 focus:ring-accent/10 transition-all duration-200;
+    @apply bg-background rounded-xl transition-all duration-200;
+    border-color: hsl(var(--border) / 0.7);
+  }
+  .input-executive:focus {
+    border-color: hsl(var(--accent) / 0.5);
+    box-shadow: 0 0 0 2px hsl(var(--accent) / 0.08);
   }
 
-  /* Sidebar IBBRA Styling */
+  /* Sidebar IBBRA */
   .sidebar-premium {
-    background: linear-gradient(180deg, 
+    background: linear-gradient(180deg,
       hsl(var(--sidebar-background)) 0%,
-      hsl(213 60% 8%) 100%
+      hsl(213 75% 9%) 100%
     );
   }
 
-  /* IBBRA Badge */
+  /* Badges */
   .badge-executive {
-    @apply bg-accent/10 text-accent border-accent/20 font-medium;
+    @apply bg-accent/8 text-accent border-accent/15 font-medium;
   }
 
   .badge-brand {
-    @apply bg-accent/15 text-accent border border-accent/30 font-medium;
+    @apply bg-accent/12 text-accent border border-accent/25 font-medium;
   }
 }
 
-/* Responsive Premium Adjustments */
-@media (max-width: 1024px) {
-  .responsive-card {
-    @apply max-w-full;
-  }
-  
-  .responsive-grid {
-    @apply grid-cols-1 md:grid-cols-2;
-  }
-}
-
+/* Responsive Adjustments */
 @media (max-width: 768px) {
   .responsive-stat-card {
     @apply p-4;
   }
-  
+
   .responsive-stat-card h3 {
     @apply text-lg;
   }
 }
 
-/* Print Styles */
+/* Print */
 @media print {
   .no-print {
     display: none !important;
   }
-  
+
   body {
     @apply bg-white text-black;
   }

@@ -82,14 +82,14 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
   const displayName = profile?.full_name || "Usuário";
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-sidebar-border/60 bg-sidebar px-3 md:px-6 shadow-sm">
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-border/30 bg-background/80 backdrop-blur-xl px-4 md:px-6">
       {/* Sidebar toggle */}
-      <SidebarTrigger className="shrink-0 h-8 w-8 text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors" />
+      <SidebarTrigger className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl transition-all duration-200" />
       
       <div className="flex flex-1 items-center gap-2 md:gap-4 min-w-0">
         {/* Title */}
         <div className="hidden md:flex flex-col">
-          <h1 className="text-base font-semibold text-sidebar-foreground tracking-tight">
+          <h1 className="text-base font-semibold text-foreground tracking-tight">
             {title}
           </h1>
         </div>
@@ -100,13 +100,13 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-1 md:gap-2">
-        {/* Eye toggle - show/hide values */}
+      <div className="flex items-center gap-1.5 md:gap-2">
+        {/* Eye toggle */}
         <Button
           variant="ghost"
           size="icon"
           onClick={toggleValues}
-          className="h-9 w-9 text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+          className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl transition-all duration-200"
           title={showValues ? "Ocultar valores" : "Mostrar valores"}
         >
           {showValues ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
@@ -118,12 +118,12 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
           <InsightsHeaderButton />
         </div>
 
-        {/* Theme toggle - always visible */}
+        {/* Theme toggle */}
         <Button 
           variant="ghost" 
           size="icon" 
           onClick={toggleTheme} 
-          className="h-9 w-9 text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+          className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl transition-all duration-200"
         >
           {theme === "light" ? (
             <Moon className="h-4 w-4" />
@@ -134,25 +134,25 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
         </Button>
 
         {/* Divider */}
-        <div className="hidden lg:block h-6 w-px bg-sidebar-border/60 mx-1" />
+        <div className="hidden lg:block h-6 w-px bg-border/60 mx-1" />
 
         {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button 
               variant="ghost" 
-              className="relative h-auto gap-2 px-2 py-1 shrink-0 hover:bg-sidebar-accent transition-colors rounded-lg"
+              className="relative h-auto gap-2.5 px-2.5 py-1.5 shrink-0 hover:bg-muted/50 transition-all duration-200 rounded-xl"
             >
               {/* User info */}
               <div className="hidden lg:flex flex-col items-end text-right">
-                <span className="text-sm font-medium leading-none text-sidebar-foreground">{displayName}</span>
-                <Badge variant="secondary" className="mt-0.5 text-[9px] px-1 py-0 h-3.5 font-medium bg-sidebar-accent text-sidebar-accent-foreground border-0">
+                <span className="text-sm font-medium leading-none text-foreground">{displayName}</span>
+                <Badge variant="secondary" className="mt-0.5 text-[9px] px-1.5 py-0 h-4 font-medium rounded-md">
                   {getRoleLabel(userRole)}
                 </Badge>
               </div>
-              <Avatar className="h-8 w-8 border-2 border-sidebar-border/60">
+              <Avatar className="h-9 w-9 border-2 border-border/50">
                 <AvatarImage src={profile?.avatar_url || undefined} alt="Avatar" />
-                <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground font-semibold text-xs">
+                <AvatarFallback className="bg-accent text-accent-foreground font-semibold text-xs">
                   {getInitials(profile?.full_name)}
                 </AvatarFallback>
               </Avatar>
