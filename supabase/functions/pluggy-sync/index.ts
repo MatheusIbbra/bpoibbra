@@ -450,6 +450,49 @@ Deno.serve(async (req) => {
           if (!hasAccounts) console.warn('[CONSENT] ⚠️ Consent may NOT include ACCOUNTS scope');
           if (!hasTransactions) console.warn('[CONSENT] ⚠️ Consent may NOT include TRANSACTIONS scope');
         }
+
+        // Handle LOGIN_ERROR / OUTDATED - save status and return early with clear message
+        if (itemDetails?.status === 'LOGIN_ERROR' || itemDetails?.status === 'OUTDATED') {
+          console.warn(`[ITEM] Item has status ${itemDetails.status} - consent expired or login failed`);
+          
+          // Save the error status to metadata
+          const connectorName = itemDetails?.connector?.name || connectionToSync.provider_name || 'Open Finance';
+          const connectorLogo = itemDetails?.connector?.imageUrl || null;
+          await supabaseAdmin
+            .from('bank_connections')
+            .update({
+              provider_name: connectorName,
+              sync_error: `Status: ${itemDetails.status}. Reconecte o banco.`,
+              metadata: {
+                ...(connectionToSync.metadata || {}),
+                bank_name: connectorName,
+                bank_logo_url: connectorLogo,
+                item_status: itemDetails.status,
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', connectionToSync.id);
+
+          await supabaseAdmin.from('integration_logs').insert({
+            organization_id: connectionToSync.organization_id,
+            bank_connection_id: connectionToSync.id,
+            provider: 'pluggy',
+            event_type: 'sync',
+            status: 'error',
+            message: `Item com status ${itemDetails.status}. O consentimento expirou ou houve erro de login. Necessário reconectar.`,
+          });
+
+          return new Response(
+            JSON.stringify({ 
+              success: false,
+              error: `O banco reportou "${itemDetails.status}". O consentimento pode ter expirado. Desconecte e reconecte o banco.`,
+              imported: 0,
+              skipped: 0,
+              item_status: itemDetails.status,
+            }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
       } else {
         const errorText = await itemResponse.text();
         console.warn(`[ITEM] Failed to fetch item details (${itemResponse.status}):`, errorText);
