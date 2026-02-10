@@ -97,7 +97,7 @@ function getIconBg(type: string) {
 export function FintechTransactionsList() {
   const navigate = useNavigate();
   const { data: transactions, isLoading } = useTransactions({});
-  const [isExpanded, setIsExpanded] = useState(true);
+  
 
   const recentTransactions = useMemo(
     () => (transactions || []).slice(0, 15),
@@ -129,13 +129,7 @@ export function FintechTransactionsList() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-1.5 text-lg font-semibold hover:text-foreground transition-colors"
-        >
-          {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          Últimas Movimentações
-        </button>
+        <CardTitle className="text-lg font-semibold">Últimas Movimentações</CardTitle>
         <Button
           variant="ghost"
           size="sm"
@@ -147,7 +141,7 @@ export function FintechTransactionsList() {
         </Button>
       </CardHeader>
       <CardContent>
-        {!isExpanded ? null : grouped.length === 0 ? (
+        {grouped.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
             Nenhuma movimentação encontrada
           </p>
