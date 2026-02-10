@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { PluggyConnect } from "react-pluggy-connect";
 import { 
   useBankConnections, 
   useOpenPluggyConnect,
@@ -62,165 +61,130 @@ export function BankConnectionsManager() {
   const [selectedConnection, setSelectedConnection] = useState<BankConnection | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   
-  // Pluggy Connect widget state
-  const [connectToken, setConnectToken] = useState<string | null>(null);
-  const [showPluggyWidget, setShowPluggyWidget] = useState(false);
-  const [pendingOrgId, setPendingOrgId] = useState<string | null>(null);
+  // Popup window ref
+  const popupRef = useRef<Window | null>(null);
+  const pendingOrgIdRef = useRef<string | null>(null);
+
+  // Listen for messages from popup window
+  useEffect(() => {
+    const handleMessage = async (event: MessageEvent) => {
+      const { type, data, error } = event.data || {};
+      
+      if (type === 'pluggy-success' && data) {
+        console.log("[OpenFinance] Popup success:", JSON.stringify(data));
+        const orgId = pendingOrgIdRef.current;
+        const itemId = data.item?.id || data.id;
+        const connectorName = data.item?.connector?.name || data.connector?.name;
+
+        if (!itemId || !orgId) {
+          toast.error("Dados da conexão incompletos.");
+          setIsConnecting(false);
+          return;
+        }
+
+        try {
+          toast.info("Salvando conexão bancária...");
+          await savePluggyItem.mutateAsync({ organizationId: orgId, itemId, connectorName });
+          toast.success("Conexão bancária salva!");
+        } catch (err: any) {
+          toast.error("Erro ao salvar conexão: " + (err?.message || 'Erro'));
+          setIsConnecting(false);
+          pendingOrgIdRef.current = null;
+          return;
+        }
+
+        try {
+          toast.info("Sincronizando transações...");
+          const result = await syncConnection.mutateAsync({ organizationId: orgId, itemId });
+          toast.success(`Sincronização concluída: ${result.imported} transações importadas`);
+        } catch (err: any) {
+          toast.warning("Conexão salva. Use 'Sincronizar' para importar transações.");
+        }
+
+        refetch();
+        setIsConnecting(false);
+        pendingOrgIdRef.current = null;
+      } else if (type === 'pluggy-error') {
+        console.error("[OpenFinance] Popup error:", error);
+        const orgId = pendingOrgIdRef.current;
+        const itemId = error?.data?.item?.id || error?.item?.id;
+
+        // Partial error - try to save anyway
+        if (itemId && orgId) {
+          toast.warning("Erro parcial. Tentando salvar...");
+          try {
+            await savePluggyItem.mutateAsync({ organizationId: orgId, itemId });
+            await syncConnection.mutateAsync({ organizationId: orgId, itemId });
+            toast.success("Conexão salva com sucesso!");
+          } catch {
+            toast.warning("Conexão pode ter sido salva. Verifique e sincronize manualmente.");
+          }
+          refetch();
+        } else {
+          toast.error("Erro na conexão: " + (error?.message || 'Erro desconhecido'));
+        }
+
+        setIsConnecting(false);
+        pendingOrgIdRef.current = null;
+      } else if (type === 'pluggy-close') {
+        console.log("[OpenFinance] Popup closed");
+        setIsConnecting(false);
+        pendingOrgIdRef.current = null;
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [savePluggyItem, syncConnection, refetch]);
 
   const handleConnect = async () => {
     const organizationId = getRequiredOrganizationId();
     if (!organizationId) return;
 
     setIsConnecting(true);
-    setPendingOrgId(organizationId);
+    pendingOrgIdRef.current = organizationId;
     
     try {
       const result = await openPluggyConnect.mutateAsync({ organizationId });
       
       if (!result.accessToken) {
-        console.error("[OpenFinance] Backend returned no accessToken:", result);
-        toast.error("Token de conexão inválido. Verifique a configuração do provedor.");
+        toast.error("Token de conexão inválido.");
         setIsConnecting(false);
         return;
       }
 
-      console.log(`[OpenFinance] Connect token received (${result.accessToken.length} chars)`);
-      setConnectToken(result.accessToken);
-      setShowPluggyWidget(true);
+      // Open popup window with the connect token
+      const popupUrl = `/pluggy-connect.html#${result.accessToken}`;
+      const popup = window.open(
+        popupUrl,
+        'pluggy-connect',
+        'width=500,height=700,scrollbars=yes,resizable=yes,left=200,top=100'
+      );
+
+      if (!popup) {
+        toast.error("Popup bloqueado pelo navegador. Permita popups para este site.");
+        setIsConnecting(false);
+        return;
+      }
+
+      popupRef.current = popup;
+
+      // Monitor popup close
+      const checkClosed = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkClosed);
+          // Only reset if still connecting (no success/error message received)
+          setTimeout(() => {
+            setIsConnecting(false);
+            pendingOrgIdRef.current = null;
+          }, 1000);
+        }
+      }, 500);
+
     } catch (error: any) {
-      console.error("[OpenFinance] Failed to get connect token:", error);
       toast.error("Falha ao conectar: " + (error?.message || 'Erro desconhecido'));
       setIsConnecting(false);
     }
-  };
-
-  const handlePluggySuccess = async (itemData: any) => {
-    console.log("[OpenFinance] Pluggy success callback fired:", JSON.stringify(itemData));
-    setShowPluggyWidget(false);
-    setConnectToken(null);
-
-    if (pendingOrgId && itemData) {
-      const itemId = itemData.item?.id || itemData.id;
-      const connectorName = itemData.item?.connector?.name || itemData.connector?.name;
-
-      if (!itemId) {
-        console.error("[OpenFinance] No itemId found in callback data:", itemData);
-        toast.error("Erro: ID do item não encontrado na resposta do widget.");
-        setIsConnecting(false);
-        setPendingOrgId(null);
-        return;
-      }
-
-      // Step 1: Save the connection
-      try {
-        toast.info("Salvando conexão bancária...");
-        await savePluggyItem.mutateAsync({
-          organizationId: pendingOrgId,
-          itemId,
-          connectorName
-        });
-        toast.success("Conexão bancária salva!");
-      } catch (err: any) {
-        console.error("[OpenFinance] Failed to save Pluggy item:", err);
-        toast.error("Erro ao salvar conexão: " + (err?.message || 'Erro desconhecido'));
-        setIsConnecting(false);
-        setPendingOrgId(null);
-        return;
-      }
-
-      // Step 2: Sync transactions
-      try {
-        toast.info("Sincronizando transações...");
-        const result = await syncConnection.mutateAsync({
-          organizationId: pendingOrgId,
-          itemId
-        });
-        toast.success(`Sincronização concluída: ${result.imported} transações importadas`);
-      } catch (err: any) {
-        console.error("[OpenFinance] Failed to sync:", err);
-        toast.warning("Conexão salva, mas a sincronização automática falhou. Use o botão 'Sincronizar' manualmente.");
-      }
-
-      refetch();
-    } else {
-      console.warn("[OpenFinance] onSuccess called without pendingOrgId or itemData", { pendingOrgId, itemData });
-      toast.warning("Conexão finalizada. Clique em 'Sincronizar' para importar transações.");
-    }
-
-    setIsConnecting(false);
-    setPendingOrgId(null);
-  };
-
-  const handlePluggyError = async (error: any) => {
-    console.error("[OpenFinance] Pluggy error:", error);
-    setShowPluggyWidget(false);
-    setConnectToken(null);
-
-    // Extract item data from the error - Pluggy sends item info even on partial errors
-    const itemId = error?.data?.item?.id || error?.item?.id;
-    const connectorName = error?.data?.item?.connector?.name || error?.item?.connector?.name;
-    const errorMessage = error?.message || error?.data?.message || 'Erro desconhecido';
-
-    // "Item was not sync successfully" = partial success (item created, sync failed)
-    // We should still save the connection and try our own sync
-    if (itemId && pendingOrgId) {
-      console.log(`[OpenFinance] Partial error with itemId=${itemId}, attempting save+sync anyway`);
-      toast.warning("O banco reportou um erro parcial. Tentando salvar e sincronizar...");
-
-      try {
-        await savePluggyItem.mutateAsync({
-          organizationId: pendingOrgId,
-          itemId,
-          connectorName
-        });
-        toast.success("Conexão bancária salva!");
-      } catch (err: any) {
-        console.error("[OpenFinance] Failed to save after partial error:", err);
-        toast.error("Erro ao salvar conexão: " + (err?.message || 'Erro'));
-        setIsConnecting(false);
-        setPendingOrgId(null);
-        return;
-      }
-
-      try {
-        toast.info("Sincronizando transações...");
-        const result = await syncConnection.mutateAsync({
-          organizationId: pendingOrgId,
-          itemId
-        });
-        toast.success(`Sincronização concluída: ${result.imported} transações importadas`);
-      } catch (err: any) {
-        console.error("[OpenFinance] Sync after partial error failed:", err);
-        toast.warning("Conexão salva. Use o botão 'Sync' para importar transações manualmente.");
-      }
-
-      refetch();
-      setIsConnecting(false);
-      setPendingOrgId(null);
-      return;
-    }
-
-    // True error - no item created
-    toast.error("Erro na conexão: " + errorMessage);
-    setIsConnecting(false);
-    setPendingOrgId(null);
-  };
-
-  const handlePluggyClose = () => {
-    console.log("[OpenFinance] Pluggy widget closed");
-    setShowPluggyWidget(false);
-    setConnectToken(null);
-    setIsConnecting(false);
-    setPendingOrgId(null);
-  };
-
-  const handlePluggyLoadError = (error: Error) => {
-    console.error("[OpenFinance] Pluggy widget load error:", error);
-    toast.error("Erro ao carregar widget de conexão. Tente novamente.");
-    setShowPluggyWidget(false);
-    setConnectToken(null);
-    setIsConnecting(false);
-    setPendingOrgId(null);
   };
 
   const handleSyncAll = async () => {
@@ -230,7 +194,6 @@ export function BankConnectionsManager() {
     const activeConns = connections?.filter(c => c.status === 'active') || [];
     
     if (activeConns.length === 0) {
-      // No active connections - try org-level sync
       setSyncingId('all');
       try {
         await syncConnection.mutateAsync({ organizationId });
@@ -393,7 +356,7 @@ export function BankConnectionsManager() {
               <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Nenhuma conexão bancária encontrada</p>
               <p className="text-sm mt-2">
-                Clique em "Conectar Conta Bancária" para conectar seu banco via Open Finance
+                Clique em "Conectar Banco" para conectar via Open Finance
               </p>
             </div>
           ) : (
@@ -417,17 +380,6 @@ export function BankConnectionsManager() {
           )}
         </CardContent>
       </Card>
-
-      {/* Pluggy Connect React Widget - renders as modal overlay */}
-      {showPluggyWidget && connectToken && (
-        <PluggyConnect
-          connectToken={connectToken}
-          onSuccess={handlePluggySuccess}
-          onError={handlePluggyError}
-          onClose={handlePluggyClose}
-          onLoadError={handlePluggyLoadError}
-        />
-      )}
 
       <AlertDialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
         <AlertDialogContent>
