@@ -223,17 +223,51 @@ export function BankConnectionsManager() {
     setPendingOrgId(null);
   };
 
-  const handleFirstSync = async () => {
+  const handleSyncAll = async () => {
     const organizationId = getRequiredOrganizationId();
     if (!organizationId) return;
 
-    setSyncingId('new');
-    try {
-      await syncConnection.mutateAsync({ organizationId });
-      refetch();
-    } finally {
-      setSyncingId(null);
+    const activeConns = connections?.filter(c => c.status === 'active') || [];
+    
+    if (activeConns.length === 0) {
+      // No active connections - try org-level sync
+      setSyncingId('all');
+      try {
+        await syncConnection.mutateAsync({ organizationId });
+      } catch (err: any) {
+        console.error("[SyncAll] Org-level sync failed:", err);
+      } finally {
+        setSyncingId(null);
+        refetch();
+      }
+      return;
     }
+
+    setSyncingId('all');
+    let totalImported = 0;
+    let errors = 0;
+
+    for (const conn of activeConns) {
+      try {
+        const result = await syncConnection.mutateAsync({ 
+          bankConnectionId: conn.id,
+          itemId: conn.external_account_id || undefined
+        });
+        totalImported += result.imported || 0;
+      } catch (err: any) {
+        errors++;
+        console.error(`[SyncAll] Failed to sync connection ${conn.id}:`, err);
+      }
+    }
+
+    if (errors > 0) {
+      toast.warning(`Sincronização concluída com ${errors} erro(s). ${totalImported} transações importadas.`);
+    } else {
+      toast.success(`Todas as contas sincronizadas: ${totalImported} transações importadas.`);
+    }
+    
+    refetch();
+    setSyncingId(null);
   };
 
   const handleSync = async (connectionId: string, itemId?: string | null) => {
@@ -326,15 +360,16 @@ export function BankConnectionsManager() {
               <Button 
                 variant="outline"
                 size="sm"
-                onClick={handleFirstSync}
-                disabled={syncingId === 'new'}
+                onClick={handleSyncAll}
+                disabled={syncingId === 'all'}
               >
-                {syncingId === 'new' ? (
+                {syncingId === 'all' ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
                 ) : (
                   <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
                 )}
-                <span className="hidden sm:inline">Sincronizar</span>
+                <span className="hidden sm:inline">Sincronizar Todas</span>
+                <span className="sm:hidden">Sync</span>
               </Button>
               <Button 
                 size="sm"
@@ -429,55 +464,119 @@ function ConnectionCard({ connection, onSync, onDisconnect, isSyncing, isDisconn
   const StatusIcon = status.icon;
   const isActive = connection.status === 'active';
 
-  const meta = (connection as any).metadata as { bank_name?: string; bank_logo_url?: string | null } | null;
+  interface ConnectionMeta {
+    bank_name?: string;
+    bank_logo_url?: string | null;
+    pluggy_accounts?: Array<{
+      id: string;
+      type: string;
+      name: string;
+      balance: number | null;
+      available_balance: number | null;
+    }>;
+    last_balance?: number;
+    last_sync_accounts_count?: number;
+    item_status?: string;
+  }
+
+  const meta = (connection as any).metadata as ConnectionMeta | null;
   const bankName = meta?.bank_name || connection.provider_name || 'Banco via Open Finance';
   const bankLogo = meta?.bank_logo_url;
+  const pluggyAccounts = meta?.pluggy_accounts || [];
+  const totalBalance = meta?.last_balance ?? null;
+  const itemStatus = meta?.item_status;
+  const hasLoginError = itemStatus === 'LOGIN_ERROR' || itemStatus === 'OUTDATED';
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  };
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:p-4 border rounded-lg bg-card">
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        {bankLogo ? (
-          <img
-            src={bankLogo}
-            alt={bankName}
-            className="h-10 w-10 rounded-lg object-contain bg-muted p-0.5"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-          />
-        ) : (
-          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <Building2 className="h-5 w-5 text-primary" />
-          </div>
-        )}
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{bankName}</span>
-            <Badge variant={status.variant} className="text-xs">
-              <StatusIcon className="h-3 w-3 mr-1" />
-              {status.label}
-            </Badge>
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {connection.last_sync_at ? (
-              <>
-                Última sincronização:{" "}
-                {formatDistanceToNow(new Date(connection.last_sync_at), { 
-                  addSuffix: true, 
-                  locale: ptBR 
-                })}
-              </>
-            ) : (
-              "Nunca sincronizado"
+    <div className="flex flex-col gap-3 p-3 sm:p-4 border rounded-lg bg-card">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {bankLogo ? (
+            <img
+              src={bankLogo}
+              alt={bankName}
+              className="h-10 w-10 rounded-lg object-contain bg-muted p-0.5"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+            />
+          ) : (
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Building2 className="h-5 w-5 text-primary" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-medium">{bankName}</span>
+              <Badge variant={status.variant} className="text-xs">
+                <StatusIcon className="h-3 w-3 mr-1" />
+                {status.label}
+              </Badge>
+              {hasLoginError && (
+                <Badge variant="destructive" className="text-xs">
+                  <AlertCircle className="h-3 w-3 mr-1" />
+                  Requer reconexão
+                </Badge>
+              )}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {connection.last_sync_at ? (
+                <>
+                  Última sincronização:{" "}
+                  {formatDistanceToNow(new Date(connection.last_sync_at), { 
+                    addSuffix: true, 
+                    locale: ptBR 
+                  })}
+                </>
+              ) : (
+                "Nunca sincronizado"
+              )}
+            </div>
+            {connection.sync_error && (
+              <div className="text-xs text-destructive mt-1">
+                Erro: {connection.sync_error}
+              </div>
+            )}
+            {hasLoginError && (
+              <div className="text-xs text-destructive mt-1">
+                O consentimento expirou ou houve erro de login. Desconecte e reconecte o banco.
+              </div>
             )}
           </div>
-          {connection.sync_error && (
-            <div className="text-xs text-destructive mt-1">
-              Erro: {connection.sync_error}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+          {totalBalance !== null && !hasLoginError && (
+            <div className="text-right mr-2">
+              <div className="text-xs text-muted-foreground">Saldo Total</div>
+              <div className={`text-sm font-semibold ${totalBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                {formatCurrency(totalBalance)}
+              </div>
             </div>
           )}
         </div>
       </div>
-      
-      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+
+      {/* Account details */}
+      {pluggyAccounts.length > 0 && !hasLoginError && (
+        <div className="border-t pt-2 space-y-1.5">
+          <div className="text-xs font-medium text-muted-foreground">Contas vinculadas</div>
+          <div className="grid gap-1.5 grid-cols-1 sm:grid-cols-2">
+            {pluggyAccounts.map((acc) => (
+              <div key={acc.id} className="flex items-center justify-between text-xs p-1.5 rounded bg-muted/50">
+                <span className="truncate">{acc.name || acc.type}</span>
+                <span className={`font-medium ${(acc.balance ?? 0) >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                  {acc.balance !== null ? formatCurrency(acc.balance) : '—'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 justify-end border-t pt-2">
         <Button
           variant="outline"
           size="sm"
@@ -489,7 +588,7 @@ function ConnectionCard({ connection, onSync, onDisconnect, isSyncing, isDisconn
           ) : (
             <RefreshCw className="h-3.5 w-3.5" />
           )}
-          <span className="ml-1.5">Sync</span>
+          <span className="ml-1.5">Sincronizar</span>
         </Button>
         <Button
           variant="ghost"

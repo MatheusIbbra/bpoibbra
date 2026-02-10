@@ -163,13 +163,24 @@ export function useSyncBankConnection() {
       });
 
       if (error) throw error;
-      return data as { success: boolean; imported: number; skipped: number; total: number; connection_id?: string };
+      
+      // Handle item_status errors (LOGIN_ERROR, OUTDATED)
+      if (data && data.success === false && data.error) {
+        throw new Error(data.error);
+      }
+      
+      return data as { success: boolean; imported: number; skipped: number; total: number; connection_id?: string; item_status?: string };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["bank-connections"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      toast.success(`Sincronização concluída: ${data.imported} transações importadas`);
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      if (data.imported > 0) {
+        toast.success(`Sincronização concluída: ${data.imported} transações importadas`);
+      } else {
+        toast.info("Sincronização concluída. Nenhuma transação nova encontrada.");
+      }
     },
     onError: (error) => {
       toast.error("Erro na sincronização: " + error.message);
