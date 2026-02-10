@@ -652,47 +652,6 @@ export type Database = {
           },
         ]
       }
-      oauth_states: {
-        Row: {
-          created_at: string
-          expires_at: string
-          id: string
-          organization_id: string
-          provider: string
-          redirect_path: string | null
-          state: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          expires_at?: string
-          id?: string
-          organization_id: string
-          provider?: string
-          redirect_path?: string | null
-          state: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string
-          id?: string
-          organization_id?: string
-          provider?: string
-          redirect_path?: string | null
-          state?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "oauth_states_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       organization_members: {
         Row: {
           created_at: string
