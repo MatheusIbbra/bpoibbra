@@ -104,14 +104,14 @@ const Index = () => {
           <MonthlyEvolutionChart />
         </div>
 
-        {/* Últimas Movimentações */}
-        <FintechTransactionsList />
-
-        {/* Cards menores */}
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-          <ReconciliationMetricsCard />
+        {/* Orçamento do Mês + Últimas Movimentações lado a lado */}
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
           <BudgetProgress />
+          <FintechTransactionsList />
         </div>
+
+        {/* Conciliação */}
+        <ReconciliationMetricsCard />
 
         {/* Contas Conectadas (Open Finance) */}
         <ConnectedAccountsSection />
