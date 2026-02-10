@@ -30,7 +30,7 @@
       var statusEl = document.getElementById('status');
       var messageEl = document.getElementById('message');
       var spinnerEl = document.getElementById('spinner');
-      var SDK_URL = 'https://cdn.pluggy.ai/pluggy-connect/v2.12.0/pluggy-connect.js';
+      var SDK_URL = 'https://cdn.pluggy.ai/pluggy-connect/latest/pluggy-connect.js';
       var SDK_LOAD_TIMEOUT = 15000; // 15 seconds
       var sdkLoaded = false;
       var initAttempted = false;
@@ -190,7 +190,7 @@
           if (err) {
             // Fallback: try loading from alternate CDN
             log('Trying fallback SDK URL...');
-            var fallbackUrl = 'https://cdn.pluggy.ai/pluggy-connect/v2/pluggy-connect.js';
+            var fallbackUrl = 'https://cdn.pluggy.ai/pluggy-connect/v2.13.0/pluggy-connect.js';
             var fallbackScript = document.createElement('script');
             fallbackScript.src = fallbackUrl;
             fallbackScript.async = true;

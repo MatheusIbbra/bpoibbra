@@ -301,6 +301,7 @@ export function BankConnectionsManager() {
   }
 
   const activeConnections = connections?.filter(c => c.status === 'active') || [];
+  const inactiveConnections = connections?.filter(c => c.status !== 'active') || [];
 
   return (
     <>
@@ -320,20 +321,22 @@ export function BankConnectionsManager() {
               </CardDescription>
             </div>
             <div className="flex gap-2 flex-wrap">
-              <Button 
-                variant="outline"
-                size="sm"
-                onClick={handleSyncAll}
-                disabled={syncingId === 'all'}
-              >
-                {syncingId === 'all' ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                ) : (
-                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                )}
-                <span className="hidden sm:inline">Sincronizar Todas</span>
-                <span className="sm:hidden">Sync</span>
-              </Button>
+              {activeConnections.length > 0 && (
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSyncAll}
+                  disabled={syncingId === 'all'}
+                >
+                  {syncingId === 'all' ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                  ) : (
+                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                  )}
+                  <span className="hidden sm:inline">Sincronizar Todas</span>
+                  <span className="sm:hidden">Sync</span>
+                </Button>
+              )}
               <Button 
                 size="sm"
                 onClick={handleConnect}
@@ -370,6 +373,23 @@ export function BankConnectionsManager() {
                       connection={connection}
                       onSync={() => handleSync(connection.id, connection.external_account_id)}
                       onDisconnect={() => handleDisconnectClick(connection)}
+                      onReconnect={handleConnect}
+                      isSyncing={syncingId === connection.id}
+                      isDisconnecting={disconnectingId === connection.id}
+                    />
+                  ))}
+                </div>
+              )}
+              {inactiveConnections.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Conexões Inativas / Desconectadas</h4>
+                  {inactiveConnections.map((connection) => (
+                    <ConnectionCard
+                      key={connection.id}
+                      connection={connection}
+                      onSync={() => handleSync(connection.id, connection.external_account_id)}
+                      onDisconnect={() => handleDisconnectClick(connection)}
+                      onReconnect={handleConnect}
                       isSyncing={syncingId === connection.id}
                       isDisconnecting={disconnectingId === connection.id}
                     />
@@ -407,11 +427,12 @@ interface ConnectionCardProps {
   connection: BankConnection;
   onSync: () => void;
   onDisconnect: () => void;
+  onReconnect: () => void;
   isSyncing: boolean;
   isDisconnecting: boolean;
 }
 
-function ConnectionCard({ connection, onSync, onDisconnect, isSyncing, isDisconnecting }: ConnectionCardProps) {
+function ConnectionCard({ connection, onSync, onDisconnect, onReconnect, isSyncing, isDisconnecting }: ConnectionCardProps) {
   const status = statusConfig[connection.status] || statusConfig.error;
   const StatusIcon = status.icon;
   const isActive = connection.status === 'active';
@@ -529,19 +550,30 @@ function ConnectionCard({ connection, onSync, onDisconnect, isSyncing, isDisconn
       )}
 
       <div className="flex items-center gap-2 justify-end border-t pt-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onSync}
-          disabled={!isActive || isSyncing || isDisconnecting}
-        >
-          {isSyncing ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <RefreshCw className="h-3.5 w-3.5" />
-          )}
-          <span className="ml-1.5">Sincronizar</span>
-        </Button>
+        {isActive ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onSync}
+            disabled={isSyncing || isDisconnecting}
+          >
+            {isSyncing ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5" />
+            )}
+            <span className="ml-1.5">Sincronizar</span>
+          </Button>
+        ) : (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={onReconnect}
+          >
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            Reconectar
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"
