@@ -169,7 +169,7 @@ export function useSyncBankConnection() {
         throw new Error(data.error);
       }
       
-      return data as { success: boolean; imported: number; skipped: number; total: number; connection_id?: string; item_status?: string };
+      return data as { success: boolean; imported: number; skipped: number; total: number; connection_id?: string; item_status?: string; accounts?: number; api_balance?: number; balance_difference?: number };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["bank-connections"] });
@@ -177,13 +177,25 @@ export function useSyncBankConnection() {
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
       if (data.imported > 0) {
-        toast.success(`Sincronização concluída: ${data.imported} transações importadas`);
+        toast.success(`Sincronização concluída: ${data.imported} transações importadas, ${data.accounts || 0} contas atualizadas`);
+      } else if (data.accounts && data.accounts > 0) {
+        toast.info(`Saldos atualizados (${data.accounts} contas). Nenhuma transação nova.`);
       } else {
         toast.info("Sincronização concluída. Nenhuma transação nova encontrada.");
       }
     },
     onError: (error) => {
-      toast.error("Erro na sincronização: " + error.message);
+      // Show a more specific error message
+      const msg = error.message || 'Erro desconhecido';
+      if (msg.includes('LOGIN_ERROR') || msg.includes('credenciais')) {
+        toast.error("Erro de login no banco. Desconecte e reconecte para renovar o acesso.");
+      } else if (msg.includes('OUTDATED') || msg.includes('expirado')) {
+        toast.error("Consentimento expirado. Reconecte o banco.");
+      } else if (msg.includes('Tempo limite')) {
+        toast.warning("O banco ainda está processando. Tente sincronizar novamente em 1-2 minutos.");
+      } else {
+        toast.error("Erro na sincronização: " + msg);
+      }
     },
   });
 }
