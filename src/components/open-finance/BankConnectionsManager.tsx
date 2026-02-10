@@ -65,71 +65,106 @@ export function BankConnectionsManager() {
   const popupRef = useRef<Window | null>(null);
   const pendingOrgIdRef = useRef<string | null>(null);
 
+  // Track if we already handled the success to prevent double processing
+  const handledRef = useRef(false);
+
   // Listen for messages from popup window
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
       const { type, data, error } = event.data || {};
       
       if (type === 'pluggy-success' && data) {
+        // Prevent double processing
+        if (handledRef.current) return;
+        handledRef.current = true;
+
         console.log("[OpenFinance] Popup success:", JSON.stringify(data));
         const orgId = pendingOrgIdRef.current;
-        const itemId = data.item?.id || data.id;
-        const connectorName = data.item?.connector?.name || data.connector?.name;
+        
+        // Extract item ID from various possible structures
+        const itemId = data?.item?.id || data?.id || data?.itemId || 
+                       (typeof data === 'string' ? data : null);
+        const connectorName = data?.item?.connector?.name || data?.connector?.name || 
+                              data?.item?.connectorName || data?.connectorName;
 
-        if (!itemId || !orgId) {
-          toast.error("Dados da conexão incompletos.");
+        console.log("[OpenFinance] Extracted itemId:", itemId, "orgId:", orgId, "connectorName:", connectorName);
+
+        if (!itemId) {
+          console.error("[OpenFinance] Could not extract itemId from data:", JSON.stringify(data));
+          toast.error("Não foi possível identificar o item de conexão. Tente novamente.");
           setIsConnecting(false);
+          handledRef.current = false;
+          return;
+        }
+
+        if (!orgId) {
+          console.error("[OpenFinance] No orgId in pendingOrgIdRef");
+          toast.error("Sessão expirada. Tente conectar novamente.");
+          setIsConnecting(false);
+          handledRef.current = false;
           return;
         }
 
         try {
           toast.info("Salvando conexão bancária...");
           await savePluggyItem.mutateAsync({ organizationId: orgId, itemId, connectorName });
-          toast.success("Conexão bancária salva!");
         } catch (err: any) {
+          console.error("[OpenFinance] Save error:", err);
           toast.error("Erro ao salvar conexão: " + (err?.message || 'Erro'));
           setIsConnecting(false);
           pendingOrgIdRef.current = null;
+          handledRef.current = false;
           return;
         }
 
         try {
-          toast.info("Sincronizando transações...");
+          toast.info("Sincronizando transações... Aguarde até 60 segundos.");
           const result = await syncConnection.mutateAsync({ organizationId: orgId, itemId });
-          toast.success(`Sincronização concluída: ${result.imported} transações importadas`);
+          if (result.imported > 0) {
+            toast.success(`Sincronização concluída: ${result.imported} transações importadas, ${result.accounts || 0} contas`);
+          } else {
+            toast.info(`Contas sincronizadas (${result.accounts || 0}). Use 'Sincronizar' novamente se as transações não aparecerem imediatamente.`);
+          }
         } catch (err: any) {
-          toast.warning("Conexão salva. Use 'Sincronizar' para importar transações.");
+          console.warn("[OpenFinance] Sync error (connection saved):", err);
+          toast.warning("Conexão salva. Clique em 'Sincronizar' para importar transações.");
         }
 
         refetch();
         setIsConnecting(false);
         pendingOrgIdRef.current = null;
+        handledRef.current = false;
       } else if (type === 'pluggy-error') {
-        console.error("[OpenFinance] Popup error:", error);
+        console.error("[OpenFinance] Popup error:", JSON.stringify(error));
         const orgId = pendingOrgIdRef.current;
-        const itemId = error?.data?.item?.id || error?.item?.id;
+        const itemId = error?.data?.item?.id || error?.item?.id || error?.itemId;
+        const errorMsg = error?.message || error?.msg || 'Erro desconhecido';
 
-        // Partial error - try to save anyway
+        // Partial error - try to save anyway if we have an item
         if (itemId && orgId) {
-          toast.warning("Erro parcial. Tentando salvar...");
+          toast.warning("Erro parcial na conexão. Tentando salvar...");
           try {
             await savePluggyItem.mutateAsync({ organizationId: orgId, itemId });
-            await syncConnection.mutateAsync({ organizationId: orgId, itemId });
-            toast.success("Conexão salva com sucesso!");
+            toast.info("Conexão salva. Use 'Sincronizar' para importar transações.");
           } catch {
-            toast.warning("Conexão pode ter sido salva. Verifique e sincronize manualmente.");
+            toast.warning("Não foi possível salvar. Tente conectar novamente.");
           }
           refetch();
         } else {
-          toast.error("Erro na conexão: " + (error?.message || 'Erro desconhecido'));
+          toast.error("Erro na conexão: " + errorMsg);
         }
 
         setIsConnecting(false);
         pendingOrgIdRef.current = null;
+        handledRef.current = false;
       } else if (type === 'pluggy-close') {
-        console.log("[OpenFinance] Popup closed");
-        setIsConnecting(false);
-        pendingOrgIdRef.current = null;
+        console.log("[OpenFinance] Popup closed by user");
+        // Don't clear orgId immediately - success message might still arrive
+        setTimeout(() => {
+          setIsConnecting(false);
+          pendingOrgIdRef.current = null;
+          handledRef.current = false;
+        }, 2000);
       }
     };
 
@@ -169,15 +204,19 @@ export function BankConnectionsManager() {
 
       popupRef.current = popup;
 
-      // Monitor popup close
+      // Monitor popup close - give enough time for the success message to be processed
       const checkClosed = setInterval(() => {
         if (popup.closed) {
           clearInterval(checkClosed);
-          // Only reset if still connecting (no success/error message received)
+          // Wait longer before clearing - success message may still be in flight
           setTimeout(() => {
-            setIsConnecting(false);
-            pendingOrgIdRef.current = null;
-          }, 1000);
+            if (!handledRef.current) {
+              // Only reset if no success/error was handled
+              console.log("[OpenFinance] Popup closed without success handler firing");
+              setIsConnecting(false);
+              pendingOrgIdRef.current = null;
+            }
+          }, 3000);
         }
       }, 500);
 
