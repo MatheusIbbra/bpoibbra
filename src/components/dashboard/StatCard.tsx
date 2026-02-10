@@ -29,44 +29,46 @@ export function StatCard({
   onClick,
   hoverContent,
 }: StatCardProps) {
-  const variantStyles = {
-    default: "border-border",
-    success: "border-l-2 border-l-success",
-    warning: "border-l-2 border-l-warning",
-    destructive: "border-l-2 border-l-destructive",
+  const variantAccent = {
+    default: "bg-accent/8 text-accent",
+    success: "bg-success/8 text-success",
+    warning: "bg-warning/8 text-warning",
+    destructive: "bg-destructive/8 text-destructive",
   };
 
-  const iconVariantStyles = {
-    default: "bg-muted/50 text-primary",
-    success: "bg-muted/50 text-success",
-    warning: "bg-muted/50 text-warning",
-    destructive: "bg-muted/50 text-destructive",
+  const variantBorder = {
+    default: "",
+    success: "border-l-[3px] border-l-success",
+    warning: "border-l-[3px] border-l-warning",
+    destructive: "border-l-[3px] border-l-destructive",
   };
 
   const cardContent = (
     <Card 
       className={cn(
-        "shadow-sm transition-all duration-200", 
-        variantStyles[variant],
-        onClick && "cursor-pointer hover:shadow-md hover:-translate-y-0.5"
+        "transition-all duration-300 hover:shadow-executive-lg hover:-translate-y-0.5 group",
+        variantBorder[variant],
+        onClick && "cursor-pointer"
       )}
       onClick={onClick}
     >
-      <CardContent className="p-2.5 sm:p-3">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{title}</p>
-            <p className="text-sm sm:text-lg font-bold tracking-tight mt-0.5 truncate"><MaskedValue>{value}</MaskedValue></p>
+      <CardContent className="p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0 space-y-1">
+            <p className="text-xs sm:text-sm text-muted-foreground font-medium truncate">{title}</p>
+            <p className="text-lg sm:text-xl font-bold tracking-tight truncate">
+              <MaskedValue>{value}</MaskedValue>
+            </p>
             {trend && (
-              <div className="flex items-center gap-1 mt-0.5">
+              <div className="flex items-center gap-1.5 mt-1">
                 {trend.isPositive ? (
-                  <TrendingUp className="h-3 w-3 text-success" />
+                  <TrendingUp className="h-3.5 w-3.5 text-success" />
                 ) : (
-                  <TrendingDown className="h-3 w-3 text-destructive" />
+                  <TrendingDown className="h-3.5 w-3.5 text-destructive" />
                 )}
                 <span
                   className={cn(
-                    "text-[10px] font-medium",
+                    "text-xs font-semibold",
                     trend.isPositive ? "text-success" : "text-destructive"
                   )}
                 >
@@ -75,13 +77,13 @@ export function StatCard({
               </div>
             )}
             {description && (
-              <p className="text-[10px] text-muted-foreground mt-0.5">{description}</p>
+              <p className="text-[11px] text-muted-foreground mt-1">{description}</p>
             )}
           </div>
           <div
             className={cn(
-              "hidden sm:flex h-8 w-8 items-center justify-center rounded-lg shrink-0 ml-2",
-              iconVariantStyles[variant]
+              "hidden sm:flex h-10 w-10 items-center justify-center rounded-xl shrink-0 transition-transform duration-300 group-hover:scale-110",
+              variantAccent[variant]
             )}
           >
             {icon}

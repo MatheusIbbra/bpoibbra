@@ -62,19 +62,19 @@ const Index = () => {
 
   return (
     <AppLayout title="Home">
-      <div className="space-y-3">
+      <div className="space-y-5">
         {/* Bloco 1: StatCards — Saldo, Receitas, Despesas, Economia */}
-        <div className="grid gap-2 sm:gap-3 grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
           <StatCard
             title="Saldo Disponível"
             value={formatCurrency(stats?.totalBalance ?? 0)}
-            icon={<Wallet className="h-4 w-4" />}
+            icon={<Wallet className="h-5 w-5" />}
             variant="default"
           />
           <StatCard
             title="Receitas do Mês"
             value={formatCurrency(stats?.monthlyIncome ?? 0)}
-            icon={<ArrowUpRight className="h-4 w-4" />}
+            icon={<ArrowUpRight className="h-5 w-5" />}
             variant="success"
             trend={stats?.incomeChange ? { value: stats.incomeChange, isPositive: stats.incomeChange >= 0 } : undefined}
             hoverContent={<StatCardHoverTransactions type="income" />}
@@ -82,7 +82,7 @@ const Index = () => {
           <StatCard
             title="Despesas do Mês"
             value={formatCurrency(stats?.monthlyExpenses ?? 0)}
-            icon={<ArrowDownRight className="h-4 w-4" />}
+            icon={<ArrowDownRight className="h-5 w-5" />}
             variant="destructive"
             trend={stats?.expenseChange ? { value: stats.expenseChange, isPositive: stats.expenseChange <= 0 } : undefined}
             hoverContent={<StatCardHoverTransactions type="expense" />}
@@ -90,7 +90,7 @@ const Index = () => {
           <StatCard
             title="Economia do Mês"
             value={formatCurrency(stats?.monthlySavings ?? 0)}
-            icon={<PiggyBank className="h-4 w-4" />}
+            icon={<PiggyBank className="h-5 w-5" />}
             variant={stats?.monthlySavings && stats.monthlySavings >= 0 ? "success" : "warning"}
           />
         </div>
@@ -99,7 +99,7 @@ const Index = () => {
         <BudgetAlerts showNotifications={true} />
 
         {/* Distribuição por Categoria + Evolução Financeira lado a lado */}
-        <div className="grid gap-3 grid-cols-1 lg:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
           <CategoryDonutChart />
           <MonthlyEvolutionChart />
         </div>
@@ -108,7 +108,7 @@ const Index = () => {
         <FintechTransactionsList />
 
         {/* Cards menores */}
-        <div className="grid gap-3 grid-cols-1 md:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
           <ReconciliationMetricsCard />
           <BudgetProgress />
         </div>
