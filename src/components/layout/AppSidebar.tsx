@@ -11,6 +11,7 @@ import { usePendingTransactionsCount } from "@/hooks/usePendingTransactionsCount
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import ibbraLogoWhite from "@/assets/ibbra-logo-white.png";
+import ibbraLogoFullWhite from "@/assets/ibbra-logo-full-white.png";
 
 const navItems = [
   { title: "Home", url: "/", icon: Home },
@@ -18,6 +19,7 @@ const navItems = [
   { title: "Cartões de Crédito", url: "/cartoes", icon: CreditCard },
   { title: "Orçamentos", url: "/orcamentos", icon: Wallet },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
+  { title: "Pendências", url: "/pendencias", icon: AlertCircle },
   { title: "Importar Extratos", url: "/importacoes", icon: Upload },
   { title: "Cadastros", url: "/cadastros", icon: Settings2 },
 ];
@@ -83,7 +85,11 @@ export function AppSidebar() {
       <SidebarHeader className="p-4 pb-2">
         <div className="gap-2 flex-col flex items-center justify-center py-4">
           <div className="relative">
-            <img src={ibbraLogoWhite} alt="Ibbra" className={`${collapsed ? "h-8 w-8" : "h-10"} object-contain shrink-0 transition-all duration-300`} />
+            {collapsed ? (
+              <img src={ibbraLogoWhite} alt="Ibbra" className="h-8 w-8 object-contain shrink-0 transition-all duration-300" />
+            ) : (
+              <img src={ibbraLogoFullWhite} alt="Ibbra" className="h-10 object-contain shrink-0 transition-all duration-300" />
+            )}
           </div>
         </div>
       </SidebarHeader>
@@ -95,9 +101,23 @@ export function AppSidebar() {
               <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={collapsed ? item.title : undefined}>
                 <NavLink to={item.url} end={item.url === "/"} className={`flex items-center transition-all duration-200 text-sm py-2.5 rounded-xl ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${isActive(item.url) ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
                   <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive(item.url) ? "text-sidebar-primary" : ""}`} />
-                  {!collapsed && <span className="whitespace-nowrap flex-1 text-[13px]">{item.title}</span>}
+                  {!collapsed && (
+                    <span className="whitespace-nowrap flex-1 text-[13px]">
+                      {item.title}
+                    </span>
+                  )}
+                  {!collapsed && item.url === "/pendencias" && pendingCount > 0 && (
+                    <Badge variant="destructive" className="ml-auto text-[10px] h-5 min-w-5 flex items-center justify-center">
+                      {pendingCount}
+                    </Badge>
+                  )}
                 </NavLink>
               </SidebarMenuButton>
+              {collapsed && item.url === "/pendencias" && pendingCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-4 min-w-4 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold px-1">
+                  {pendingCount}
+                </span>
+              )}
             </SidebarMenuItem>
           ))}
         </SidebarMenu>

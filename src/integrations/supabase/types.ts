@@ -652,6 +652,291 @@ export type Database = {
           },
         ]
       }
+      open_finance_accounts: {
+        Row: {
+          account_number: string | null
+          account_type: string | null
+          available_credit: number | null
+          balance: number | null
+          closing_day: number | null
+          created_at: string
+          credit_limit: number | null
+          currency_code: string | null
+          due_day: number | null
+          id: string
+          item_id: string
+          last_sync_at: string | null
+          local_account_id: string | null
+          name: string
+          organization_id: string
+          pluggy_account_id: string
+          raw_data: Json | null
+          subtype: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_number?: string | null
+          account_type?: string | null
+          available_credit?: number | null
+          balance?: number | null
+          closing_day?: number | null
+          created_at?: string
+          credit_limit?: number | null
+          currency_code?: string | null
+          due_day?: number | null
+          id?: string
+          item_id: string
+          last_sync_at?: string | null
+          local_account_id?: string | null
+          name: string
+          organization_id: string
+          pluggy_account_id: string
+          raw_data?: Json | null
+          subtype?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string | null
+          account_type?: string | null
+          available_credit?: number | null
+          balance?: number | null
+          closing_day?: number | null
+          created_at?: string
+          credit_limit?: number | null
+          currency_code?: string | null
+          due_day?: number | null
+          id?: string
+          item_id?: string
+          last_sync_at?: string | null
+          local_account_id?: string | null
+          name?: string
+          organization_id?: string
+          pluggy_account_id?: string
+          raw_data?: Json | null
+          subtype?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "open_finance_accounts_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "open_finance_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "open_finance_accounts_local_account_id_fkey"
+            columns: ["local_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "open_finance_accounts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      open_finance_items: {
+        Row: {
+          connector_id: string | null
+          consecutive_failures: number | null
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          execution_status: string | null
+          id: string
+          institution_name: string
+          institution_type: string | null
+          last_sync_at: string | null
+          next_sync_at: string | null
+          organization_id: string
+          pluggy_item_id: string
+          products: Json | null
+          status: string
+          sync_frequency: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connector_id?: string | null
+          consecutive_failures?: number | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          execution_status?: string | null
+          id?: string
+          institution_name: string
+          institution_type?: string | null
+          last_sync_at?: string | null
+          next_sync_at?: string | null
+          organization_id: string
+          pluggy_item_id: string
+          products?: Json | null
+          status?: string
+          sync_frequency?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connector_id?: string | null
+          consecutive_failures?: number | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          execution_status?: string | null
+          id?: string
+          institution_name?: string
+          institution_type?: string | null
+          last_sync_at?: string | null
+          next_sync_at?: string | null
+          organization_id?: string
+          pluggy_item_id?: string
+          products?: Json | null
+          status?: string
+          sync_frequency?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "open_finance_items_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      open_finance_raw_data: {
+        Row: {
+          created_at: string
+          data_type: string
+          external_id: string | null
+          id: string
+          item_id: string | null
+          organization_id: string
+          processed: boolean | null
+          processed_at: string | null
+          processing_error: string | null
+          raw_json: Json
+        }
+        Insert: {
+          created_at?: string
+          data_type: string
+          external_id?: string | null
+          id?: string
+          item_id?: string | null
+          organization_id: string
+          processed?: boolean | null
+          processed_at?: string | null
+          processing_error?: string | null
+          raw_json: Json
+        }
+        Update: {
+          created_at?: string
+          data_type?: string
+          external_id?: string | null
+          id?: string
+          item_id?: string | null
+          organization_id?: string
+          processed?: boolean | null
+          processed_at?: string | null
+          processing_error?: string | null
+          raw_json?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "open_finance_raw_data_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "open_finance_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "open_finance_raw_data_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      open_finance_sync_logs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          duration_ms: number | null
+          error_details: Json | null
+          error_message: string | null
+          id: string
+          item_id: string | null
+          metadata: Json | null
+          organization_id: string
+          records_failed: number | null
+          records_fetched: number | null
+          records_imported: number | null
+          records_skipped: number | null
+          started_at: string
+          status: string
+          sync_type: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_details?: Json | null
+          error_message?: string | null
+          id?: string
+          item_id?: string | null
+          metadata?: Json | null
+          organization_id: string
+          records_failed?: number | null
+          records_fetched?: number | null
+          records_imported?: number | null
+          records_skipped?: number | null
+          started_at?: string
+          status?: string
+          sync_type: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_details?: Json | null
+          error_message?: string | null
+          id?: string
+          item_id?: string | null
+          metadata?: Json | null
+          organization_id?: string
+          records_failed?: number | null
+          records_fetched?: number | null
+          records_imported?: number | null
+          records_skipped?: number | null
+          started_at?: string
+          status?: string
+          sync_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "open_finance_sync_logs_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "open_finance_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "open_finance_sync_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           created_at: string

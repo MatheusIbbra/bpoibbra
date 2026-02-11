@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.seed-reconciliation-rules]
 verify_jwt = false
+
+[functions.financial-core-engine]
+verify_jwt = false

@@ -36,6 +36,7 @@ import OpenFinance from "./pages/OpenFinance";
 import CallbackKlavi from "./pages/CallbackKlavi";
 import CartaoCredito from "./pages/CartaoCredito";
 import CartoesCredito from "./pages/CartoesCredito";
+import OpenFinanceMonitor from "./pages/OpenFinanceMonitor";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +79,7 @@ const App = () => (
                 <Route path="/callback-klavi" element={<CallbackKlavi />} />
                 <Route path="/cartoes" element={<CartoesCredito />} />
                 <Route path="/cartao/:accountId" element={<CartaoCredito />} />
+                <Route path="/open-finance-monitor" element={<OpenFinanceMonitor />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
