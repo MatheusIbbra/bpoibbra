@@ -39,20 +39,26 @@ export function useCashFlowReport(
   const { user } = useAuth();
   const { getOrganizationFilter } = useBaseFilter();
   const orgFilter = getOrganizationFilter();
-  const dateField = basis === "cash" ? "date" : "accrual_date";
+  const startStr = format(startDate, "yyyy-MM-dd");
+  const endStr = format(endDate, "yyyy-MM-dd");
 
   return useQuery({
-    queryKey: ["cashflow-report", user?.id, orgFilter.type, orgFilter.ids, format(startDate, "yyyy-MM-dd"), format(endDate, "yyyy-MM-dd"), basis, granularity],
+    queryKey: ["cashflow-report", user?.id, orgFilter.type, orgFilter.ids, startStr, endStr, basis, granularity],
     queryFn: async (): Promise<CashFlowData> => {
       // Get transactions for the period - join accounts to get account_type
-      // Exclude ignored and non-validated transactions from reports
       let transactionsQuery = supabase
         .from("transactions")
-        .select("id, amount, type, date, accounts(account_type)")
-        .gte(dateField, format(startDate, "yyyy-MM-dd"))
-        .lte(dateField, format(endDate, "yyyy-MM-dd"))
+        .select("id, amount, type, date, accrual_date, accounts(account_type)")
         .neq("is_ignored", true)
         .order("date", { ascending: true });
+
+      if (basis === "cash") {
+        transactionsQuery = transactionsQuery.gte("date", startStr).lte("date", endStr);
+      } else {
+        transactionsQuery = transactionsQuery.or(
+          `and(accrual_date.gte.${startStr},accrual_date.lte.${endStr}),and(accrual_date.is.null,date.gte.${startStr},date.lte.${endStr})`
+        );
+      }
 
       if (orgFilter.type === 'single') {
         transactionsQuery = transactionsQuery.eq("organization_id", orgFilter.ids[0]);
@@ -66,9 +72,16 @@ export function useCashFlowReport(
       // Get opening balance (sum of transactions before start date)
       let priorQuery = supabase
         .from("transactions")
-        .select("amount, type, accounts(account_type)")
-        .lt(dateField, format(startDate, "yyyy-MM-dd"))
+        .select("amount, type, accrual_date, accounts(account_type)")
         .neq("is_ignored", true);
+
+      if (basis === "cash") {
+        priorQuery = priorQuery.lt("date", startStr);
+      } else {
+        priorQuery = priorQuery.or(
+          `and(accrual_date.lt.${startStr}),and(accrual_date.is.null,date.lt.${startStr})`
+        );
+      }
 
       if (orgFilter.type === 'single') {
         priorQuery = priorQuery.eq("organization_id", orgFilter.ids[0]);

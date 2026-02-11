@@ -62,36 +62,41 @@ const Index = () => {
   return (
     <AppLayout title="Home">
       <div className="space-y-5">
-        {/* Bloco 1: StatCards */}
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title="Saldo Disponível"
-            value={formatCurrency(stats?.totalBalance ?? 0)}
-            icon={<Wallet className="h-5 w-5" />}
-            variant="default"
-          />
-          <StatCard
-            title="Receitas do Mês"
-            value={formatCurrency(stats?.monthlyIncome ?? 0)}
-            icon={<ArrowUpRight className="h-5 w-5" />}
-            variant="success"
-            trend={stats?.incomeChange ? { value: stats.incomeChange, isPositive: stats.incomeChange >= 0 } : undefined}
-            hoverContent={<StatCardHoverTransactions type="income" />}
-          />
-          <StatCard
-            title="Despesas do Mês"
-            value={formatCurrency(stats?.monthlyExpenses ?? 0)}
-            icon={<ArrowDownRight className="h-5 w-5" />}
-            variant="destructive"
-            trend={stats?.expenseChange ? { value: stats.expenseChange, isPositive: stats.expenseChange <= 0 } : undefined}
-            hoverContent={<StatCardHoverTransactions type="expense" />}
-          />
-          <StatCard
-            title="Economia do Mês"
-            value={formatCurrency(stats?.monthlySavings ?? 0)}
-            icon={<PiggyBank className="h-5 w-5" />}
-            variant={stats?.monthlySavings && stats.monthlySavings >= 0 ? "success" : "warning"}
-          />
+        {/* Bloco 1: StatCards with colored band on mobile */}
+        <div className="relative">
+          {/* Colored band behind cards - mobile only */}
+          <div className="absolute inset-x-0 top-0 h-28 -mx-4 md:-mx-6 lg:-mx-8 bg-[hsl(var(--sidebar-background))] rounded-b-3xl md:hidden" />
+          
+          <div className="relative grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              title="Saldo Disponível"
+              value={formatCurrency(stats?.totalBalance ?? 0)}
+              icon={<Wallet className="h-5 w-5" />}
+              variant="default"
+            />
+            <StatCard
+              title="Receitas do Mês"
+              value={formatCurrency(stats?.monthlyIncome ?? 0)}
+              icon={<ArrowUpRight className="h-5 w-5" />}
+              variant="success"
+              trend={stats?.incomeChange ? { value: stats.incomeChange, isPositive: stats.incomeChange >= 0 } : undefined}
+              hoverContent={<StatCardHoverTransactions type="income" />}
+            />
+            <StatCard
+              title="Despesas do Mês"
+              value={formatCurrency(stats?.monthlyExpenses ?? 0)}
+              icon={<ArrowDownRight className="h-5 w-5" />}
+              variant="destructive"
+              trend={stats?.expenseChange ? { value: stats.expenseChange, isPositive: stats.expenseChange <= 0 } : undefined}
+              hoverContent={<StatCardHoverTransactions type="expense" />}
+            />
+            <StatCard
+              title="Economia do Mês"
+              value={formatCurrency(stats?.monthlySavings ?? 0)}
+              icon={<PiggyBank className="h-5 w-5" />}
+              variant={stats?.monthlySavings && stats.monthlySavings >= 0 ? "success" : "warning"}
+            />
+          </div>
         </div>
 
         {/* Alertas de Orçamento */}

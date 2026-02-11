@@ -30,12 +30,14 @@ export function useDREReport(startDate: Date, endDate: Date, basis: ReportBasis)
   const { user } = useAuth();
   const { getOrganizationFilter } = useBaseFilter();
   const orgFilter = getOrganizationFilter();
-  const dateField = basis === "cash" ? "date" : "accrual_date";
+  const startStr = format(startDate, "yyyy-MM-dd");
+  const endStr = format(endDate, "yyyy-MM-dd");
 
   return useQuery({
-    queryKey: ["dre-report", user?.id, orgFilter.type, orgFilter.ids, format(startDate, "yyyy-MM-dd"), format(endDate, "yyyy-MM-dd"), basis],
+    queryKey: ["dre-report", user?.id, orgFilter.type, orgFilter.ids, startStr, endStr, basis],
     queryFn: async (): Promise<DREData> => {
       // Get all transactions for the period
+      // For accrual basis, we need accrual_date with fallback to date
       let query = supabase
         .from("transactions")
         .select(`
@@ -44,15 +46,24 @@ export function useDREReport(startDate: Date, endDate: Date, basis: ReportBasis)
           amount,
           type,
           date,
+          accrual_date,
           category_id,
           categories (
             name,
             color
           )
         `)
-        .gte(dateField, format(startDate, "yyyy-MM-dd"))
-        .lte(dateField, format(endDate, "yyyy-MM-dd"))
         .neq("is_ignored", true);
+
+      if (basis === "cash") {
+        query = query.gte("date", startStr).lte("date", endStr);
+      } else {
+        // For accrual: fetch a broader range and filter client-side
+        // to handle COALESCE(accrual_date, date) logic
+        query = query.or(
+          `and(accrual_date.gte.${startStr},accrual_date.lte.${endStr}),and(accrual_date.is.null,date.gte.${startStr},date.lte.${endStr})`
+        );
+      }
 
       // Aplicar filtro de organização
       if (orgFilter.type === 'single') {
