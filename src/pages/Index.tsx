@@ -65,7 +65,7 @@ const Index = () => {
         {/* Bloco 1: StatCards with colored band on mobile */}
         <div className="relative">
           {/* Colored band behind cards - mobile only, extends from header to bottom of cards */}
-          <div className="absolute inset-x-0 -mx-4 bg-[hsl(var(--sidebar-background))] rounded-b-3xl md:hidden" style={{ top: '-4rem', bottom: '-1.5rem' }} />
+          <div className="absolute inset-x-0 -mx-4 bg-[hsl(var(--sidebar-background))] rounded-b-3xl md:hidden" style={{ top: '-4rem', bottom: '-0.75rem' }} />
           
           <div className="relative grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
             <StatCard
