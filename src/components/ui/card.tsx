@@ -23,7 +23,7 @@ CardDescription.displayName = "CardDescription";
 const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({
   className,
   ...props
-}, ref) => <div ref={ref} className={cn("p-5 pt-2", className)} {...props} />);
+}, ref) => <div ref={ref} className={cn("p-5 pt-2 py-[7px]", className)} {...props} />);
 CardContent.displayName = "CardContent";
 const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({
   className,
