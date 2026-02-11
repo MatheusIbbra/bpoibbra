@@ -672,6 +672,76 @@ Deno.serve(async (req) => {
       payload: { imported, skipped, duplicates_detected: duplicatesDetected, total: allTransactions.length, accounts_count: accounts.length, api_balance: totalApiBalance, balance_difference: balanceDiff },
     });
 
+    // ========================================
+    // STEP 10: POPULATE NEW OPEN FINANCE TABLES
+    // ========================================
+    try {
+      // Upsert open_finance_items
+      const ofItemData = {
+        organization_id: connectionToSync.organization_id,
+        user_id: connectionToSync.user_id,
+        pluggy_item_id: pluggyItemId,
+        connector_id: itemDetails?.connector?.id || null,
+        institution_name: connectorName,
+        institution_type: itemDetails?.connector?.type || null,
+        status: 'completed',
+        execution_status: itemDetails?.status || 'UPDATED',
+        last_sync_at: new Date().toISOString(),
+        products: itemDetails?.connector?.products || [],
+        consecutive_failures: 0,
+        error_message: null,
+        error_code: null,
+      };
+      const { data: upsertedItem } = await supabaseAdmin
+        .from('open_finance_items')
+        .upsert(ofItemData, { onConflict: 'organization_id,pluggy_item_id' })
+        .select('id')
+        .single();
+
+      const ofItemId = upsertedItem?.id;
+
+      if (ofItemId) {
+        // Upsert open_finance_accounts
+        for (const acc of accounts) {
+          await supabaseAdmin.from('open_finance_accounts').upsert({
+            organization_id: connectionToSync.organization_id,
+            item_id: ofItemId,
+            pluggy_account_id: acc.id,
+            account_number: acc.number || null,
+            account_type: acc.type || null,
+            subtype: acc.subtype || null,
+            name: acc.name || connectorName,
+            balance: acc.balance ?? 0,
+            currency_code: acc.currencyCode || 'BRL',
+            credit_limit: acc.creditData?.limit ?? null,
+            available_credit: acc.creditData?.availableCreditLimit ?? null,
+            closing_day: acc.creditData?.closingDay ?? null,
+            due_day: acc.creditData?.dueDay ?? null,
+            local_account_id: pluggyAccountToLocal[acc.id] || null,
+            raw_data: acc,
+            last_sync_at: new Date().toISOString(),
+          }, { onConflict: 'organization_id,pluggy_account_id' });
+        }
+
+        // Create sync log
+        await supabaseAdmin.from('open_finance_sync_logs').insert({
+          organization_id: connectionToSync.organization_id,
+          item_id: ofItemId,
+          sync_type: 'full',
+          status: 'success',
+          records_fetched: allTransactions.length,
+          records_imported: imported,
+          records_skipped: skipped,
+          records_failed: 0,
+          completed_at: new Date().toISOString(),
+          duration_ms: 0,
+          metadata: { accounts_count: accounts.length, investments_count: investments.length, duplicates: duplicatesDetected },
+        });
+      }
+    } catch (ofErr) {
+      console.warn('[OF-TABLES] Error populating open finance tables (non-blocking):', ofErr);
+    }
+
     return new Response(JSON.stringify({
       success: true, imported, skipped, duplicates_detected: duplicatesDetected, total: allTransactions.length,
       accounts: accounts.length, connection_id: connectionToSync.id,

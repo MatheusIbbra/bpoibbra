@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    console.log('Pluggy webhook received:', JSON.stringify(body));
+    console.log('[WEBHOOK] Received:', JSON.stringify(body));
 
     const { event, itemId, data, accountId } = body;
 
@@ -45,19 +45,55 @@ Deno.serve(async (req) => {
       payload: body
     });
 
-    // Find the bank connection associated with this item
-    const { data: connection } = await supabaseAdmin
+    // =============================================
+    // LOOKUP: Try new open_finance_items table first, fallback to bank_connections
+    // =============================================
+    let ofItem: any = null;
+    let connection: any = null;
+
+    // Try new table
+    const { data: ofItemData } = await supabaseAdmin
+      .from('open_finance_items')
+      .select('*')
+      .eq('pluggy_item_id', itemId)
+      .maybeSingle();
+    ofItem = ofItemData;
+
+    // Also find legacy bank_connection
+    const { data: connData } = await supabaseAdmin
       .from('bank_connections')
       .select('*')
       .eq('external_account_id', itemId)
       .eq('provider', 'pluggy')
       .maybeSingle();
+    connection = connData;
+
+    const organizationId = ofItem?.organization_id || connection?.organization_id;
 
     switch (event) {
       case 'item/created':
-      case 'item/updated':
-        console.log(`Item ${event}:`, itemId);
-        
+      case 'item/updated': {
+        console.log(`[WEBHOOK] ${event}: ${itemId}`);
+
+        // Update open_finance_items if exists
+        if (ofItem) {
+          const executionStatus = data?.executionStatus || data?.status || 'UNKNOWN';
+          const isSuccess = executionStatus === 'SUCCESS' || executionStatus === 'UPDATED';
+          await supabaseAdmin
+            .from('open_finance_items')
+            .update({
+              status: isSuccess ? 'completed' : 'in_progress',
+              execution_status: executionStatus,
+              last_sync_at: isSuccess ? new Date().toISOString() : ofItem.last_sync_at,
+              error_message: data?.error?.message || null,
+              error_code: data?.error?.code || null,
+              consecutive_failures: isSuccess ? 0 : (ofItem.consecutive_failures || 0) + 1,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', ofItem.id);
+        }
+
+        // Update legacy bank_connections
         if (connection) {
           await supabaseAdmin
             .from('bank_connections')
@@ -67,30 +103,33 @@ Deno.serve(async (req) => {
               updated_at: new Date().toISOString()
             })
             .eq('id', connection.id);
+        }
 
+        // Log
+        if (organizationId) {
           await supabaseAdmin.from('integration_logs').insert({
-            organization_id: connection.organization_id,
-            bank_connection_id: connection.id,
+            organization_id: organizationId,
+            bank_connection_id: connection?.id || null,
             provider: 'pluggy',
             event_type: event,
             status: 'success',
-            message: `Connection status updated to active`
+            message: `Connection status updated`
           });
         }
         break;
+      }
 
-      case 'transactions/created':
-        console.log(`Transactions created for item ${itemId}, account ${accountId}`);
-        
+      case 'transactions/created': {
+        console.log(`[WEBHOOK] Transactions created for item ${itemId}, account ${accountId}`);
+
         if (connection && PLUGGY_CLIENT_ID && PLUGGY_CLIENT_SECRET) {
-          // Auto-sync: fetch new transactions from Pluggy and import them
           try {
             console.log(`[WEBHOOK-SYNC] Starting auto-sync for connection ${connection.id}...`);
-            
+
             const pluggyToken = await getPluggyToken(PLUGGY_CLIENT_ID, PLUGGY_CLIENT_SECRET);
             const pluggyHeaders = { 'X-API-KEY': pluggyToken, 'Content-Type': 'application/json' };
 
-            // Fetch item details for connector name
+            // Fetch connector name
             let connectorName = connection.provider_name || 'Open Finance';
             try {
               const itemResp = await fetch(`${PLUGGY_API_URL}/items/${itemId}`, { headers: pluggyHeaders });
@@ -100,11 +139,11 @@ Deno.serve(async (req) => {
               }
             } catch (e) { console.warn('Failed to get item details:', e); }
 
-            // Fetch transactions for the specific account
-            const txUrl = accountId 
+            // Fetch transactions
+            const txUrl = accountId
               ? `${PLUGGY_API_URL}/transactions?accountId=${accountId}`
               : `${PLUGGY_API_URL}/transactions?itemId=${itemId}`;
-            
+
             const txResp = await fetch(txUrl, { headers: pluggyHeaders });
             if (!txResp.ok) {
               console.error(`[WEBHOOK-SYNC] Failed to fetch transactions: ${txResp.status}`);
@@ -115,29 +154,22 @@ Deno.serve(async (req) => {
             const transactions = txData.results || [];
             console.log(`[WEBHOOK-SYNC] Fetched ${transactions.length} transactions`);
 
-            // Get or create local account
+            // Find local account
             let localAccountId: string | null = null;
-
-            // Find existing account by org + bank_name
             const { data: existingAccount } = await supabaseAdmin
-              .from('accounts')
-              .select('id')
+              .from('accounts').select('id')
               .eq('organization_id', connection.organization_id)
               .eq('bank_name', connectorName)
-              .limit(1)
-              .maybeSingle();
+              .limit(1).maybeSingle();
 
             if (existingAccount) {
               localAccountId = existingAccount.id;
             } else {
-              // Find any active account for this org
               const { data: fallback } = await supabaseAdmin
-                .from('accounts')
-                .select('id')
+                .from('accounts').select('id')
                 .eq('organization_id', connection.organization_id)
                 .eq('status', 'active')
-                .limit(1)
-                .maybeSingle();
+                .limit(1).maybeSingle();
               localAccountId = fallback?.id || null;
             }
 
@@ -146,8 +178,7 @@ Deno.serve(async (req) => {
               break;
             }
 
-            let imported = 0;
-            let skipped = 0;
+            let imported = 0, skipped = 0;
 
             for (const tx of transactions) {
               const externalId = tx.id || `${tx.date}-${tx.amount}-${tx.description}`;
@@ -158,8 +189,7 @@ Deno.serve(async (req) => {
 
               // Check for duplicates
               const { data: existing } = await supabaseAdmin
-                .from('transactions')
-                .select('id')
+                .from('transactions').select('id')
                 .eq('external_transaction_id', externalId)
                 .eq('bank_connection_id', connection.id)
                 .maybeSingle();
@@ -185,23 +215,51 @@ Deno.serve(async (req) => {
                 });
 
               if (insertError) {
-                if (insertError.code === '23505') { skipped++; } 
+                if (insertError.code === '23505') { skipped++; }
                 else { console.warn('[WEBHOOK-SYNC] Insert error:', insertError); skipped++; }
               } else {
                 imported++;
               }
             }
 
+            // Also save raw data to new table if item exists
+            if (ofItem) {
+              for (const tx of transactions) {
+                try {
+                  await supabaseAdmin.from('open_finance_raw_data').upsert({
+                    organization_id: ofItem.organization_id,
+                    item_id: ofItem.id,
+                    data_type: 'transaction',
+                    external_id: tx.id,
+                    raw_json: tx,
+                    processed: true,
+                    processed_at: new Date().toISOString()
+                  }, { onConflict: 'organization_id,data_type,external_id' });
+                } catch (_e) { /* best-effort */ }
+              }
+
+              // Log to new sync logs
+              await supabaseAdmin.from('open_finance_sync_logs').insert({
+                organization_id: ofItem.organization_id,
+                item_id: ofItem.id,
+                sync_type: 'transactions',
+                status: 'success',
+                records_fetched: transactions.length,
+                records_imported: imported,
+                records_skipped: skipped,
+                completed_at: new Date().toISOString(),
+                duration_ms: 0,
+                metadata: { trigger: 'webhook', event: 'transactions/created' }
+              });
+            }
+
             // Update connection
-            await supabaseAdmin
-              .from('bank_connections')
-              .update({
-                last_sync_at: new Date().toISOString(),
-                sync_error: null,
-                status: 'active',
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', connection.id);
+            await supabaseAdmin.from('bank_connections').update({
+              last_sync_at: new Date().toISOString(),
+              sync_error: null,
+              status: 'active',
+              updated_at: new Date().toISOString()
+            }).eq('id', connection.id);
 
             await supabaseAdmin.from('integration_logs').insert({
               organization_id: connection.organization_id,
@@ -216,8 +274,8 @@ Deno.serve(async (req) => {
           } catch (syncError) {
             console.error('[WEBHOOK-SYNC] Auto-sync error:', syncError);
             await supabaseAdmin.from('integration_logs').insert({
-              organization_id: connection.organization_id,
-              bank_connection_id: connection.id,
+              organization_id: connection?.organization_id,
+              bank_connection_id: connection?.id,
               provider: 'pluggy',
               event_type: 'webhook_auto_sync',
               status: 'error',
@@ -228,17 +286,22 @@ Deno.serve(async (req) => {
           console.log('No connection found for item or missing Pluggy credentials');
         }
         break;
+      }
 
-      case 'item/deleted':
-        console.log('Item deleted:', itemId);
-        
+      case 'item/deleted': {
+        console.log('[WEBHOOK] Item deleted:', itemId);
+
+        if (ofItem) {
+          await supabaseAdmin
+            .from('open_finance_items')
+            .update({ status: 'disconnected', updated_at: new Date().toISOString() })
+            .eq('id', ofItem.id);
+        }
+
         if (connection) {
           await supabaseAdmin
             .from('bank_connections')
-            .update({
-              status: 'disconnected',
-              updated_at: new Date().toISOString()
-            })
+            .update({ status: 'disconnected', updated_at: new Date().toISOString() })
             .eq('id', connection.id);
 
           await supabaseAdmin.from('integration_logs').insert({
@@ -251,10 +314,25 @@ Deno.serve(async (req) => {
           });
         }
         break;
+      }
 
-      case 'item/error':
-        console.log('Item error:', itemId, data);
-        
+      case 'item/error': {
+        console.log('[WEBHOOK] Item error:', itemId, data);
+
+        if (ofItem) {
+          await supabaseAdmin
+            .from('open_finance_items')
+            .update({
+              status: 'error',
+              execution_status: 'ERROR',
+              error_message: data?.message || data?.error?.message || 'Unknown error',
+              error_code: data?.code || data?.error?.code || 'UNKNOWN',
+              consecutive_failures: (ofItem.consecutive_failures || 0) + 1,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', ofItem.id);
+        }
+
         if (connection) {
           await supabaseAdmin
             .from('bank_connections')
@@ -276,13 +354,14 @@ Deno.serve(async (req) => {
           });
         }
         break;
+      }
 
       case 'connector/status_updated':
-        console.log('Connector status updated:', data);
+        console.log('[WEBHOOK] Connector status updated:', data);
         break;
 
       default:
-        console.log('Unhandled webhook event:', event);
+        console.log('[WEBHOOK] Unhandled event:', event);
     }
 
     return new Response(
@@ -291,9 +370,9 @@ Deno.serve(async (req) => {
     );
 
   } catch (error: unknown) {
-    console.error('Error processing Pluggy webhook:', error);
+    console.error('[WEBHOOK] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';
-    
+
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
