@@ -35,10 +35,11 @@ export function useReportsData(startDate: Date, endDate: Date, basis: ReportBasi
   const { user } = useAuth();
   const { getOrganizationFilter } = useBaseFilter();
   const orgFilter = getOrganizationFilter();
-  const dateField = basis === "cash" ? "date" : "accrual_date";
+  const startStr = format(startDate, "yyyy-MM-dd");
+  const endStr = format(endDate, "yyyy-MM-dd");
 
   return useQuery({
-    queryKey: ["reports-data", user?.id, orgFilter.type, orgFilter.ids, format(startDate, "yyyy-MM-dd"), format(endDate, "yyyy-MM-dd"), basis],
+    queryKey: ["reports-data", user?.id, orgFilter.type, orgFilter.ids, startStr, endStr, basis],
     queryFn: async (): Promise<ReportData> => {
       let query = supabase
         .from("transactions")
@@ -55,10 +56,16 @@ export function useReportsData(startDate: Date, endDate: Date, basis: ReportBasi
             color
           )
         `)
-        .gte(dateField, format(startDate, "yyyy-MM-dd"))
-        .lte(dateField, format(endDate, "yyyy-MM-dd"))
         .neq("is_ignored", true)
         .order("date", { ascending: false });
+
+      if (basis === "cash") {
+        query = query.gte("date", startStr).lte("date", endStr);
+      } else {
+        query = query.or(
+          `and(accrual_date.gte.${startStr},accrual_date.lte.${endStr}),and(accrual_date.is.null,date.gte.${startStr},date.lte.${endStr})`
+        );
+      }
 
       // Aplicar filtro de organização
       if (orgFilter.type === 'single') {
