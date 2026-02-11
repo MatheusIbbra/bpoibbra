@@ -64,8 +64,8 @@ const Index = () => {
       <div className="space-y-5">
         {/* Bloco 1: StatCards with colored band on mobile */}
         <div className="relative">
-          {/* Colored band behind cards - mobile only */}
-          <div className="absolute inset-x-0 top-0 h-28 -mx-4 md:-mx-6 lg:-mx-8 bg-[hsl(var(--sidebar-background))] rounded-b-3xl md:hidden px-0 my-[35px] py-px" />
+          {/* Colored band behind cards - mobile only, extends from header to bottom of cards */}
+          <div className="absolute inset-x-0 -top-5 bottom-0 -mx-4 bg-[hsl(var(--sidebar-background))] rounded-b-3xl md:hidden" style={{ top: '-4rem' }} />
           
           <div className="relative grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
             <StatCard
