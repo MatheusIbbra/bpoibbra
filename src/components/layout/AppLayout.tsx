@@ -43,13 +43,13 @@ export function AppLayout({ children, title }: AppLayoutProps) {
         <AppSidebar />
         <SidebarInset className="flex flex-1 flex-col min-w-0">
           <AppHeader title={title} />
-          <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
-            {baseLoading ? (
-              <div className="flex items-center justify-center py-20">
+          <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8 border-primary">
+            {baseLoading ?
+            <div className="flex items-center justify-center py-20">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : hasNoBases ? (
-              <div className="flex items-center justify-center py-20">
+              </div> :
+            hasNoBases ?
+            <div className="flex items-center justify-center py-20">
                 <Alert variant="destructive" className="max-w-md">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle>Acesso restrito</AlertTitle>
@@ -57,13 +57,13 @@ export function AppLayout({ children, title }: AppLayoutProps) {
                     Nenhuma base vinculada ao seu cadastro. Entre em contato com seu administrador para liberar o acesso.
                   </AlertDescription>
                 </Alert>
-              </div>
-            ) : (
-              children
-            )}
+              </div> :
+
+            children
+            }
           </main>
         </SidebarInset>
       </div>
-    </SidebarProvider>
-  );
+    </SidebarProvider>);
+
 }
