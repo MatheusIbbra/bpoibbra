@@ -1,8 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { ConnectedAccountsSection } from "@/components/dashboard/ConnectedAccountsSection";
-import { CreditCardsAdvancedSummary } from "@/components/dashboard/CreditCardsAdvancedSummary";
 import { FintechTransactionsList } from "@/components/dashboard/FintechTransactionsList";
 import { MonthlyEvolutionChart } from "@/components/dashboard/MonthlyEvolutionChart";
 import { AIAssistantChat } from "@/components/ai/AIAssistantChat";
@@ -10,10 +8,11 @@ import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
 import { CategoryDonutChart } from "@/components/dashboard/CategoryDonutChart";
 import { BudgetProgress } from "@/components/dashboard/BudgetProgress";
 import { ReconciliationMetricsCard } from "@/components/dashboard/ReconciliationMetricsCard";
+import { AccountBalancesSection } from "@/components/dashboard/AccountBalancesSection";
+import { ConnectedAccountsSection } from "@/components/dashboard/ConnectedAccountsSection";
 
 import { StatCard } from "@/components/dashboard/StatCard";
 import { StatCardHoverTransactions } from "@/components/dashboard/StatCardHoverTransactions";
-import { CreditCardSummary } from "@/components/dashboard/CreditCardSummary";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { formatCurrency } from "@/lib/formatters";
@@ -63,7 +62,7 @@ const Index = () => {
   return (
     <AppLayout title="Home">
       <div className="space-y-5">
-        {/* Bloco 1: StatCards — Saldo, Receitas, Despesas, Economia */}
+        {/* Bloco 1: StatCards */}
         <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
           <StatCard
             title="Saldo Disponível"
@@ -98,13 +97,13 @@ const Index = () => {
         {/* Alertas de Orçamento */}
         <BudgetAlerts showNotifications={true} />
 
-        {/* Distribuição por Categoria + Evolução Financeira lado a lado */}
+        {/* Distribuição por Categoria + Evolução Financeira */}
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
           <CategoryDonutChart />
           <MonthlyEvolutionChart />
         </div>
 
-        {/* Orçamento do Mês + Últimas Movimentações lado a lado */}
+        {/* Orçamento do Mês + Últimas Movimentações */}
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
           <BudgetProgress />
           <FintechTransactionsList />
@@ -113,14 +112,11 @@ const Index = () => {
         {/* Conciliação */}
         <ReconciliationMetricsCard />
 
-        {/* Contas Conectadas (Open Finance) */}
+        {/* Contas Conectadas */}
         <ConnectedAccountsSection />
 
-        {/* Visão Consolidada Avançada de Cartões de Crédito */}
-        <CreditCardsAdvancedSummary />
-
-        {/* Cartões de Crédito (resumo existente) */}
-        <CreditCardSummary />
+        {/* Saldos por Conta */}
+        <AccountBalancesSection />
       </div>
 
       <AIAssistantChat isPaidUser={false} />
