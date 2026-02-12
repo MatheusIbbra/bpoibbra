@@ -1267,6 +1267,7 @@ export type Database = {
           description: string | null
           due_date: string | null
           external_transaction_id: string | null
+          financial_type: string | null
           id: string
           import_batch_id: string | null
           is_ignored: boolean | null
@@ -1303,6 +1304,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           external_transaction_id?: string | null
+          financial_type?: string | null
           id?: string
           import_batch_id?: string | null
           is_ignored?: boolean | null
@@ -1339,6 +1341,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           external_transaction_id?: string | null
+          financial_type?: string | null
           id?: string
           import_batch_id?: string | null
           is_ignored?: boolean | null

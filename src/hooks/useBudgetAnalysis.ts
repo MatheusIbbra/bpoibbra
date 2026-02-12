@@ -27,7 +27,7 @@ export interface BudgetAnalysisData {
   warningCount: number;
 }
 
-export function useBudgetAnalysis(month?: number, year?: number) {
+export function useBudgetAnalysis(month?: number, year?: number, costCenterId?: string) {
   const { user } = useAuth();
   const { getOrganizationFilter } = useBaseFilter();
   const orgFilter = getOrganizationFilter();
@@ -40,7 +40,7 @@ export function useBudgetAnalysis(month?: number, year?: number) {
   const endDate = `${targetYear}-${String(targetMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
   return useQuery({
-    queryKey: ["budget-analysis", user?.id, orgFilter.type, orgFilter.ids, targetMonth, targetYear],
+    queryKey: ["budget-analysis", user?.id, orgFilter.type, orgFilter.ids, targetMonth, targetYear, costCenterId],
     queryFn: async (): Promise<BudgetAnalysisData> => {
       // Fetch budgets with categories and cost centers
       let budgetsQuery = supabase
@@ -71,6 +71,11 @@ export function useBudgetAnalysis(month?: number, year?: number) {
         budgetsQuery = budgetsQuery.in("organization_id", orgFilter.ids);
       }
 
+      // Aplicar filtro de centro de custo
+      if (costCenterId) {
+        budgetsQuery = budgetsQuery.eq("cost_center_id", costCenterId);
+      }
+
       const { data: budgets, error: budgetsError } = await budgetsQuery;
 
       if (budgetsError) throw budgetsError;
@@ -88,6 +93,11 @@ export function useBudgetAnalysis(month?: number, year?: number) {
         transactionsQuery = transactionsQuery.eq("organization_id", orgFilter.ids[0]);
       } else if (orgFilter.type === 'multiple' && orgFilter.ids.length > 0) {
         transactionsQuery = transactionsQuery.in("organization_id", orgFilter.ids);
+      }
+
+      // Aplicar filtro de centro de custo
+      if (costCenterId) {
+        transactionsQuery = transactionsQuery.eq("cost_center_id", costCenterId);
       }
 
       const { data: transactions, error: transactionsError } = await transactionsQuery;

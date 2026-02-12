@@ -30,6 +30,7 @@ const transactionSchema = z.object({
   account_id: z.string().min(1, "Conta é obrigatória"),
   destination_account_id: z.string().optional(),
   cost_center_id: z.string().optional(),
+  financial_type: z.string().optional(),
   date: z.date(),
   accrual_date: z.date().optional(),
   due_date: z.date().optional(),
@@ -74,6 +75,7 @@ export function TransactionDialog({
       account_id: undefined,
       destination_account_id: undefined,
       cost_center_id: undefined,
+      financial_type: undefined,
       date: new Date(),
       accrual_date: undefined,
       due_date: undefined,
@@ -144,6 +146,7 @@ export function TransactionDialog({
         account_id: transaction.account_id,
         destination_account_id: undefined,
         cost_center_id: transaction.cost_center_id || undefined,
+        financial_type: (transaction as any).financial_type || undefined,
         date: parseLocalDate(transaction.date),
         accrual_date: transaction.accrual_date ? parseLocalDate(transaction.accrual_date) : undefined,
         due_date: transaction.due_date ? parseLocalDate(transaction.due_date) : undefined,
@@ -164,6 +167,7 @@ export function TransactionDialog({
         account_id: undefined,
         destination_account_id: undefined,
         cost_center_id: undefined,
+        financial_type: undefined,
         date: new Date(),
         accrual_date: undefined,
         due_date: undefined,
@@ -188,6 +192,7 @@ export function TransactionDialog({
       account_id: data.account_id,
       destination_account_id: data.destination_account_id,
       cost_center_id: isTransferType ? null : (data.cost_center_id || null),
+      financial_type: isTransferType ? null : (data.financial_type || null),
       date: format(data.date, "yyyy-MM-dd"),
       accrual_date: data.accrual_date ? format(data.accrual_date, "yyyy-MM-dd") : format(data.date, "yyyy-MM-dd"),
       due_date: data.due_date ? format(data.due_date, "yyyy-MM-dd") : null,
@@ -462,6 +467,29 @@ export function TransactionDialog({
                               {cc.name}
                             </SelectItem>
                           ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="financial_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo Financeiro</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="fixa">Fixa</SelectItem>
+                          <SelectItem value="variavel_recorrente">Variável Recorrente</SelectItem>
+                          <SelectItem value="variavel_programada">Variável Programada</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

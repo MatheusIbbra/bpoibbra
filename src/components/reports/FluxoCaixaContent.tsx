@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { useCashFlowReport, Granularity } from "@/hooks/useCashFlowReport";
+import { useCostCenters } from "@/hooks/useCostCenters";
 import { PeriodSelector } from "@/components/reports/PeriodSelector";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
 import {
@@ -87,8 +88,10 @@ export function FluxoCaixaContent() {
     end: endOfMonth(new Date()),
   });
   const [granularity, setGranularity] = useState<Granularity>("daily");
+  const [costCenterId, setCostCenterId] = useState<string | undefined>(undefined);
 
-  const { data, isLoading } = useCashFlowReport(dateRange.start, dateRange.end, "cash", granularity);
+  const { data: costCenters } = useCostCenters();
+  const { data, isLoading } = useCashFlowReport(dateRange.start, dateRange.end, "cash", granularity, costCenterId);
 
   const displayPeriods = (() => {
     if (!data) return [];
@@ -191,6 +194,18 @@ export function FluxoCaixaContent() {
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={costCenterId || "all"} onValueChange={(v) => setCostCenterId(v === "all" ? undefined : v)}>
+            <SelectTrigger className="w-[160px] h-9">
+              <SelectValue placeholder="Centro de Custo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos C.Custo</SelectItem>
+              {costCenters?.filter(c => c.is_active).map((cc) => (
+                <SelectItem key={cc.id} value={cc.id}>{cc.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
