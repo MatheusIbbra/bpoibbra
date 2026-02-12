@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { parseLocalDate } from "@/lib/formatters";
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Check, X, ChevronLeft, ChevronRight, Filter, Sparkles, Loader2, ArrowLeftRight, TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowRight, Building2, BookOpen, Brain, Zap, Search, Calendar, RefreshCw, Trash2, Wand2 } from "lucide-react";
+import { AlertCircle, Check, X, ChevronLeft, ChevronRight, Filter, Sparkles, Loader2, ArrowLeftRight, TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowRight, Building2, BookOpen, Brain, Zap, Search, Calendar, RefreshCw, Trash2, Wand2, EyeOff, CheckCheck } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,8 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { useAISuggestions } from "@/hooks/useImportBatches";
 import { useLearnFromValidation } from "@/hooks/useTransactionPatterns";
 import { useAIClassification } from "@/hooks/useAIClassification";
+import { useToggleIgnoreTransaction } from "@/hooks/useToggleIgnore";
+import { useAutoIgnoreTransfers } from "@/hooks/useAutoIgnoreTransfers";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isWithinInterval, parseISO } from "date-fns";
@@ -86,8 +88,10 @@ export default function Pendencias() {
   const { data: accounts } = useAccounts();
   const updateTransaction = useUpdateTransaction();
   const queryClient = useQueryClient();
-  const { availableOrganizations } = useBaseFilter();
+  const { availableOrganizations, getRequiredOrganizationId } = useBaseFilter();
   const aiClassification = useAIClassification();
+  const toggleIgnore = useToggleIgnoreTransaction();
+  const autoIgnoreTransfers = useAutoIgnoreTransfers();
   
   // Filter transactions pending validation with all filters applied
   const pendingTransactions = useMemo(() => {
@@ -360,6 +364,24 @@ export default function Pendencias() {
             {pendingTransactions.length > 0 && (
               <>
                 <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 h-7 text-xs"
+                  onClick={() => {
+                    const orgId = getRequiredOrganizationId();
+                    if (orgId) autoIgnoreTransfers.mutate(orgId);
+                    else toast.error("Selecione uma base");
+                  }}
+                  disabled={autoIgnoreTransfers.isPending}
+                >
+                  {autoIgnoreTransfers.isPending ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <EyeOff className="h-3 w-3" />
+                  )}
+                  Ignorar Transferências
+                </Button>
+                <Button
                   variant="secondary"
                   size="sm"
                   className="gap-1.5 h-7 text-xs"
@@ -490,6 +512,7 @@ export default function Pendencias() {
                 organizationName={getOrganizationName(transaction.organization_id)}
                 onValidate={handleValidate}
                 onReject={handleReject}
+                onIgnore={(id) => toggleIgnore.mutate({ id, is_ignored: true })}
                 onClassifyWithAI={handleClassifyWithAI}
                 isClassifying={classifyingId === transaction.id}
               />
@@ -549,6 +572,7 @@ interface TransactionPendingCardProps {
     organizationId: string | null
   ) => Promise<any>;
   onReject: (id: string) => void;
+  onIgnore: (id: string) => void;
   onClassifyWithAI: (transaction: any) => void;
   isClassifying: boolean;
 }
@@ -561,6 +585,7 @@ function TransactionPendingCard({
   organizationName,
   onValidate, 
   onReject,
+  onIgnore,
   onClassifyWithAI,
   isClassifying,
 }: TransactionPendingCardProps) {
@@ -899,6 +924,15 @@ function TransactionPendingCard({
           >
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
             Validar
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1 text-muted-foreground hover:text-warning"
+            onClick={() => onIgnore(transaction.id)}
+          >
+            <EyeOff className="h-4 w-4" />
           </Button>
           
           <Button

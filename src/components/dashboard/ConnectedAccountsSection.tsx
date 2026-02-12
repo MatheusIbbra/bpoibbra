@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -101,7 +101,19 @@ export function ConnectedAccountsSection() {
   const syncConnection = useSyncBankConnection();
   const [syncingId, setSyncingId] = useState<string | null>(null);
 
-  const activeConnections = connections?.filter(c => c.status === "active") || [];
+  // Consolidate duplicate connections by external_account_id (same Pluggy item)
+  const activeConnections = useMemo(() => {
+    const raw = connections?.filter(c => c.status === "active") || [];
+    const seen = new Map<string, BankConnection>();
+    for (const conn of raw) {
+      const key = (conn as any).external_account_id || conn.id;
+      // Keep the most recently updated one
+      if (!seen.has(key) || new Date(conn.updated_at) > new Date(seen.get(key)!.updated_at)) {
+        seen.set(key, conn);
+      }
+    }
+    return Array.from(seen.values());
+  }, [connections]);
 
   if (isLoading) {
     return (
