@@ -26,7 +26,7 @@ interface DREData {
   netIncome: number;
 }
 
-export function useDREReport(startDate: Date, endDate: Date, basis: ReportBasis) {
+export function useDREReport(startDate: Date, endDate: Date, basis: ReportBasis, costCenterId?: string) {
   const { user } = useAuth();
   const { getOrganizationFilter } = useBaseFilter();
   const orgFilter = getOrganizationFilter();
@@ -34,7 +34,7 @@ export function useDREReport(startDate: Date, endDate: Date, basis: ReportBasis)
   const endStr = format(endDate, "yyyy-MM-dd");
 
   return useQuery({
-    queryKey: ["dre-report", user?.id, orgFilter.type, orgFilter.ids, startStr, endStr, basis],
+    queryKey: ["dre-report", user?.id, orgFilter.type, orgFilter.ids, startStr, endStr, basis, costCenterId],
     queryFn: async (): Promise<DREData> => {
       // Get all transactions for the period
       // For accrual basis, we need accrual_date with fallback to date
@@ -70,6 +70,11 @@ export function useDREReport(startDate: Date, endDate: Date, basis: ReportBasis)
         query = query.eq("organization_id", orgFilter.ids[0]);
       } else if (orgFilter.type === 'multiple' && orgFilter.ids.length > 0) {
         query = query.in("organization_id", orgFilter.ids);
+      }
+
+      // Aplicar filtro de centro de custo
+      if (costCenterId) {
+        query = query.eq("cost_center_id", costCenterId);
       }
 
       const { data: transactions, error } = await query;

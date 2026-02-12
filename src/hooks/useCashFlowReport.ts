@@ -34,7 +34,8 @@ export function useCashFlowReport(
   startDate: Date, 
   endDate: Date, 
   basis: ReportBasis,
-  granularity: Granularity = "daily"
+  granularity: Granularity = "daily",
+  costCenterId?: string
 ) {
   const { user } = useAuth();
   const { getOrganizationFilter } = useBaseFilter();
@@ -43,7 +44,7 @@ export function useCashFlowReport(
   const endStr = format(endDate, "yyyy-MM-dd");
 
   return useQuery({
-    queryKey: ["cashflow-report", user?.id, orgFilter.type, orgFilter.ids, startStr, endStr, basis, granularity],
+    queryKey: ["cashflow-report", user?.id, orgFilter.type, orgFilter.ids, startStr, endStr, basis, granularity, costCenterId],
     queryFn: async (): Promise<CashFlowData> => {
       // Get transactions for the period - join accounts to get account_type
       let transactionsQuery = supabase
@@ -64,6 +65,11 @@ export function useCashFlowReport(
         transactionsQuery = transactionsQuery.eq("organization_id", orgFilter.ids[0]);
       } else if (orgFilter.type === 'multiple' && orgFilter.ids.length > 0) {
         transactionsQuery = transactionsQuery.in("organization_id", orgFilter.ids);
+      }
+
+      // Aplicar filtro de centro de custo
+      if (costCenterId) {
+        transactionsQuery = transactionsQuery.eq("cost_center_id", costCenterId);
       }
 
       const { data: transactions, error } = await transactionsQuery;
@@ -87,6 +93,11 @@ export function useCashFlowReport(
         priorQuery = priorQuery.eq("organization_id", orgFilter.ids[0]);
       } else if (orgFilter.type === 'multiple' && orgFilter.ids.length > 0) {
         priorQuery = priorQuery.in("organization_id", orgFilter.ids);
+      }
+
+      // Aplicar filtro de centro de custo para prior transactions
+      if (costCenterId) {
+        priorQuery = priorQuery.eq("cost_center_id", costCenterId);
       }
 
       const { data: priorTransactions } = await priorQuery;

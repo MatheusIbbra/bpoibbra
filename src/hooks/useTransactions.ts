@@ -132,6 +132,7 @@ interface CreateTransactionInput {
   destination_account_id?: string;
   category_id?: string | null;
   cost_center_id?: string | null;
+  financial_type?: string | null;
   accrual_date?: string | null;
   notes?: string | null;
   status?: TransactionStatus;

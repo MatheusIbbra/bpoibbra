@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { useBudgetAnalysis } from "@/hooks/useBudgetAnalysis";
+import { useCostCenters } from "@/hooks/useCostCenters";
 import { BudgetVsActualChart } from "@/components/budget/BudgetVsActualChart";
 import { BudgetAnalysisCard } from "@/components/budget/BudgetAnalysisCard";
 import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
@@ -45,8 +46,10 @@ export function AnaliseOrcamentoContent() {
   const currentDate = new Date();
   const [month, setMonth] = useState(currentDate.getMonth() + 1);
   const [year, setYear] = useState(currentDate.getFullYear());
+  const [costCenterId, setCostCenterId] = useState<string | undefined>(undefined);
 
-  const { data, isLoading } = useBudgetAnalysis(month, year);
+  const { data: costCenters } = useCostCenters();
+  const { data, isLoading } = useBudgetAnalysis(month, year, costCenterId);
 
   const years = Array.from({ length: 5 }, (_, i) => currentDate.getFullYear() - 2 + i);
 
@@ -84,6 +87,18 @@ export function AnaliseOrcamentoContent() {
                 <SelectItem key={y} value={String(y)}>
                   {y}
                 </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={costCenterId || "all"} onValueChange={(v) => setCostCenterId(v === "all" ? undefined : v)}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Centro de Custo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos C.Custo</SelectItem>
+              {costCenters?.filter(c => c.is_active).map((cc) => (
+                <SelectItem key={cc.id} value={cc.id}>{cc.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>

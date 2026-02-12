@@ -3,8 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { useDREReport, ReportBasis } from "@/hooks/useDREReport";
+import { useCostCenters } from "@/hooks/useCostCenters";
 import { PeriodSelector } from "@/components/reports/PeriodSelector";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
 import {
@@ -32,8 +40,10 @@ export function DREContent() {
     end: endOfMonth(new Date()),
   });
   const [basis, setBasis] = useState<ReportBasis>("cash");
+  const [costCenterId, setCostCenterId] = useState<string | undefined>(undefined);
 
-  const { data, isLoading } = useDREReport(dateRange.start, dateRange.end, basis);
+  const { data: costCenters } = useCostCenters();
+  const { data, isLoading } = useDREReport(dateRange.start, dateRange.end, basis, costCenterId);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -119,6 +129,18 @@ export function DREContent() {
               </TabsTrigger>
             </TabsList>
           </Tabs>
+
+          <Select value={costCenterId || "all"} onValueChange={(v) => setCostCenterId(v === "all" ? undefined : v)}>
+            <SelectTrigger className="w-[160px] h-9">
+              <SelectValue placeholder="Centro de Custo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos C.Custo</SelectItem>
+              {costCenters?.filter(c => c.is_active).map((cc) => (
+                <SelectItem key={cc.id} value={cc.id}>{cc.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <Button size="sm" onClick={exportToPDF} disabled={!data || isLoading} className="gap-2">
