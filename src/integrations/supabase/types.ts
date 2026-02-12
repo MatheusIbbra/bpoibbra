@@ -511,6 +511,57 @@ export type Database = {
           },
         ]
       }
+      financial_entities: {
+        Row: {
+          created_at: string
+          description: string | null
+          entity_type: string
+          id: string
+          is_active: boolean | null
+          name: string
+          organization_id: string
+          parent_entity_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          entity_type: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          organization_id: string
+          parent_entity_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          entity_type?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          organization_id?: string
+          parent_entity_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_entities_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_entities_parent_entity_id_fkey"
+            columns: ["parent_entity_id"]
+            isOneToOne: false
+            referencedRelation: "financial_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_batches: {
         Row: {
           account_id: string
@@ -1019,6 +1070,174 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      patrimony_assets: {
+        Row: {
+          asset_type: string
+          created_at: string
+          current_value: number
+          description: string
+          entity_id: string
+          id: string
+          liquidity: string
+          notes: string | null
+          organization_id: string
+          reference_date: string
+          updated_at: string
+        }
+        Insert: {
+          asset_type: string
+          created_at?: string
+          current_value?: number
+          description: string
+          entity_id: string
+          id?: string
+          liquidity?: string
+          notes?: string | null
+          organization_id: string
+          reference_date?: string
+          updated_at?: string
+        }
+        Update: {
+          asset_type?: string
+          created_at?: string
+          current_value?: number
+          description?: string
+          entity_id?: string
+          id?: string
+          liquidity?: string
+          notes?: string | null
+          organization_id?: string
+          reference_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patrimony_assets_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "financial_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patrimony_assets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patrimony_history: {
+        Row: {
+          assets_breakdown: Json | null
+          created_at: string
+          entity_id: string | null
+          id: string
+          liquidity_breakdown: Json | null
+          net_worth: number
+          organization_id: string
+          period: string
+          snapshot_type: string
+          total_assets: number
+          total_liabilities: number
+        }
+        Insert: {
+          assets_breakdown?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          liquidity_breakdown?: Json | null
+          net_worth?: number
+          organization_id: string
+          period: string
+          snapshot_type?: string
+          total_assets?: number
+          total_liabilities?: number
+        }
+        Update: {
+          assets_breakdown?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          liquidity_breakdown?: Json | null
+          net_worth?: number
+          organization_id?: string
+          period?: string
+          snapshot_type?: string
+          total_assets?: number
+          total_liabilities?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patrimony_history_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "financial_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patrimony_history_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patrimony_liabilities: {
+        Row: {
+          created_at: string
+          current_value: number
+          description: string
+          entity_id: string
+          id: string
+          liability_type: string
+          notes: string | null
+          organization_id: string
+          reference_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_value?: number
+          description: string
+          entity_id: string
+          id?: string
+          liability_type?: string
+          notes?: string | null
+          organization_id: string
+          reference_date?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_value?: number
+          description?: string
+          entity_id?: string
+          id?: string
+          liability_type?: string
+          notes?: string | null
+          organization_id?: string
+          reference_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patrimony_liabilities_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "financial_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patrimony_liabilities_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
