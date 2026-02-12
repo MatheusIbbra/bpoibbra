@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
 
     console.log('[ENGINE] Processing transaction:', transaction_data?.id);
 
-    // 1. Check for duplicates by external_transaction_id
+    // 1. Check for duplicates by external_transaction_id OR hash
     if (transaction_data?.id) {
       const { data: existing } = await supabaseAdmin
         .from('transactions')
@@ -36,9 +36,33 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (existing) {
-        console.log('[ENGINE] Duplicate transaction, skipping');
+        console.log('[ENGINE] Duplicate transaction (external_id), skipping');
         return new Response(
           JSON.stringify({ status: 'skipped', reason: 'duplicate' }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // 1b. Hash-based dedup: date + amount + normalized description + account
+    const rawAmount = transaction_data?.amount || 0;
+    const description = transaction_data?.description || transaction_data?.descriptionRaw || 'Via Open Finance';
+    const txDate = transaction_data?.date ? transaction_data.date.split('T')[0] : new Date().toISOString().split('T')[0];
+    const hashInput = `${txDate}|${Math.abs(rawAmount).toFixed(2)}|${normalizeText(description)}|${transaction_data?.accountId || ''}`;
+    const txHash = await computeHash(hashInput);
+
+    {
+      const { data: hashDup } = await supabaseAdmin
+        .from('transactions')
+        .select('id')
+        .eq('organization_id', organization_id)
+        .eq('transaction_hash', txHash)
+        .maybeSingle();
+
+      if (hashDup) {
+        console.log('[ENGINE] Duplicate transaction (hash), skipping');
+        return new Response(
+          JSON.stringify({ status: 'skipped', reason: 'duplicate_hash' }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -75,11 +99,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 3. Determine transaction type
-    const rawAmount = transaction_data?.amount || 0;
+    // 3. Determine transaction type (rawAmount, description, txDate already computed in dedup step)
     const amount = Math.abs(rawAmount);
-    const description = transaction_data?.description || transaction_data?.descriptionRaw || 'Via Open Finance';
-    const txDate = transaction_data?.date ? transaction_data.date.split('T')[0] : new Date().toISOString().split('T')[0];
 
     let txType: string;
     const creditDebitType = (transaction_data?.creditDebitType || transaction_data?.type || '').toUpperCase();
@@ -147,6 +168,7 @@ Deno.serve(async (req) => {
     const insertData: Record<string, unknown> = {
       organization_id,
       external_transaction_id: transaction_data?.id || null,
+      transaction_hash: txHash,
       account_id: localAccountId,
       date: txDate,
       description,
@@ -222,4 +244,12 @@ function calculateSimilarity(text1: string, text2: string): number {
   const set2 = new Set(words2);
   const commonWords = words1.filter(w => set2.has(w)).length;
   return commonWords / Math.max(words1.length, words2.length);
+}
+
+async function computeHash(input: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(input);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }

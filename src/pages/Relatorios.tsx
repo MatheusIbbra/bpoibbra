@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, Receipt, BarChart3, FileText, PieChart, CircleDollarSign, Layers } from "lucide-react";
+import { Loader2, Receipt, BarChart3, FileText, PieChart, CircleDollarSign, Layers, Tags } from "lucide-react";
 
 // Inline report components
 import { AnaliseOrcamentoContent } from "@/components/reports/AnaliseOrcamentoContent";
@@ -13,6 +13,7 @@ import { DemonstrativoContent } from "@/components/reports/DemonstrativoContent"
 import { FluxoCaixaContent } from "@/components/reports/FluxoCaixaContent";
 import { MovimentacoesReportContent } from "@/components/reports/MovimentacoesReportContent";
 import { FinancialTypeReportContent } from "@/components/reports/FinancialTypeReportContent";
+import { CategoryAnalysisContent } from "@/components/reports/CategoryAnalysisContent";
 
 export default function Relatorios() {
   const { user, loading: authLoading } = useAuth();
@@ -64,6 +65,10 @@ export default function Relatorios() {
               <Layers className="h-3.5 w-3.5 shrink-0" />
               Tipo Financeiro
             </TabsTrigger>
+            <TabsTrigger value="categorias" className="gap-1.5 data-[state=active]:bg-background text-xs sm:text-sm">
+              <Tags className="h-3.5 w-3.5 shrink-0" />
+              Análise Categorias
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="movimentacoes" className="mt-4">
@@ -88,6 +93,10 @@ export default function Relatorios() {
 
           <TabsContent value="tipo-financeiro" className="mt-4">
             <FinancialTypeReportContent />
+          </TabsContent>
+
+          <TabsContent value="categorias" className="mt-4">
+            <CategoryAnalysisContent />
           </TabsContent>
         </Tabs>
       </div>
