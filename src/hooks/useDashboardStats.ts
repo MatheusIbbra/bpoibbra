@@ -93,31 +93,8 @@ export function useDashboardStats() {
         }
       }
       
-      // Also include unlinked Open Finance accounts (bank type only, not credit cards)
-      let ofQuery = supabase
-        .from("open_finance_accounts")
-        .select("balance, account_type, local_account_id, name, updated_at, item_id, pluggy_account_id");
-      
-      if (orgFilter.type === 'single') {
-        ofQuery = ofQuery.eq("organization_id", orgFilter.ids[0]);
-      } else if (orgFilter.type === 'multiple' && orgFilter.ids.length > 0) {
-        ofQuery = ofQuery.in("organization_id", orgFilter.ids);
-      }
-      
-      const { data: ofAccounts } = await ofQuery;
-      if (ofAccounts) {
-        // DB now has unique constraints preventing duplicates
-        // Just iterate all OF accounts directly
-        for (const ofa of ofAccounts) {
-          // Skip credit cards and already-linked accounts
-          if (ofa.account_type?.toUpperCase() === 'CREDIT') continue;
-          if (ofa.local_account_id && linkedLocalAccountIds.has(ofa.local_account_id)) continue;
-          // Only add unlinked OF accounts
-          if (!ofa.local_account_id && ofa.balance) {
-            totalAccountBalance += Number(ofa.balance);
-          }
-        }
-      }
+      // Note: Open Finance accounts only contribute to balance when linked to a local account
+      // (via official_balance on the accounts table). Unlinked OF accounts are informational only.
       
       const calculateTotals = (data: { amount: number; type: string }[] | null) => {
         if (!data) return { income: 0, expenses: 0 };
