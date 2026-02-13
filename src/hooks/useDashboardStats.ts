@@ -108,8 +108,8 @@ export function useDashboardStats() {
       
       if (accountsData) {
         for (const account of accountsData) {
-          // CREDIT CARD RULE: Never include in available balance
-          if (account.account_type === 'credit_card') continue;
+          // Exclude credit cards and investments from available balance
+          if (account.account_type === 'credit_card' || account.account_type === 'investment') continue;
           
           // If this local account has linked OF accounts, use the sum of OF balances
           if (localAccountsWithOF.has(account.id)) {
