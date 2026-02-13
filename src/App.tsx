@@ -37,11 +37,6 @@ import CallbackKlavi from "./pages/CallbackKlavi";
 import CartaoCredito from "./pages/CartaoCredito";
 import CartoesCredito from "./pages/CartoesCredito";
 import OpenFinanceMonitor from "./pages/OpenFinanceMonitor";
-import VisaoPatrimonial from "./pages/VisaoPatrimonial";
-import Consolidacao from "./pages/Consolidacao";
-import Indicadores from "./pages/Indicadores";
-import Projecao from "./pages/Projecao";
-import Simulacoes from "./pages/Simulacoes";
 
 const queryClient = new QueryClient();
 
@@ -85,11 +80,6 @@ const App = () => (
                 <Route path="/cartoes" element={<CartoesCredito />} />
                 <Route path="/cartao/:accountId" element={<CartaoCredito />} />
                 <Route path="/open-finance-monitor" element={<OpenFinanceMonitor />} />
-                <Route path="/visao-patrimonial" element={<VisaoPatrimonial />} />
-                <Route path="/consolidacao" element={<Consolidacao />} />
-                <Route path="/indicadores" element={<Indicadores />} />
-                <Route path="/projecao" element={<Projecao />} />
-                <Route path="/simulacoes" element={<Simulacoes />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

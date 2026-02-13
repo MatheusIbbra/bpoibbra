@@ -101,12 +101,14 @@ export function ConnectedAccountsSection() {
   const syncConnection = useSyncBankConnection();
   const [syncingId, setSyncingId] = useState<string | null>(null);
 
-  // Consolidate duplicate connections by external_account_id (same Pluggy item)
+  // Consolidate duplicate connections by bank name (same institution)
   const activeConnections = useMemo(() => {
     const raw = connections?.filter(c => c.status === "active") || [];
     const seen = new Map<string, BankConnection>();
     for (const conn of raw) {
-      const key = (conn as any).external_account_id || conn.id;
+      const meta = (conn as any).metadata as ConnectionMetadata | null;
+      const bankName = (meta?.bank_name || conn.provider_name || "").toLowerCase().trim();
+      const key = bankName || conn.id;
       // Keep the most recently updated one
       if (!seen.has(key) || new Date(conn.updated_at) > new Date(seen.get(key)!.updated_at)) {
         seen.set(key, conn);

@@ -192,7 +192,7 @@ export function TransactionDialog({
       account_id: data.account_id,
       destination_account_id: data.destination_account_id,
       cost_center_id: isTransferType ? null : (data.cost_center_id || null),
-      financial_type: isTransferType ? null : (data.financial_type || null),
+      financial_type: isTransferType ? null : (categories?.find(c => c.id === data.category_id)?.expense_classification || null),
       date: format(data.date, "yyyy-MM-dd"),
       accrual_date: data.accrual_date ? format(data.accrual_date, "yyyy-MM-dd") : format(data.date, "yyyy-MM-dd"),
       due_date: data.due_date ? format(data.due_date, "yyyy-MM-dd") : null,
@@ -474,28 +474,6 @@ export function TransactionDialog({
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="financial_type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tipo Financeiro</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="fixa">Fixa</SelectItem>
-                          <SelectItem value="variavel_recorrente">Variável Recorrente</SelectItem>
-                          <SelectItem value="variavel_programada">Variável Programada</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </>
             )}
 

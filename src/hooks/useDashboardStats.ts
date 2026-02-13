@@ -71,6 +71,8 @@ export function useDashboardStats() {
       const { data: accountsData } = await accountsQuery;
       
       let totalAccountBalance = 0;
+      const linkedLocalAccountIds = new Set<string>();
+      
       if (accountsData) {
         for (const account of accountsData) {
           // CREDIT CARD RULE: Never include in available balance
@@ -79,6 +81,7 @@ export function useDashboardStats() {
           // PRIORITY: Use official_balance from API if available (Open Finance accounts)
           if (account.official_balance !== null && account.official_balance !== undefined) {
             totalAccountBalance += Number(account.official_balance);
+            linkedLocalAccountIds.add(account.id);
             continue;
           }
           
@@ -87,6 +90,30 @@ export function useDashboardStats() {
             account_uuid: account.id,
           });
           totalAccountBalance += balanceData ?? Number(account.initial_balance) ?? 0;
+        }
+      }
+      
+      // Also include unlinked Open Finance accounts (bank type only, not credit cards)
+      let ofQuery = supabase
+        .from("open_finance_accounts")
+        .select("balance, account_type, local_account_id");
+      
+      if (orgFilter.type === 'single') {
+        ofQuery = ofQuery.eq("organization_id", orgFilter.ids[0]);
+      } else if (orgFilter.type === 'multiple' && orgFilter.ids.length > 0) {
+        ofQuery = ofQuery.in("organization_id", orgFilter.ids);
+      }
+      
+      const { data: ofAccounts } = await ofQuery;
+      if (ofAccounts) {
+        for (const ofa of ofAccounts) {
+          // Skip credit cards and already-linked accounts
+          if (ofa.account_type?.toUpperCase() === 'CREDIT') continue;
+          if (ofa.local_account_id && linkedLocalAccountIds.has(ofa.local_account_id)) continue;
+          // Only add unlinked OF accounts
+          if (!ofa.local_account_id && ofa.balance) {
+            totalAccountBalance += Number(ofa.balance);
+          }
         }
       }
       

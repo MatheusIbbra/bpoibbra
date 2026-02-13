@@ -71,6 +71,7 @@ interface CategoryFormData {
   parent_id: string | null;
   description: string | null;
   dre_group: string | null;
+  expense_classification: string | null;
   is_child: boolean;
 }
 
@@ -93,6 +94,7 @@ export function CategoriesDialog({ open: externalOpen, onOpenChange: externalOnO
     parent_id: null,
     description: null,
     dre_group: null,
+    expense_classification: null,
     is_child: false,
   });
 
@@ -114,6 +116,7 @@ export function CategoriesDialog({ open: externalOpen, onOpenChange: externalOnO
           parent_id: initialCategory.parent_id,
           description: initialCategory.description,
           dre_group: initialCategory.dre_group,
+          expense_classification: initialCategory.expense_classification,
           is_child: !!initialCategory.parent_id,
         });
       } else {
@@ -125,6 +128,7 @@ export function CategoriesDialog({ open: externalOpen, onOpenChange: externalOnO
           parent_id: null,
           description: null,
           dre_group: null,
+          expense_classification: null,
           is_child: false,
         });
       }
@@ -148,6 +152,7 @@ export function CategoriesDialog({ open: externalOpen, onOpenChange: externalOnO
       parent_id: formData.is_child ? formData.parent_id : null,
       description: formData.description,
       dre_group: formData.dre_group,
+      expense_classification: formData.type === "expense" ? formData.expense_classification : null,
     };
 
     if (initialCategory) {
@@ -254,6 +259,27 @@ export function CategoriesDialog({ open: externalOpen, onOpenChange: externalOnO
               {!formData.dre_group && (
                 <p className="text-xs text-muted-foreground mt-1">Recomendado para relatórios DRE</p>
               )}
+            </div>
+          )}
+
+          {/* Expense Classification - Only for expense categories */}
+          {formData.type === "expense" && (
+            <div>
+              <Label>Classificação da Despesa</Label>
+              <Select
+                value={formData.expense_classification || ""}
+                onValueChange={(value) => setFormData({ ...formData, expense_classification: value || null })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a classificação" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fixa">Fixa</SelectItem>
+                  <SelectItem value="variavel_recorrente">Variável Recorrente</SelectItem>
+                  <SelectItem value="variavel_programada">Variável Programada</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">Define o tipo financeiro dos lançamentos desta categoria</p>
             </div>
           )}
 
