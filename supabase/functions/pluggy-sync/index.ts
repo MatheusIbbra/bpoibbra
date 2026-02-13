@@ -676,7 +676,7 @@ Deno.serve(async (req) => {
     // STEP 10: POPULATE NEW OPEN FINANCE TABLES
     // ========================================
     try {
-      // Upsert open_finance_items
+      // Upsert open_finance_items - use institution_name as conflict key to prevent duplicates on reconnection
       const ofItemData = {
         organization_id: connectionToSync.organization_id,
         user_id: connectionToSync.user_id,
@@ -694,14 +694,14 @@ Deno.serve(async (req) => {
       };
       const { data: upsertedItem } = await supabaseAdmin
         .from('open_finance_items')
-        .upsert(ofItemData, { onConflict: 'organization_id,pluggy_item_id' })
+        .upsert(ofItemData, { onConflict: 'organization_id,institution_name' })
         .select('id')
         .single();
 
       const ofItemId = upsertedItem?.id;
 
       if (ofItemId) {
-        // Upsert open_finance_accounts
+        // Upsert open_finance_accounts - use (item_id, name, account_type) as conflict key
         for (const acc of accounts) {
           await supabaseAdmin.from('open_finance_accounts').upsert({
             organization_id: connectionToSync.organization_id,
@@ -720,7 +720,7 @@ Deno.serve(async (req) => {
             local_account_id: pluggyAccountToLocal[acc.id] || null,
             raw_data: acc,
             last_sync_at: new Date().toISOString(),
-          }, { onConflict: 'organization_id,pluggy_account_id' });
+          }, { onConflict: 'item_id,pluggy_account_id' });
         }
 
         // Create sync log
