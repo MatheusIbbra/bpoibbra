@@ -99,6 +99,9 @@ const Index = () => {
           </div>
         </div>
 
+        {/* Seus Saldos */}
+        <AccountBalancesSection />
+
         {/* Alertas de Orçamento */}
         <BudgetAlerts showNotifications={true} />
 
@@ -119,9 +122,6 @@ const Index = () => {
 
         {/* Contas Conectadas */}
         <ConnectedAccountsSection />
-
-        {/* Saldos por Conta */}
-        <AccountBalancesSection />
       </div>
 
       <AIAssistantChat isPaidUser={false} />
