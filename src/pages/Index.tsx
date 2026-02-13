@@ -8,7 +8,7 @@ import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
 import { CategoryDonutChart } from "@/components/dashboard/CategoryDonutChart";
 import { BudgetProgress } from "@/components/dashboard/BudgetProgress";
 import { ReconciliationMetricsCard } from "@/components/dashboard/ReconciliationMetricsCard";
-import { AccountBalancesSection } from "@/components/dashboard/AccountBalancesSection";
+
 import { ConnectedAccountsSection } from "@/components/dashboard/ConnectedAccountsSection";
 
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -99,8 +99,6 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Seus Saldos */}
-        <AccountBalancesSection />
 
         {/* Alertas de Orçamento */}
         <BudgetAlerts showNotifications={true} />
