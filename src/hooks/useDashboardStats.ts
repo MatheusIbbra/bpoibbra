@@ -96,7 +96,7 @@ export function useDashboardStats() {
       // Also include unlinked Open Finance accounts (bank type only, not credit cards)
       let ofQuery = supabase
         .from("open_finance_accounts")
-        .select("balance, account_type, local_account_id");
+        .select("balance, account_type, local_account_id, name, updated_at, item_id, pluggy_account_id");
       
       if (orgFilter.type === 'single') {
         ofQuery = ofQuery.eq("organization_id", orgFilter.ids[0]);
@@ -106,6 +106,8 @@ export function useDashboardStats() {
       
       const { data: ofAccounts } = await ofQuery;
       if (ofAccounts) {
+        // DB now has unique constraints preventing duplicates
+        // Just iterate all OF accounts directly
         for (const ofa of ofAccounts) {
           // Skip credit cards and already-linked accounts
           if (ofa.account_type?.toUpperCase() === 'CREDIT') continue;
