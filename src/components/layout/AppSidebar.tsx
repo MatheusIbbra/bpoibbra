@@ -1,10 +1,9 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Upload, AlertCircle, User, ChevronRight, Home, Receipt, Settings2, Wallet, FileText, Shield, Brain, Building2, CreditCard, BarChart3, Landmark, Target, TrendingUp, Sparkles, ChevronDown } from "lucide-react";
+import { LogOut, Upload, AlertCircle, User, ChevronRight, Home, Receipt, Settings2, Wallet, FileText, Shield, Brain, Building2, CreditCard, BarChart3 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Sidebar, SidebarContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, SidebarSeparator, SidebarGroup, SidebarGroupLabel } from "@/components/ui/sidebar";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Sidebar, SidebarContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, SidebarSeparator } from "@/components/ui/sidebar";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useUserRoles";
@@ -23,14 +22,6 @@ const navItems = [
   { title: "Pendências", url: "/pendencias", icon: AlertCircle },
   { title: "Importar Extratos", url: "/importacoes", icon: Upload },
   { title: "Cadastros", url: "/cadastros", icon: Settings2 },
-];
-
-const familyOfficeItems = [
-  { title: "Visão Patrimonial", url: "/visao-patrimonial", icon: Landmark },
-  { title: "Consolidação", url: "/consolidacao", icon: Building2 },
-  { title: "Indicadores", url: "/indicadores", icon: Target },
-  { title: "Projeção", url: "/projecao", icon: TrendingUp },
-  { title: "Simulações", url: "/simulacoes", icon: Sparkles },
 ];
 
 export function AppSidebar() {
@@ -130,43 +121,6 @@ export function AppSidebar() {
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
-
-        {/* Family Office Section */}
-        <SidebarSeparator className="my-3 bg-sidebar-border/40" />
-        {!collapsed ? (
-          <Collapsible defaultOpen>
-            <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-muted hover:text-sidebar-foreground transition-colors">
-              <span>Family Office</span>
-              <ChevronDown className="h-3 w-3" />
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarMenu>
-                {familyOfficeItems.map(item => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                      <NavLink to={item.url} className={`flex items-center transition-all duration-200 text-sm py-2.5 rounded-xl gap-3 px-3 ${isActive(item.url) ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
-                        <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive(item.url) ? "text-sidebar-primary" : ""}`} />
-                        <span className="whitespace-nowrap text-[13px]">{item.title}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </CollapsibleContent>
-          </Collapsible>
-        ) : (
-          <SidebarMenu>
-            {familyOfficeItems.map(item => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                  <NavLink to={item.url} className={`flex items-center transition-all duration-200 text-sm py-2.5 rounded-xl justify-center px-0 ${isActive(item.url) ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
-                    <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive(item.url) ? "text-sidebar-primary" : ""}`} />
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        )}
 
         {isAdmin && <>
           <SidebarSeparator className="my-3 bg-sidebar-border/40" />

@@ -44,11 +44,36 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 1b. Hash-based dedup: date + amount + normalized description + account
+    // 1b. Hash-based dedup: date + amount + normalized description + local account
+    // We resolve the local account first so duplicate OF items (same bank reconnected) produce the same hash
     const rawAmount = transaction_data?.amount || 0;
     const description = transaction_data?.description || transaction_data?.descriptionRaw || 'Via Open Finance';
     const txDate = transaction_data?.date ? transaction_data.date.split('T')[0] : new Date().toISOString().split('T')[0];
-    const hashInput = `${txDate}|${Math.abs(rawAmount).toFixed(2)}|${normalizeText(description)}|${transaction_data?.accountId || ''}`;
+    
+    // Resolve local account early for hash consistency
+    let localAccountId: string | null = null;
+    if (transaction_data?.accountId) {
+      const { data: ofAccount } = await supabaseAdmin
+        .from('open_finance_accounts')
+        .select('local_account_id')
+        .eq('organization_id', organization_id)
+        .eq('pluggy_account_id', transaction_data.accountId)
+        .maybeSingle();
+      localAccountId = ofAccount?.local_account_id || null;
+    }
+    if (!localAccountId) {
+      const { data: fallback } = await supabaseAdmin
+        .from('accounts')
+        .select('id')
+        .eq('organization_id', organization_id)
+        .eq('status', 'active')
+        .limit(1)
+        .maybeSingle();
+      localAccountId = fallback?.id || null;
+    }
+    
+    // Use localAccountId in hash so reconnected banks produce same hash
+    const hashInput = `${txDate}|${Math.abs(rawAmount).toFixed(2)}|${normalizeText(description)}|${localAccountId || transaction_data?.accountId || ''}`;
     const txHash = await computeHash(hashInput);
 
     {
@@ -68,30 +93,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 2. Find local account via open_finance_accounts
-    let localAccountId: string | null = null;
-    if (transaction_data?.accountId) {
-      const { data: ofAccount } = await supabaseAdmin
-        .from('open_finance_accounts')
-        .select('local_account_id')
-        .eq('organization_id', organization_id)
-        .eq('pluggy_account_id', transaction_data.accountId)
-        .maybeSingle();
-      localAccountId = ofAccount?.local_account_id || null;
-    }
-
-    // Fallback: find any active account for org
-    if (!localAccountId) {
-      const { data: fallback } = await supabaseAdmin
-        .from('accounts')
-        .select('id')
-        .eq('organization_id', organization_id)
-        .eq('status', 'active')
-        .limit(1)
-        .maybeSingle();
-      localAccountId = fallback?.id || null;
-    }
-
+    // 2. Local account already resolved above for hash dedup
     if (!localAccountId) {
       return new Response(
         JSON.stringify({ status: 'error', reason: 'no_account_found' }),
