@@ -99,10 +99,8 @@ export function useDashboardStats() {
               ofa.local_account_id,
               (ofBalanceByLocalAccount.get(ofa.local_account_id) || 0) + Number(ofa.balance || 0)
             );
-          } else {
-            // Unlinked OF accounts still count towards available balance
-            unlinkedOFBalance += Number(ofa.balance || 0);
           }
+          // Unlinked OF accounts are informational only — not included in balance
         }
       }
       
