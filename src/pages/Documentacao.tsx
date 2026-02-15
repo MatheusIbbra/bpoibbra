@@ -53,7 +53,7 @@ export default function Documentacao() {
               <p className="text-lg text-muted-foreground">Sistema de Gestão Financeira Multi-Tenant</p>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground">Documentação Técnica v1.0 • Janeiro 2026</p>
+          <p className="text-sm text-muted-foreground">Documentação Técnica v3.0 • Fevereiro 2026</p>
         </div>
 
         <Separator />
@@ -285,7 +285,12 @@ export default function Documentacao() {
         <div className="text-center py-8 text-sm text-muted-foreground">
           <Separator className="mb-4" />
           <p>IBBRA - Sistema de Gestão Financeira Multi-Tenant</p>
-          <p>Documentação gerada automaticamente • v1.0</p>
+          <p>Documentação gerada automaticamente • v3.0</p>
+          <div className="flex justify-center gap-3 mt-3">
+            <a href="/docs/IBBRA-SYSTEM-DOCUMENTATION-V3.md" target="_blank" className="text-xs text-accent underline hover:no-underline">Documentação Completa (Markdown)</a>
+            <span className="text-xs text-muted-foreground">•</span>
+            <a href="/docs/IBBRA-RECREATION-PROMPT-V2.md" target="_blank" className="text-xs text-accent underline hover:no-underline">Prompt de Recriação</a>
+          </div>
         </div>
       </div>
 
