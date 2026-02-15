@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" fill="none">
+  <!-- IBBRA Institutional Grafismo - Geometric precision, wealth strategy -->
+  <!-- Diagonal ascending lines - direction, growth, structure -->
+  <g stroke="currentColor" stroke-linecap="round">
+    <!-- Primary diagonal grid - ascending trajectories -->
+    <line x1="0" y1="800" x2="800" y2="0" stroke-width="1.5" opacity="0.6"/>
+    <line x1="0" y1="700" x2="700" y2="0" stroke-width="1" opacity="0.4"/>
+    <line x1="100" y1="800" x2="800" y2="100" stroke-width="1" opacity="0.4"/>
+    <line x1="0" y1="600" x2="600" y2="0" stroke-width="0.75" opacity="0.3"/>
+    <line x1="200" y1="800" x2="800" y2="200" stroke-width="0.75" opacity="0.3"/>
+    <line x1="0" y1="500" x2="500" y2="0" stroke-width="0.5" opacity="0.2"/>
+    <line x1="300" y1="800" x2="800" y2="300" stroke-width="0.5" opacity="0.2"/>
+    <line x1="0" y1="400" x2="400" y2="0" stroke-width="0.5" opacity="0.15"/>
+    <line x1="400" y1="800" x2="800" y2="400" stroke-width="0.5" opacity="0.15"/>
+    
+    <!-- Horizontal structure lines - stability, foundation -->
+    <line x1="200" y1="300" x2="750" y2="300" stroke-width="0.5" opacity="0.15"/>
+    <line x1="100" y1="500" x2="700" y2="500" stroke-width="0.5" opacity="0.12"/>
+    <line x1="250" y1="650" x2="780" y2="650" stroke-width="0.5" opacity="0.1"/>
+  </g>
+  
+  <!-- Geometric accent nodes - precision points -->
+  <g fill="currentColor">
+    <!-- Primary intersection nodes -->
+    <circle cx="400" cy="400" r="4" opacity="0.3"/>
+    <circle cx="350" cy="450" r="2.5" opacity="0.2"/>
+    <circle cx="450" cy="350" r="2.5" opacity="0.2"/>
+    <circle cx="300" cy="500" r="2" opacity="0.15"/>
+    <circle cx="500" cy="300" r="2" opacity="0.15"/>
+    <circle cx="550" cy="250" r="1.5" opacity="0.12"/>
+    <circle cx="250" cy="550" r="1.5" opacity="0.12"/>
+    <circle cx="600" cy="200" r="3" opacity="0.18"/>
+    <circle cx="200" cy="600" r="3" opacity="0.18"/>
+    
+    <!-- Corner accent cluster -->
+    <circle cx="650" cy="150" r="1.5" opacity="0.1"/>
+    <circle cx="700" cy="100" r="2" opacity="0.12"/>
+    <circle cx="150" cy="650" r="1.5" opacity="0.1"/>
+  </g>
+  
+  <!-- Subtle angular frame element - structure, containment -->
+  <g stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="580,120 700,120 700,240" stroke-width="1" opacity="0.15"/>
+    <polyline points="100,560 100,680 220,680" stroke-width="1" opacity="0.15"/>
+  </g>
+  
+  <!-- Diamond accent - precision, wealth -->
+  <g fill="currentColor" opacity="0.08">
+    <polygon points="400,340 440,400 400,460 360,400"/>
+  </g>
+</svg>
