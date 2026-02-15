@@ -187,6 +187,41 @@ export type Database = {
           },
         ]
       }
+      api_usage_logs: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: string
+          organization_id: string | null
+          request_metadata: Json | null
+          tokens_used: number | null
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: string
+          organization_id?: string | null
+          request_metadata?: Json | null
+          tokens_used?: number | null
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: string
+          organization_id?: string | null
+          request_metadata?: Json | null
+          tokens_used?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_usage_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -1578,10 +1613,13 @@ export type Database = {
         Args: { description: string }
         Returns: string
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       text_similarity: {
         Args: { text1: string; text2: string }
         Returns: number
       }
+      unaccent: { Args: { "": string }; Returns: string }
       upsert_transaction_pattern: {
         Args: {
           p_amount: number
