@@ -14,7 +14,7 @@ import ibbraLogoWhite from "@/assets/ibbra-logo-white.png";
 import ibbraLogoFullWhite from "@/assets/ibbra-logo-full-white.png";
 
 const navItems = [
-  { title: "Home", url: "/", icon: Home },
+  { title: "Consolidação", url: "/", icon: Home },
   { title: "Open Finance", url: "/open-finance", icon: Building2 },
   { title: "Cartões de Crédito", url: "/cartoes", icon: CreditCard },
   { title: "Orçamentos", url: "/orcamentos", icon: Wallet },
