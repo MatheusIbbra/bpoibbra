@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -19,8 +19,8 @@
     --brand-cream: 18 24% 89%;        /* #EBE1DC - Creme Claro */
     --brand-coral: 14 100% 54%;       /* #FF4614 - Vermelho/Coral */
 
-    /* Core backgrounds - Clean, airy with warmth */
-    --background: 220 20% 97%;
+    /* Core backgrounds - Clean white institutional */
+    --background: 0 0% 99%;
     --foreground: 213 80% 13%;
 
     /* Cards - Clean white */
@@ -39,9 +39,9 @@
     --secondary: 214 58% 95%;
     --secondary-foreground: 213 80% 13%;
 
-    /* Muted - Gentle neutrals */
-    --muted: 220 14% 94%;
-    --muted-foreground: 215 16% 47%;
+    /* Muted - Refined neutrals */
+    --muted: 220 10% 95%;
+    --muted-foreground: 215 14% 50%;
 
     /* Accent - IBBRA Highlight Blue */
     --accent: 210 100% 36%;
@@ -60,9 +60,9 @@
     --info: 210 100% 36%;
     --info-foreground: 0 0% 100%;
 
-    /* Borders and inputs */
-    --border: 220 13% 90%;
-    --input: 220 13% 90%;
+    /* Borders and inputs - Subtle, refined */
+    --border: 220 10% 92%;
+    --input: 220 10% 92%;
     --ring: 210 100% 36%;
 
     --radius: 0.75rem;
@@ -151,14 +151,19 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
     letter-spacing: -0.01em;
   }
 
-  /* Premium Typography */
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  /* Premium Serif Typography for headings */
+  h1, h2, h3 {
+    font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+    @apply font-semibold tracking-tight;
+  }
+
+  h4, h5, h6 {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     @apply font-semibold tracking-tight;
   }
 

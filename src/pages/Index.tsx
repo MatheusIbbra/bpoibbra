@@ -17,7 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { formatCurrency } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw, Wallet, ArrowUpRight, ArrowDownRight, PiggyBank } from "lucide-react";
+import { Loader2, RefreshCw, Wallet, ArrowUpRight, ArrowDownRight, TrendingUp } from "lucide-react";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -60,7 +60,7 @@ const Index = () => {
   }
 
   return (
-    <AppLayout title="Home">
+    <AppLayout title="Consolidação Patrimonial">
       <div className="space-y-5">
         {/* Bloco 1: StatCards with colored band on mobile */}
         <div className="relative">
@@ -69,13 +69,13 @@ const Index = () => {
           
           <div className="relative grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
             <StatCard
-              title="Saldo Disponível"
+              title="Posição Financeira"
               value={formatCurrency(stats?.totalBalance ?? 0)}
               icon={<Wallet className="h-5 w-5" />}
               variant="default" />
 
             <StatCard
-              title="Receitas do Mês"
+              title="Entradas Financeiras"
               value={formatCurrency(stats?.monthlyIncome ?? 0)}
               icon={<ArrowUpRight className="h-5 w-5" />}
               variant="success"
@@ -83,7 +83,7 @@ const Index = () => {
               hoverContent={<StatCardHoverTransactions type="income" />} />
 
             <StatCard
-              title="Despesas do Mês"
+              title="Saídas Financeiras"
               value={formatCurrency(stats?.monthlyExpenses ?? 0)}
               icon={<ArrowDownRight className="h-5 w-5" />}
               variant="destructive"
@@ -91,9 +91,9 @@ const Index = () => {
               hoverContent={<StatCardHoverTransactions type="expense" />} />
 
             <StatCard
-              title="Economia do Mês"
+              title="Evolução Patrimonial"
               value={formatCurrency(stats?.monthlySavings ?? 0)}
-              icon={<PiggyBank className="h-5 w-5" />}
+              icon={<TrendingUp className="h-5 w-5" />}
               variant={stats?.monthlySavings && stats.monthlySavings >= 0 ? "success" : "warning"} />
 
           </div>

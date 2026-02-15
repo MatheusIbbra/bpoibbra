@@ -46,17 +46,17 @@ export function StatCard({
   const cardContent = (
     <Card 
       className={cn(
-        "transition-all duration-300 hover:shadow-executive-lg hover:-translate-y-0.5 group",
+        "transition-all duration-300 hover:shadow-executive-lg hover:-translate-y-0.5 group border-border/40",
         variantBorder[variant],
         onClick && "cursor-pointer"
       )}
       onClick={onClick}
     >
-      <CardContent className="px-5 py-[7px] sm:px-5 sm:py-[7px]">
+      <CardContent className="px-5 py-4 sm:px-6 sm:py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0 space-y-1">
-            <p className="text-xs sm:text-sm text-muted-foreground font-medium truncate">{title}</p>
-            <p className="text-lg sm:text-xl font-bold tracking-tight truncate">
+            <p className="text-[11px] sm:text-xs text-muted-foreground font-medium uppercase tracking-wider">{title}</p>
+            <p className="text-xl sm:text-2xl font-bold tracking-tight truncate" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
               <MaskedValue>{value}</MaskedValue>
             </p>
             {trend && (
