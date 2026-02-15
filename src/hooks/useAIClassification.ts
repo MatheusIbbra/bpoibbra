@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { classifyTransactionWithAI } from "@/services/aiService";
 import { toast } from "sonner";
 
 export interface ClassificationResult {
@@ -25,6 +26,7 @@ interface ClassifyTransactionParams {
 export function useAIClassification() {
   return useMutation({
     mutationFn: async (params: ClassifyTransactionParams): Promise<ClassificationResult> => {
+      // First try the existing classify-transaction edge function (rules + patterns + Gemini fallback)
       const { data, error } = await supabase.functions.invoke("classify-transaction", {
         body: params,
       });

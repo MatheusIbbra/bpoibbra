@@ -400,21 +400,36 @@ Descrição Normalizada: "${normalizedDescription}"
 Valor: R$ ${amount.toFixed(2)}
 Tipo: ${type === "income" ? "Receita" : "Despesa"}`;
 
-    // Call Lovable AI Gateway
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Call Gemini 2.5 Flash directly
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
+      console.error("[IA] GEMINI_API_KEY not configured");
+      result.reasoning = "Não foi possível classificar automaticamente (IA não configurada)";
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+    
+    const aiResponse = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: userPrompt }],
+          },
         ],
-        temperature: 0.3,
-        max_tokens: 500,
+        systemInstruction: {
+          parts: [{ text: systemPrompt }],
+        },
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 500,
+        },
       }),
     });
 
@@ -431,7 +446,7 @@ Tipo: ${type === "income" ? "Receita" : "Despesa"}`;
     }
 
     const aiData = await aiResponse.json();
-    const aiContent = aiData.choices?.[0]?.message?.content || "";
+    const aiContent = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     // Parse JSON from AI response
     let aiClassification: any;
