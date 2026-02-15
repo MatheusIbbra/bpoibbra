@@ -15,10 +15,19 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useCreateAccount, useUpdateAccount, Account, AccountType, AccountStatus } from "@/hooks/useAccounts";
 import { cn } from "@/lib/utils";
 
+const CURRENCIES = [
+  { value: "BRL", label: "Real (BRL)", flag: "🇧🇷" },
+  { value: "USD", label: "Dólar (USD)", flag: "🇺🇸" },
+  { value: "EUR", label: "Euro (EUR)", flag: "🇪🇺" },
+  { value: "GBP", label: "Libra (GBP)", flag: "🇬🇧" },
+  { value: "CHF", label: "Franco Suíço (CHF)", flag: "🇨🇭" },
+];
+
 const accountSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   bank_name: z.string().min(1, "Banco é obrigatório"),
   account_type: z.enum(["checking", "savings", "investment", "credit_card", "cash"]),
+  currency_code: z.string().default("BRL"),
   initial_balance: z.number(),
   start_date: z.date().optional(),
   status: z.enum(["active", "inactive"]),
@@ -58,6 +67,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
       name: "",
       bank_name: "",
       account_type: "checking",
+      currency_code: "BRL",
       initial_balance: 0,
       start_date: new Date(),
       status: "active",
@@ -74,6 +84,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
         name: account.name,
         bank_name: account.bank_name || "",
         account_type: account.account_type as AccountType,
+        currency_code: (account as any).currency_code || "BRL",
         initial_balance: Number(account.initial_balance),
         start_date: account.start_date ? new Date(account.start_date) : new Date(),
         status: account.status as AccountStatus,
@@ -84,6 +95,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
         name: "",
         bank_name: "",
         account_type: "checking",
+        currency_code: "BRL",
         initial_balance: 0,
         start_date: new Date(),
         status: "active",
@@ -97,6 +109,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
       name: data.name,
       bank_name: data.bank_name,
       account_type: data.account_type as AccountType,
+      currency_code: data.currency_code,
       initial_balance: data.initial_balance,
       start_date: data.start_date ? format(data.start_date, "yyyy-MM-dd") : undefined,
       status: data.status as AccountStatus,
@@ -179,10 +192,35 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
+                name="currency_code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Moeda</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a moeda" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {CURRENCIES.map((c) => (
+                          <SelectItem key={c.value} value={c.value}>
+                            {c.flag} {c.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="initial_balance"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Saldo Inicial (R$)</FormLabel>
+                    <FormLabel>Saldo Inicial</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -196,6 +234,9 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
                   </FormItem>
                 )}
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
 
               <FormField
                 control={form.control}

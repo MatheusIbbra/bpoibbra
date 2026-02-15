@@ -1,12 +1,31 @@
 // Formatting utilities
 
-export function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("pt-BR", {
+export function formatCurrency(value: number, currencyCode: string = "BRL"): string {
+  const localeMap: Record<string, string> = {
+    BRL: "pt-BR",
+    USD: "en-US",
+    EUR: "de-DE",
+    GBP: "en-GB",
+    CHF: "de-CH",
+  };
+
+  return new Intl.NumberFormat(localeMap[currencyCode] || "pt-BR", {
     style: "currency",
-    currency: "BRL",
+    currency: currencyCode,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
+}
+
+export function getCurrencySymbol(currencyCode: string): string {
+  const symbols: Record<string, string> = {
+    BRL: "R$",
+    USD: "US$",
+    EUR: "€",
+    GBP: "£",
+    CHF: "CHF",
+  };
+  return symbols[currencyCode] || currencyCode;
 }
 
 export function formatCpfCnpj(value: string): string {

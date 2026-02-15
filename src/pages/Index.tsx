@@ -14,6 +14,7 @@ import { RecurringExpensesCard } from "@/components/dashboard/RecurringExpensesC
 import { FinancialSimulatorCard } from "@/components/dashboard/FinancialSimulatorCard";
 
 import { ConnectedAccountsSection } from "@/components/dashboard/ConnectedAccountsSection";
+import { MultiCurrencyBalanceSection } from "@/components/dashboard/MultiCurrencyBalanceSection";
 
 import { StatCard } from "@/components/dashboard/StatCard";
 import { StatCardHoverTransactions } from "@/components/dashboard/StatCardHoverTransactions";
@@ -103,6 +104,9 @@ const Index = () => {
           </div>
         </div>
 
+
+        {/* Posição Multimoeda */}
+        <MultiCurrencyBalanceSection />
 
         {/* Alertas de Orçamento */}
         <BudgetAlerts showNotifications={true} />

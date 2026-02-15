@@ -59,6 +59,7 @@ export type Database = {
           bank_name: string | null
           color: string | null
           created_at: string
+          currency_code: string
           current_balance: number | null
           id: string
           initial_balance: number | null
@@ -76,6 +77,7 @@ export type Database = {
           bank_name?: string | null
           color?: string | null
           created_at?: string
+          currency_code?: string
           current_balance?: number | null
           id?: string
           initial_balance?: number | null
@@ -93,6 +95,7 @@ export type Database = {
           bank_name?: string | null
           color?: string | null
           created_at?: string
+          currency_code?: string
           current_balance?: number | null
           id?: string
           initial_balance?: number | null
@@ -584,6 +587,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      exchange_rates: {
+        Row: {
+          base_currency: string
+          created_at: string | null
+          id: string
+          rate: number
+          rate_date: string
+          source: string | null
+          target_currency: string
+        }
+        Insert: {
+          base_currency: string
+          created_at?: string | null
+          id?: string
+          rate: number
+          rate_date: string
+          source?: string | null
+          target_currency: string
+        }
+        Update: {
+          base_currency?: string
+          created_at?: string | null
+          id?: string
+          rate?: number
+          rate_date?: string
+          source?: string | null
+          target_currency?: string
+        }
+        Relationships: []
       }
       file_imports: {
         Row: {
@@ -1194,6 +1227,7 @@ export type Database = {
       organizations: {
         Row: {
           address: string | null
+          base_currency: string
           blocked_at: string | null
           blocked_reason: string | null
           cpf_cnpj: string | null
@@ -1210,6 +1244,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          base_currency?: string
           blocked_at?: string | null
           blocked_reason?: string | null
           cpf_cnpj?: string | null
@@ -1226,6 +1261,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          base_currency?: string
           blocked_at?: string | null
           blocked_reason?: string | null
           cpf_cnpj?: string | null
@@ -1630,11 +1666,13 @@ export type Database = {
           bank_connection_id: string | null
           category_id: string | null
           classification_source: string | null
+          converted_amount: number | null
           cost_center_id: string | null
           created_at: string
           date: string
           description: string | null
           due_date: string | null
+          exchange_rate_used: number | null
           external_transaction_id: string | null
           financial_type: string | null
           id: string
@@ -1669,11 +1707,13 @@ export type Database = {
           bank_connection_id?: string | null
           category_id?: string | null
           classification_source?: string | null
+          converted_amount?: number | null
           cost_center_id?: string | null
           created_at?: string
           date: string
           description?: string | null
           due_date?: string | null
+          exchange_rate_used?: number | null
           external_transaction_id?: string | null
           financial_type?: string | null
           id?: string
@@ -1708,11 +1748,13 @@ export type Database = {
           bank_connection_id?: string | null
           category_id?: string | null
           classification_source?: string | null
+          converted_amount?: number | null
           cost_center_id?: string | null
           created_at?: string
           date?: string
           description?: string | null
           due_date?: string | null
+          exchange_rate_used?: number | null
           external_transaction_id?: string | null
           financial_type?: string | null
           id?: string
@@ -1930,6 +1972,15 @@ export type Database = {
         Returns: boolean
       }
       cleanup_expired_oauth_states: { Args: never; Returns: number }
+      convert_currency: {
+        Args: {
+          p_amount: number
+          p_from_currency: string
+          p_rate_date?: string
+          p_to_currency: string
+        }
+        Returns: number
+      }
       detect_recurring_expenses: {
         Args: { p_organization_id: string }
         Returns: Json
@@ -1944,6 +1995,10 @@ export type Database = {
       }
       generate_financial_metrics: {
         Args: { p_organization_id: string; p_period?: string }
+        Returns: Json
+      }
+      get_consolidated_balance: {
+        Args: { p_organization_id: string; p_target_currency?: string }
         Returns: Json
       }
       get_subordinates: { Args: { _user_id: string }; Returns: string[] }
