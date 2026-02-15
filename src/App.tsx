@@ -7,38 +7,50 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { BaseFilterProvider } from "@/contexts/BaseFilterContext";
 import { ValuesVisibilityProvider } from "@/contexts/ValuesVisibilityContext";
+import { Suspense, lazy } from "react";
+import { Loader2 } from "lucide-react";
+
+// Critical pages - eagerly loaded
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import Admin from "./pages/Admin";
-import Transacoes from "./pages/Transacoes";
-import Receitas from "./pages/Receitas";
-import Despesas from "./pages/Despesas";
-import Orcamentos from "./pages/Orcamentos";
-import Pendencias from "./pages/Pendencias";
-import Relatorios from "./pages/Relatorios";
-import RelatorioDRE from "./pages/RelatorioDRE";
-import RelatorioFluxoCaixa from "./pages/RelatorioFluxoCaixa";
-import DemonstrativoFinanceiro from "./pages/DemonstrativoFinanceiro";
-import Contas from "./pages/Contas";
-import CentrosCusto from "./pages/CentrosCusto";
-import AnaliseOrcamento from "./pages/AnaliseOrcamento";
-import Categorias from "./pages/Categorias";
-import Importacoes from "./pages/Importacoes";
-import Perfil from "./pages/Perfil";
 import NotFound from "./pages/NotFound";
-import RegrasConciliacao from "./pages/RegrasConciliacao";
-import PadroesAprendidos from "./pages/PadroesAprendidos";
-import Documentacao from "./pages/Documentacao";
-import Extrato from "./pages/Extrato";
-import Movimentacoes from "./pages/Movimentacoes";
-import Cadastros from "./pages/Cadastros";
-import OpenFinance from "./pages/OpenFinance";
-import CallbackKlavi from "./pages/CallbackKlavi";
-import CartaoCredito from "./pages/CartaoCredito";
-import CartoesCredito from "./pages/CartoesCredito";
-import OpenFinanceMonitor from "./pages/OpenFinanceMonitor";
+
+// Lazy-loaded pages
+const Admin = lazy(() => import("./pages/Admin"));
+const Transacoes = lazy(() => import("./pages/Transacoes"));
+const Receitas = lazy(() => import("./pages/Receitas"));
+const Despesas = lazy(() => import("./pages/Despesas"));
+const Orcamentos = lazy(() => import("./pages/Orcamentos"));
+const Pendencias = lazy(() => import("./pages/Pendencias"));
+const Relatorios = lazy(() => import("./pages/Relatorios"));
+const RelatorioDRE = lazy(() => import("./pages/RelatorioDRE"));
+const RelatorioFluxoCaixa = lazy(() => import("./pages/RelatorioFluxoCaixa"));
+const DemonstrativoFinanceiro = lazy(() => import("./pages/DemonstrativoFinanceiro"));
+const Contas = lazy(() => import("./pages/Contas"));
+const CentrosCusto = lazy(() => import("./pages/CentrosCusto"));
+const AnaliseOrcamento = lazy(() => import("./pages/AnaliseOrcamento"));
+const Categorias = lazy(() => import("./pages/Categorias"));
+const Importacoes = lazy(() => import("./pages/Importacoes"));
+const Perfil = lazy(() => import("./pages/Perfil"));
+const RegrasConciliacao = lazy(() => import("./pages/RegrasConciliacao"));
+const PadroesAprendidos = lazy(() => import("./pages/PadroesAprendidos"));
+const Documentacao = lazy(() => import("./pages/Documentacao"));
+const Extrato = lazy(() => import("./pages/Extrato"));
+const Movimentacoes = lazy(() => import("./pages/Movimentacoes"));
+const Cadastros = lazy(() => import("./pages/Cadastros"));
+const OpenFinance = lazy(() => import("./pages/OpenFinance"));
+const CallbackKlavi = lazy(() => import("./pages/CallbackKlavi"));
+const CartaoCredito = lazy(() => import("./pages/CartaoCredito"));
+const CartoesCredito = lazy(() => import("./pages/CartoesCredito"));
+const OpenFinanceMonitor = lazy(() => import("./pages/OpenFinanceMonitor"));
 
 const queryClient = new QueryClient();
+
+const PageLoader = () => (
+  <div className="flex min-h-screen items-center justify-center">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -50,38 +62,40 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/extrato" element={<Extrato />} />
-                <Route path="/transacoes" element={<Transacoes />} />
-                <Route path="/receitas" element={<Receitas />} />
-                <Route path="/despesas" element={<Despesas />} />
-                <Route path="/movimentacoes" element={<Movimentacoes />} />
-                <Route path="/cadastros" element={<Cadastros />} />
-                <Route path="/contas" element={<Contas />} />
-                <Route path="/categorias" element={<Categorias />} />
-                <Route path="/centros-custo" element={<CentrosCusto />} />
-                <Route path="/regras-conciliacao" element={<RegrasConciliacao />} />
-                <Route path="/orcamentos" element={<Orcamentos />} />
-                <Route path="/pendencias" element={<Pendencias />} />
-                <Route path="/analise-orcamento" element={<AnaliseOrcamento />} />
-                <Route path="/relatorios" element={<Relatorios />} />
-                <Route path="/dre" element={<RelatorioDRE />} />
-                <Route path="/demonstrativo-financeiro" element={<DemonstrativoFinanceiro />} />
-                <Route path="/fluxo-caixa" element={<RelatorioFluxoCaixa />} />
-                <Route path="/importacoes" element={<Importacoes />} />
-                <Route path="/perfil" element={<Perfil />} />
-                <Route path="/padroes-aprendidos" element={<PadroesAprendidos />} />
-                <Route path="/documentacao" element={<Documentacao />} />
-                <Route path="/open-finance" element={<OpenFinance />} />
-                <Route path="/callback-klavi" element={<CallbackKlavi />} />
-                <Route path="/cartoes" element={<CartoesCredito />} />
-                <Route path="/cartao/:accountId" element={<CartaoCredito />} />
-                <Route path="/open-finance-monitor" element={<OpenFinanceMonitor />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/extrato" element={<Extrato />} />
+                  <Route path="/transacoes" element={<Transacoes />} />
+                  <Route path="/receitas" element={<Receitas />} />
+                  <Route path="/despesas" element={<Despesas />} />
+                  <Route path="/movimentacoes" element={<Movimentacoes />} />
+                  <Route path="/cadastros" element={<Cadastros />} />
+                  <Route path="/contas" element={<Contas />} />
+                  <Route path="/categorias" element={<Categorias />} />
+                  <Route path="/centros-custo" element={<CentrosCusto />} />
+                  <Route path="/regras-conciliacao" element={<RegrasConciliacao />} />
+                  <Route path="/orcamentos" element={<Orcamentos />} />
+                  <Route path="/pendencias" element={<Pendencias />} />
+                  <Route path="/analise-orcamento" element={<AnaliseOrcamento />} />
+                  <Route path="/relatorios" element={<Relatorios />} />
+                  <Route path="/dre" element={<RelatorioDRE />} />
+                  <Route path="/demonstrativo-financeiro" element={<DemonstrativoFinanceiro />} />
+                  <Route path="/fluxo-caixa" element={<RelatorioFluxoCaixa />} />
+                  <Route path="/importacoes" element={<Importacoes />} />
+                  <Route path="/perfil" element={<Perfil />} />
+                  <Route path="/padroes-aprendidos" element={<PadroesAprendidos />} />
+                  <Route path="/documentacao" element={<Documentacao />} />
+                  <Route path="/open-finance" element={<OpenFinance />} />
+                  <Route path="/callback-klavi" element={<CallbackKlavi />} />
+                  <Route path="/cartoes" element={<CartoesCredito />} />
+                  <Route path="/cartao/:accountId" element={<CartaoCredito />} />
+                  <Route path="/open-finance-monitor" element={<OpenFinanceMonitor />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
             </BrowserRouter>
           </TooltipProvider>
           </ValuesVisibilityProvider>

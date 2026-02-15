@@ -74,6 +74,7 @@ export function StatCard({
                 >
                   {trend.isPositive ? "+" : ""}{trend.value.toFixed(1)}%
                 </span>
+                <span className="text-[10px] text-muted-foreground">vs mês anterior</span>
               </div>
             )}
             {description && (
