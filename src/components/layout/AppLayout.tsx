@@ -2,6 +2,7 @@ import { ReactNode, useState, useCallback } from "react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
+import { BrandBackground } from "./BrandBackground";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,8 +41,9 @@ export function AppLayout({ children, title }: AppLayoutProps) {
   return (
     <SidebarProvider open={sidebarOpen} onOpenChange={handleSidebarChange}>
       <div className="flex min-h-screen w-full">
+        <BrandBackground />
         <AppSidebar />
-        <SidebarInset className="flex flex-1 flex-col min-w-0">
+        <SidebarInset className="flex flex-1 flex-col min-w-0 relative z-[1]">
           <AppHeader title={title} />
           <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8 border-primary">
             {baseLoading ?

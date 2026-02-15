@@ -82,7 +82,7 @@ export default function Auth() {
     return <div className="min-h-screen flex">
         {/* Left Panel - Branding */}
         <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden sidebar-premium">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
+          <div className="absolute inset-0" style={{ backgroundImage: "url('/ibbra-grafismo.svg')", backgroundRepeat: "no-repeat", backgroundPosition: "center", backgroundSize: "90%", opacity: 0.15 }} />
           <div className="relative z-10 flex flex-col justify-between p-12 text-sidebar-foreground">
             <div className="flex items-center gap-4">
               <img src="/ibbra-logo.jpeg" alt="Ibbra" className="h-14 w-auto rounded-xl object-contain shadow-lg" />
@@ -175,7 +175,7 @@ export default function Auth() {
   return <div className="min-h-screen flex">
       {/* Left Panel - Branding */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden sidebar-premium">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
+        <div className="absolute inset-0" style={{ backgroundImage: "url('/ibbra-grafismo.svg')", backgroundRepeat: "no-repeat", backgroundPosition: "center", backgroundSize: "90%", opacity: 0.15 }} />
         <div className="relative z-10 flex flex-col justify-between p-12 text-sidebar-foreground">
           <div className="flex items-center gap-4">
             <img src="/ibbra-logo.jpeg" alt="Ibbra" className="h-14 w-auto rounded-xl object-contain shadow-lg" />
