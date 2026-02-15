@@ -1,11 +1,21 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createHmac } from "https://deno.land/std@0.177.0/node/crypto.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-pluggy-signature',
 };
 
 const PLUGGY_API_URL = 'https://api.pluggy.ai';
+
+// HMAC signature verification for Pluggy webhooks
+function verifyPluggySignature(payload: string, signature: string | null, secret: string): boolean {
+  if (!signature || !secret) return false;
+  const hmac = createHmac('sha256', secret);
+  hmac.update(payload);
+  const expected = hmac.digest('hex');
+  return signature === expected || signature === `sha256=${expected}`;
+}
 
 async function getPluggyToken(clientId: string, clientSecret: string): Promise<string> {
   const response = await fetch(`${PLUGGY_API_URL}/auth`, {
@@ -31,7 +41,24 @@ Deno.serve(async (req) => {
   const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
-    const body = await req.json();
+    const rawBody = await req.text();
+    
+    // HMAC signature verification
+    if (PLUGGY_CLIENT_SECRET) {
+      const signature = req.headers.get('x-pluggy-signature') || req.headers.get('x-webhook-signature');
+      if (signature && !verifyPluggySignature(rawBody, signature, PLUGGY_CLIENT_SECRET)) {
+        console.error('[WEBHOOK] Invalid signature');
+        await supabaseAdmin.from('integration_logs').insert({
+          provider: 'pluggy', event_type: 'webhook', status: 'error',
+          message: 'Invalid webhook signature',
+          ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip')
+        });
+        return new Response(JSON.stringify({ error: 'Invalid signature' }), 
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    }
+
+    const body = JSON.parse(rawBody);
     console.log('[WEBHOOK] Received:', JSON.stringify(body));
 
     const { event, itemId, data, accountId } = body;

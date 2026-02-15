@@ -14,6 +14,20 @@ Deno.serve(async (req) => {
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  // Auth: accept service_role or valid user JWT
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+  const token = authHeader.replace('Bearer ', '');
+  const isServiceRole = token === SUPABASE_SERVICE_ROLE_KEY;
+  if (!isServiceRole) {
+    const { data: userData, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !userData.user) {
+      return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+  }
+
   try {
     const { action, organization_id, transaction_data, source } = await req.json();
 
