@@ -91,6 +91,7 @@ export function useCreateAccount() {
       name: string;
       bank_name?: string;
       account_type: AccountType;
+      currency_code?: string;
       initial_balance?: number;
       start_date?: string;
       status?: AccountStatus;
@@ -137,6 +138,7 @@ export function useUpdateAccount() {
       name: string;
       bank_name: string;
       account_type: AccountType;
+      currency_code: string;
       initial_balance: number;
       start_date: string;
       status: AccountStatus;
