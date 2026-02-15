@@ -8,6 +8,7 @@ import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
 import { CategoryDonutChart } from "@/components/dashboard/CategoryDonutChart";
 import { BudgetProgress } from "@/components/dashboard/BudgetProgress";
 import { ReconciliationMetricsCard } from "@/components/dashboard/ReconciliationMetricsCard";
+import { FinancialHealthCard } from "@/components/dashboard/FinancialHealthCard";
 
 import { ConnectedAccountsSection } from "@/components/dashboard/ConnectedAccountsSection";
 
@@ -109,11 +110,14 @@ const Index = () => {
           <MonthlyEvolutionChart />
         </div>
 
-        {/* Orçamento do Mês + Últimas Movimentações */}
+        {/* Saúde Financeira + Orçamento do Mês */}
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+          <FinancialHealthCard />
           <BudgetProgress />
-          <FintechTransactionsList />
         </div>
+
+        {/* Últimas Movimentações */}
+        <FintechTransactionsList />
 
         {/* Conciliação */}
         <ReconciliationMetricsCard />

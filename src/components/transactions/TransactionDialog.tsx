@@ -3,6 +3,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarIcon, Loader2, Link2, EyeOff } from "lucide-react";
+import { TransactionComments } from "@/components/transactions/TransactionComments";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -601,6 +602,11 @@ export function TransactionDialog({
                 </FormItem>
               )}
             />
+
+            {/* Comentários - só em edição */}
+            {transaction && (
+              <TransactionComments transactionId={transaction.id} />
+            )}
 
             <div className="flex justify-end gap-2 pt-4">
               <Button

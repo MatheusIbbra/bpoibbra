@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_balance_snapshots: {
+        Row: {
+          account_id: string
+          balance: number
+          id: string
+          last_transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          balance?: number
+          id?: string
+          last_transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          balance?: number
+          id?: string
+          last_transaction_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_balance_snapshots_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: true
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_balance_snapshots_last_transaction_id_fkey"
+            columns: ["last_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accounts: {
         Row: {
           account_type: Database["public"]["Enums"]["account_type"]
@@ -391,6 +430,50 @@ export type Database = {
           },
           {
             foreignKeyName: "budgets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cashflow_forecasts: {
+        Row: {
+          based_on_patterns: boolean | null
+          confidence_score: number | null
+          created_at: string
+          forecast_date: string
+          id: string
+          organization_id: string
+          projected_balance: number
+          projected_expense: number | null
+          projected_income: number | null
+        }
+        Insert: {
+          based_on_patterns?: boolean | null
+          confidence_score?: number | null
+          created_at?: string
+          forecast_date: string
+          id?: string
+          organization_id: string
+          projected_balance?: number
+          projected_expense?: number | null
+          projected_income?: number | null
+        }
+        Update: {
+          based_on_patterns?: boolean | null
+          confidence_score?: number | null
+          created_at?: string
+          forecast_date?: string
+          id?: string
+          organization_id?: string
+          projected_balance?: number
+          projected_expense?: number | null
+          projected_income?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cashflow_forecasts_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1158,6 +1241,66 @@ export type Database = {
           },
         ]
       }
+      recurring_expenses: {
+        Row: {
+          avg_amount: number
+          category_id: string | null
+          confidence: number | null
+          created_at: string
+          description: string
+          frequency: string
+          id: string
+          is_active: boolean | null
+          next_due_date: string | null
+          occurrences: number | null
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          avg_amount?: number
+          category_id?: string | null
+          confidence?: number | null
+          created_at?: string
+          description: string
+          frequency?: string
+          id?: string
+          is_active?: boolean | null
+          next_due_date?: string | null
+          occurrences?: number | null
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          avg_amount?: number
+          category_id?: string | null
+          confidence?: number | null
+          created_at?: string
+          description?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean | null
+          next_due_date?: string | null
+          occurrences?: number | null
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_expenses_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sync_audit_logs: {
         Row: {
           api_balance: number | null
@@ -1217,6 +1360,38 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transaction_comments: {
+        Row: {
+          comment: string
+          created_at: string
+          id: string
+          transaction_id: string
+          user_id: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          id?: string
+          transaction_id: string
+          user_id: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          id?: string
+          transaction_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_comments_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
         ]
@@ -1293,6 +1468,7 @@ export type Database = {
           account_id: string
           accrual_date: string | null
           amount: number
+          anomaly_score: number | null
           bank_connection_id: string | null
           category_id: string | null
           classification_source: string | null
@@ -1305,6 +1481,7 @@ export type Database = {
           financial_type: string | null
           id: string
           import_batch_id: string | null
+          is_anomaly: boolean | null
           is_ignored: boolean | null
           linked_transaction_id: string | null
           normalized_description: string | null
@@ -1330,6 +1507,7 @@ export type Database = {
           account_id: string
           accrual_date?: string | null
           amount: number
+          anomaly_score?: number | null
           bank_connection_id?: string | null
           category_id?: string | null
           classification_source?: string | null
@@ -1342,6 +1520,7 @@ export type Database = {
           financial_type?: string | null
           id?: string
           import_batch_id?: string | null
+          is_anomaly?: boolean | null
           is_ignored?: boolean | null
           linked_transaction_id?: string | null
           normalized_description?: string | null
@@ -1367,6 +1546,7 @@ export type Database = {
           account_id?: string
           accrual_date?: string | null
           amount?: number
+          anomaly_score?: number | null
           bank_connection_id?: string | null
           category_id?: string | null
           classification_source?: string | null
@@ -1379,6 +1559,7 @@ export type Database = {
           financial_type?: string | null
           id?: string
           import_batch_id?: string | null
+          is_anomaly?: boolean | null
           is_ignored?: boolean | null
           linked_transaction_id?: string | null
           normalized_description?: string | null
@@ -1591,6 +1772,10 @@ export type Database = {
         Returns: boolean
       }
       cleanup_expired_oauth_states: { Args: never; Returns: number }
+      generate_financial_health_score: {
+        Args: { p_organization_id: string }
+        Returns: Json
+      }
       generate_financial_metrics: {
         Args: { p_organization_id: string; p_period?: string }
         Returns: Json
