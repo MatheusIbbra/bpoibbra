@@ -9,6 +9,9 @@ import { CategoryDonutChart } from "@/components/dashboard/CategoryDonutChart";
 import { BudgetProgress } from "@/components/dashboard/BudgetProgress";
 import { ReconciliationMetricsCard } from "@/components/dashboard/ReconciliationMetricsCard";
 import { FinancialHealthCard } from "@/components/dashboard/FinancialHealthCard";
+import { CashflowForecastCard } from "@/components/dashboard/CashflowForecastCard";
+import { RecurringExpensesCard } from "@/components/dashboard/RecurringExpensesCard";
+import { FinancialSimulatorCard } from "@/components/dashboard/FinancialSimulatorCard";
 
 import { ConnectedAccountsSection } from "@/components/dashboard/ConnectedAccountsSection";
 
@@ -115,6 +118,15 @@ const Index = () => {
           <FinancialHealthCard />
           <BudgetProgress />
         </div>
+
+        {/* Previsão de Caixa + Despesas Recorrentes */}
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+          <CashflowForecastCard />
+          <RecurringExpensesCard />
+        </div>
+
+        {/* Simulador Financeiro */}
+        <FinancialSimulatorCard />
 
         {/* Últimas Movimentações */}
         <FintechTransactionsList />

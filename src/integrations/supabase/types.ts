@@ -629,6 +629,53 @@ export type Database = {
           },
         ]
       }
+      financial_simulations: {
+        Row: {
+          created_at: string
+          expense_increase_rate: number
+          id: string
+          initial_balance: number
+          months_ahead: number
+          name: string
+          organization_id: string
+          results: Json
+          revenue_growth_rate: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expense_increase_rate?: number
+          id?: string
+          initial_balance?: number
+          months_ahead?: number
+          name?: string
+          organization_id: string
+          results?: Json
+          revenue_growth_rate?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expense_increase_rate?: number
+          id?: string
+          initial_balance?: number
+          months_ahead?: number
+          name?: string
+          organization_id?: string
+          results?: Json
+          revenue_growth_rate?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_simulations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_batches: {
         Row: {
           account_id: string
@@ -1087,6 +1134,63 @@ export type Database = {
           },
         ]
       }
+      organization_subscriptions: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          organization_id: string
+          plan_id: string
+          started_at: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          organization_id: string
+          plan_id: string
+          started_at?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          organization_id?: string
+          plan_id?: string
+          started_at?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           address: string | null
@@ -1135,6 +1239,60 @@ export type Database = {
           settings?: Json | null
           slug?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      plans: {
+        Row: {
+          allow_anomaly_detection: boolean
+          allow_benchmarking: boolean
+          allow_forecast: boolean
+          allow_simulator: boolean
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          max_ai_requests: number
+          max_bank_connections: number
+          max_transactions: number
+          name: string
+          price: number
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          allow_anomaly_detection?: boolean
+          allow_benchmarking?: boolean
+          allow_forecast?: boolean
+          allow_simulator?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_ai_requests?: number
+          max_bank_connections?: number
+          max_transactions?: number
+          name: string
+          price?: number
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          allow_anomaly_detection?: boolean
+          allow_benchmarking?: boolean
+          allow_forecast?: boolean
+          allow_simulator?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_ai_requests?: number
+          max_bank_connections?: number
+          max_transactions?: number
+          name?: string
+          price?: number
+          slug?: string
+          sort_order?: number
         }
         Relationships: []
       }
@@ -1772,6 +1930,14 @@ export type Database = {
         Returns: boolean
       }
       cleanup_expired_oauth_states: { Args: never; Returns: number }
+      detect_recurring_expenses: {
+        Args: { p_organization_id: string }
+        Returns: Json
+      }
+      generate_cashflow_forecast: {
+        Args: { p_days?: number; p_organization_id: string }
+        Returns: Json
+      }
       generate_financial_health_score: {
         Args: { p_organization_id: string }
         Returns: Json
