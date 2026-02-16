@@ -2460,6 +2460,7 @@ export type Database = {
         Args: { p_lookback_days?: number; p_organization_id: string }
         Returns: Json
       }
+      ensure_user_provisioned: { Args: never; Returns: undefined }
       generate_cashflow_forecast: {
         Args: { p_days?: number; p_organization_id: string }
         Returns: Json

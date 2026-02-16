@@ -156,6 +156,13 @@ export default function Onboarding() {
     setIsLoading(true);
 
     try {
+      // 0. Ensure user provisioning (profile, org, membership) exists
+      // This handles cases where the signup trigger failed
+      const { error: provisionError } = await supabase.rpc('ensure_user_provisioned');
+      if (provisionError) {
+        console.warn("Provisioning warning:", provisionError.message);
+      }
+
       const cleanCpf = cpf.replace(/\D/g, "");
 
       // 1. Update profile with full data
