@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +39,13 @@ export function DREContent() {
     start: startOfMonth(new Date()),
     end: endOfMonth(new Date()),
   });
-  const [basis, setBasis] = useState<ReportBasis>("cash");
+  const [basis, setBasis] = useState<ReportBasis>(() => {
+    return (localStorage.getItem("report-basis-dre") as ReportBasis) || "accrual";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("report-basis-dre", basis);
+  }, [basis]);
   const [costCenterId, setCostCenterId] = useState<string | undefined>(undefined);
 
   const { data: costCenters } = useCostCenters();
@@ -291,6 +297,17 @@ export function DREContent() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Regime info banner */}
+          <div className="px-3 py-2 rounded-lg bg-muted/50 border border-border/50">
+            <p className="text-[11px] text-muted-foreground text-center">
+              📊 Este relatório está sendo exibido no <strong>{basis === "cash" ? "Regime de Caixa" : "Regime de Competência"}</strong>.
+              {basis === "accrual" 
+                ? " Os valores refletem as datas de competência (fato gerador)."
+                : " Os valores refletem as datas de movimentação financeira efetiva."
+              }
+            </p>
+          </div>
         </>
       )}
     </div>

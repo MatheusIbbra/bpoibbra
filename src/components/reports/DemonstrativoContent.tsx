@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -66,13 +66,20 @@ export function DemonstrativoContent() {
     start: startOfMonth(new Date()),
     end: endOfMonth(new Date()),
   });
-  const [basis, setBasis] = useState<ReportBasis>("cash");
+  const [basis, setBasis] = useState<ReportBasis>(() => {
+    return (localStorage.getItem("report-basis-demonstrativo") as ReportBasis) || "cash";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("report-basis-demonstrativo", basis);
+  }, [basis]);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
-  const dateField = basis === "cash" ? "date" : "accrual_date";
+  const startStr = format(dateRange.start, "yyyy-MM-dd");
+  const endStr = format(dateRange.end, "yyyy-MM-dd");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["demonstrativo-financeiro-inline", user?.id, selectedOrganizationId, format(dateRange.start, "yyyy-MM-dd"), format(dateRange.end, "yyyy-MM-dd"), basis],
+    queryKey: ["demonstrativo-financeiro-inline", user?.id, selectedOrganizationId, startStr, endStr, basis],
     queryFn: async (): Promise<ReportData> => {
       let categoriesQuery = supabase
         .from("categories")
@@ -88,10 +95,17 @@ export function DemonstrativoContent() {
 
       let txQuery = supabase
         .from("transactions")
-        .select(`id, amount, type, category_id`)
+        .select(`id, amount, type, category_id, accrual_date, date`)
         .in("type", ["income", "expense"])
-        .gte(dateField, format(dateRange.start, "yyyy-MM-dd"))
-        .lte(dateField, format(dateRange.end, "yyyy-MM-dd"));
+        .neq("is_ignored", true);
+
+      if (basis === "cash") {
+        txQuery = txQuery.gte("date", startStr).lte("date", endStr);
+      } else {
+        txQuery = txQuery.or(
+          `and(accrual_date.gte.${startStr},accrual_date.lte.${endStr}),and(accrual_date.is.null,date.gte.${startStr},date.lte.${endStr})`
+        );
+      }
 
       if (selectedOrganizationId) {
         txQuery = txQuery.eq("organization_id", selectedOrganizationId);
@@ -475,6 +489,17 @@ export function DemonstrativoContent() {
                   )}>
                     {formatCurrency(data?.balance || 0)}
                   </span>
+                </div>
+
+                {/* Regime info banner */}
+                <div className="mt-4 px-3 py-2 rounded-lg bg-muted/50 border border-border/50">
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    📊 Este relatório está sendo exibido no <strong>{basis === "cash" ? "Regime de Caixa" : "Regime de Competência"}</strong>.
+                    {basis === "cash" 
+                      ? " Os valores refletem as datas de movimentação financeira efetiva."
+                      : " Os valores refletem as datas de competência (fato gerador)."
+                    }
+                  </p>
                 </div>
               </div>
             </CardContent>
