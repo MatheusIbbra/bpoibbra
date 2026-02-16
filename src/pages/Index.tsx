@@ -66,7 +66,7 @@ const Index = () => {
 
   return (
     <AppLayout title="Consolidação Patrimonial">
-      <div className="space-y-5">
+      <div className="space-y-6 max-w-[1400px]">
         {/* Bloco 1: StatCards with colored band on mobile */}
         <div className="relative">
           {/* Colored band behind cards - mobile only, extends from header to bottom of cards */}
