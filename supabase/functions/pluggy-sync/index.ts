@@ -35,8 +35,9 @@ function isCreditCardPayment(description: string): boolean {
   const text = (description || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const patterns = [
     "pagamento recebido", "pagamento da fatura", "pagamento fatura",
-    "pgto fatura", "pagamento cartao", "pgto cartao", "liq fatura",
-    "liquidacao fatura", "liquidacao cartao", "pag fatura cartao", "pagto fatura",
+    "pagamento de fatura", "pgto fatura", "pagamento cartao", "pgto cartao",
+    "liq fatura", "liquidacao fatura", "liquidacao cartao",
+    "pag fatura cartao", "pagto fatura",
   ];
   return patterns.some(k => text.includes(k));
 }
