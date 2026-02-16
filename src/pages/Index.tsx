@@ -63,7 +63,7 @@ const Index = () => {
 
   return (
     <AppLayout title="Consolidação Patrimonial">
-      <div className="space-y-6 max-w-[1400px]">
+      <div className="space-y-6 w-full">
         {/* 1. Stat Cards — proporção executiva 20:7 */}
         <div className="relative">
           <div className="absolute inset-x-0 -mx-4 bg-[hsl(var(--sidebar-background))] rounded-b-3xl md:hidden" style={{ top: '-4rem', bottom: '-0.75rem' }} />
