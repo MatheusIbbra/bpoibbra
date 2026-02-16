@@ -1,13 +1,14 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, PieChart as PieChartIcon } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { Loader2, PieChart as PieChartIcon, ChevronDown, ChevronUp } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Sector } from "recharts";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import { useMemo } from "react";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-// Distinct, vibrant colors for each category slice
 const DISTINCT_COLORS = [
   "#6366f1", "#f43f5e", "#f59e0b", "#22c55e", "#06b6d4",
   "#8b5cf6", "#ec4899", "#f97316", "#10b981", "#3b82f6",
@@ -22,6 +23,7 @@ interface DonutData {
   value: number;
   color: string;
   percentage: number;
+  transactions: { description: string; amount: number; date: string }[];
 }
 
 export function CategoryDonutChart() {
@@ -38,25 +40,29 @@ export function CategoryDonutChart() {
   const { incomeData, expenseData } = useMemo(() => {
     if (!transactions || !categories) return { incomeData: [], expenseData: [] };
 
-    const incomeMap = new Map<string, number>();
-    const expenseMap = new Map<string, number>();
+    const incomeMap = new Map<string, { total: number; txs: { description: string; amount: number; date: string }[] }>();
+    const expenseMap = new Map<string, { total: number; txs: { description: string; amount: number; date: string }[] }>();
 
     transactions.forEach((tx) => {
       if (!tx.category_id) return;
       const map = tx.type === "income" ? incomeMap : expenseMap;
-      map.set(tx.category_id, (map.get(tx.category_id) || 0) + Number(tx.amount));
+      const existing = map.get(tx.category_id) || { total: 0, txs: [] };
+      existing.total += Number(tx.amount);
+      existing.txs.push({ description: tx.description || "—", amount: Number(tx.amount), date: tx.date });
+      map.set(tx.category_id, existing);
     });
 
-    const buildData = (map: Map<string, number>): DonutData[] => {
-      const total = Array.from(map.values()).reduce((s, v) => s + v, 0);
+    const buildData = (map: Map<string, { total: number; txs: { description: string; amount: number; date: string }[] }>): DonutData[] => {
+      const total = Array.from(map.values()).reduce((s, v) => s + v.total, 0);
       return Array.from(map.entries())
-        .map(([catId, value], i) => {
+        .map(([catId, data], i) => {
           const cat = categories.find((c) => c.id === catId);
           return {
             name: cat?.name || "Sem categoria",
-            value,
+            value: data.total,
             color: DISTINCT_COLORS[i % DISTINCT_COLORS.length],
-            percentage: total > 0 ? (value / total) * 100 : 0,
+            percentage: total > 0 ? (data.total / total) * 100 : 0,
+            transactions: data.txs.sort((a, b) => b.amount - a.amount).slice(0, 5),
           };
         })
         .sort((a, b) => b.value - a.value)
@@ -97,6 +103,7 @@ export function CategoryDonutChart() {
 
 function DonutSection({ title, data, type }: { title: string; data: DonutData[]; type: "income" | "expense" }) {
   const total = data.reduce((s, d) => s + d.value, 0);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   if (data.length === 0) {
     return (
@@ -109,6 +116,8 @@ function DonutSection({ title, data, type }: { title: string; data: DonutData[];
       </div>
     );
   }
+
+  const selectedData = data.find(d => d.name === selectedCategory);
 
   return (
     <div>
@@ -134,9 +143,20 @@ function DonutSection({ title, data, type }: { title: string; data: DonutData[];
                 paddingAngle={2}
                 dataKey="value"
                 strokeWidth={0}
+                onClick={(_, index) => {
+                  const clicked = data[index]?.name;
+                  setSelectedCategory(prev => prev === clicked ? null : clicked);
+                }}
+                style={{ cursor: "pointer" }}
               >
                 {data.map((entry, index) => (
-                  <Cell key={index} fill={entry.color} />
+                  <Cell
+                    key={index}
+                    fill={entry.color}
+                    opacity={selectedCategory && selectedCategory !== entry.name ? 0.3 : 1}
+                    stroke={selectedCategory === entry.name ? "hsl(var(--foreground))" : "none"}
+                    strokeWidth={selectedCategory === entry.name ? 2 : 0}
+                  />
                 ))}
               </Pie>
               <Tooltip
@@ -154,9 +174,18 @@ function DonutSection({ title, data, type }: { title: string; data: DonutData[];
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <div className="space-y-1.5 flex-1 min-w-0 pt-0.5">
+        <div className="space-y-1 flex-1 min-w-0 pt-0.5">
           {data.slice(0, 6).map((item, i) => (
-            <div key={i} className="flex items-center gap-2 text-[11px]">
+            <div
+              key={i}
+              className={cn(
+                "flex items-center gap-2 text-[11px] rounded-md px-1.5 py-0.5 cursor-pointer transition-all",
+                selectedCategory === item.name
+                  ? "bg-accent ring-1 ring-accent"
+                  : "hover:bg-muted/50"
+              )}
+              onClick={() => setSelectedCategory(prev => prev === item.name ? null : item.name)}
+            >
               <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
               <span className="truncate flex-1">{item.name}</span>
               <span className="font-medium tabular-nums shrink-0">{formatCurrency(item.value)}</span>
@@ -167,6 +196,34 @@ function DonutSection({ title, data, type }: { title: string; data: DonutData[];
           ))}
         </div>
       </div>
+
+      {/* Expanded details */}
+      {selectedData && (
+        <div className="mt-2 p-2.5 rounded-lg bg-muted/40 border border-border/50 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[11px] font-semibold">{selectedData.name}</p>
+            <button
+              onClick={() => setSelectedCategory(null)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <ChevronUp className="h-3 w-3" />
+            </button>
+          </div>
+          <div className="space-y-1">
+            {selectedData.transactions.map((tx, i) => (
+              <div key={i} className="flex items-center justify-between text-[10px]">
+                <span className="truncate flex-1 text-muted-foreground">{tx.description}</span>
+                <span className="font-medium tabular-nums ml-2">{formatCurrency(tx.amount)}</span>
+              </div>
+            ))}
+            {selectedData.transactions.length === 5 && (
+              <p className="text-[9px] text-muted-foreground text-center pt-0.5">
+                Mostrando as 5 maiores
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
