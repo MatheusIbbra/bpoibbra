@@ -198,78 +198,40 @@ export default function Onboarding() {
     setIsLoading(true);
 
     try {
-      // Ensure user provisioning
-      const { error: provisionError } = await supabase.rpc('ensure_user_provisioned');
-      if (provisionError) {
-        console.warn("Provisioning warning:", provisionError.message);
-      }
-
       const cleanCpf = cpf.replace(/\D/g, "");
 
-      // 1. Update profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          full_name: fullName.trim(),
-          cpf: cleanCpf || null,
-          birth_date: birthDate || null,
-          phone: phone || null,
-          address: address || null,
-          is_ibbra_client: isIbbraClient || false,
-          external_client_validated: validationResult?.found || false,
-          validated_at: validationResult?.found ? new Date().toISOString() : null,
-          registration_completed: true,
-        })
-        .eq("user_id", user.id);
-
-      if (profileError) throw profileError;
-
-      // 2. Update organization name
-      const orgSlug = "base-" + user.id.substring(0, 8);
-      await supabase
-        .from("organizations")
-        .update({ name: fullName.trim() })
-        .eq("slug", orgSlug);
-
-      // 3. Save family members
-      const validMembers = familyMembers.filter(m => m.full_name.trim() && m.relationship);
-      if (validMembers.length > 0) {
-        const { data: orgData } = await supabase
-          .from("organizations")
-          .select("id")
-          .eq("slug", orgSlug)
-          .maybeSingle();
-
-        const rows = validMembers.map(m => ({
-          user_id: user.id,
-          organization_id: orgData?.id || null,
+      // Build family members array
+      const validMembers = familyMembers
+        .filter(m => m.full_name.trim() && m.relationship)
+        .map(m => ({
           relationship: m.relationship,
           full_name: m.full_name.trim(),
-          age: m.age ? parseInt(m.age) : null,
+          age: m.age || null,
           phone: m.phone || null,
           email: m.email || null,
         }));
 
-        await supabase.from("family_members").insert(rows);
-      }
+      // Call server-side RPC that handles everything atomically
+      const { data: result, error: rpcError } = await supabase.rpc('complete_onboarding', {
+        p_full_name: fullName.trim(),
+        p_cpf: cleanCpf || null,
+        p_birth_date: birthDate || null,
+        p_phone: phone || null,
+        p_address: address || null,
+        p_is_ibbra_client: isIbbraClient || false,
+        p_external_client_validated: validationResult?.found || false,
+        p_family_members: validMembers,
+      });
 
-      // 4. Get the user's org id for localStorage
-      const { data: orgData } = await supabase
-        .from("organizations")
-        .select("id")
-        .eq("slug", orgSlug)
-        .maybeSingle();
+      if (rpcError) throw rpcError;
 
-      // 5. Consent logs
-      await supabase.from("consent_logs").insert([
-        { user_id: user.id, consent_type: "terms", consent_given: true, user_agent: navigator.userAgent },
-        { user_id: user.id, consent_type: "privacy", consent_given: true, user_agent: navigator.userAgent },
-      ]);
-
-      // 6. Clean up
+      // Clean up localStorage
       localStorage.removeItem("ibbra_registration");
-      if (orgData?.id) {
-        localStorage.setItem("selectedOrganizationId", orgData.id);
+
+      // Set selected org from result
+      const orgId = (result as any)?.organization_id;
+      if (orgId) {
+        localStorage.setItem("selectedOrganizationId", orgId);
       }
 
       toast.success("Cadastro concluído! Bem-vindo ao IBBRA.");

@@ -2443,6 +2443,19 @@ export type Database = {
         Returns: Json
       }
       cleanup_expired_oauth_states: { Args: never; Returns: number }
+      complete_onboarding: {
+        Args: {
+          p_address?: string
+          p_birth_date?: string
+          p_cpf?: string
+          p_external_client_validated?: boolean
+          p_family_members?: Json
+          p_full_name: string
+          p_is_ibbra_client?: boolean
+          p_phone?: string
+        }
+        Returns: Json
+      }
       convert_currency: {
         Args: {
           p_amount: number
