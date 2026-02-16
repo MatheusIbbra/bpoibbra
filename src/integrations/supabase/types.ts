@@ -627,6 +627,39 @@ export type Database = {
           },
         ]
       }
+      data_deletion_requests: {
+        Row: {
+          created_at: string
+          id: string
+          processed_at: string | null
+          processed_by: string | null
+          reason: string | null
+          requested_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          reason?: string | null
+          requested_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          reason?: string | null
+          requested_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       data_export_requests: {
         Row: {
           completed_at: string | null
@@ -1028,6 +1061,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      legal_documents: {
+        Row: {
+          active: boolean
+          content: string
+          created_at: string
+          document_type: string
+          id: string
+          title: string
+          version: string
+        }
+        Insert: {
+          active?: boolean
+          content: string
+          created_at?: string
+          document_type: string
+          id?: string
+          title: string
+          version: string
+        }
+        Update: {
+          active?: boolean
+          content?: string
+          created_at?: string
+          document_type?: string
+          id?: string
+          title?: string
+          version?: string
+        }
+        Relationships: []
       }
       materialized_metrics: {
         Row: {
@@ -1566,6 +1629,9 @@ export type Database = {
           id: string
           is_blocked: boolean | null
           is_ibbra_client: boolean | null
+          legal_accepted: boolean
+          legal_accepted_at: string | null
+          legal_accepted_version: string | null
           phone: string | null
           registration_completed: boolean
           updated_at: string
@@ -1585,6 +1651,9 @@ export type Database = {
           id?: string
           is_blocked?: boolean | null
           is_ibbra_client?: boolean | null
+          legal_accepted?: boolean
+          legal_accepted_at?: string | null
+          legal_accepted_version?: string | null
           phone?: string | null
           registration_completed?: boolean
           updated_at?: string
@@ -1604,6 +1673,9 @@ export type Database = {
           id?: string
           is_blocked?: boolean | null
           is_ibbra_client?: boolean | null
+          legal_accepted?: boolean
+          legal_accepted_at?: string | null
+          legal_accepted_version?: string | null
           phone?: string | null
           registration_completed?: boolean
           updated_at?: string
@@ -2291,6 +2363,83 @@ export type Database = {
           },
         ]
       }
+      user_consents: {
+        Row: {
+          accepted_at: string
+          created_at: string
+          id: string
+          ip_address: unknown
+          lgpd_document_id: string | null
+          lgpd_version: string
+          organization_id: string | null
+          privacy_document_id: string | null
+          privacy_version: string
+          terms_document_id: string | null
+          terms_version: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          lgpd_document_id?: string | null
+          lgpd_version: string
+          organization_id?: string | null
+          privacy_document_id?: string | null
+          privacy_version: string
+          terms_document_id?: string | null
+          terms_version: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          lgpd_document_id?: string | null
+          lgpd_version?: string
+          organization_id?: string | null
+          privacy_document_id?: string | null
+          privacy_version?: string
+          terms_document_id?: string | null
+          terms_version?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_consents_lgpd_document_id_fkey"
+            columns: ["lgpd_document_id"]
+            isOneToOne: false
+            referencedRelation: "legal_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_consents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_consents_privacy_document_id_fkey"
+            columns: ["privacy_document_id"]
+            isOneToOne: false
+            referencedRelation: "legal_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_consents_terms_document_id_fkey"
+            columns: ["terms_document_id"]
+            isOneToOne: false
+            referencedRelation: "legal_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_hierarchy: {
         Row: {
           created_at: string
@@ -2441,6 +2590,10 @@ export type Database = {
           p_window_minutes?: number
         }
         Returns: Json
+      }
+      check_user_consent_valid: {
+        Args: { p_user_id: string }
+        Returns: boolean
       }
       cleanup_expired_oauth_states: { Args: never; Returns: number }
       complete_onboarding: {

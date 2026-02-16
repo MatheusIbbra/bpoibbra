@@ -13,10 +13,13 @@ import {
   Users,
   Plus,
   Trash2,
+  FileText,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,7 +33,7 @@ import {
 import ibbraLogoFullWhite from "@/assets/ibbra-logo-full-white.png";
 import ibbraLogoIcon from "@/assets/ibbra-logo-icon.png";
 
-type Step = "client_question" | "cpf_validation" | "profile_form" | "family_question" | "family_form" | "completing";
+type Step = "client_question" | "cpf_validation" | "profile_form" | "family_question" | "family_form" | "consent" | "completing";
 
 interface FamilyMember {
   relationship: string;
@@ -69,6 +72,13 @@ export default function Onboarding() {
   // Family members
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([emptyFamilyMember()]);
 
+  // Consent
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
+  const [acceptLgpd, setAcceptLgpd] = useState(false);
+
+  const allConsentsAccepted = acceptTerms && acceptPrivacy && acceptLgpd;
+
   // Load existing data from localStorage (Google OAuth) or profile
   useEffect(() => {
     if (!user) return;
@@ -84,14 +94,12 @@ export default function Onboarding() {
         if (regData.validated) {
           setValidationResult({ found: true, full_name: regData.fullName, birth_date: regData.birthDate });
         }
-        // Auto-advance: Google OAuth users already chose client type, go straight to profile form
         setStep("profile_form");
       } catch {
         localStorage.removeItem("ibbra_registration");
       }
     }
 
-    // Pre-fill from user metadata
     if (!fullName && user.user_metadata?.full_name) {
       setFullName(user.user_metadata.full_name);
     }
@@ -112,11 +120,11 @@ export default function Onboarding() {
     if (!user) return;
     supabase
       .from("profiles")
-      .select("registration_completed")
+      .select("registration_completed, legal_accepted")
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => {
-        if (data?.registration_completed) {
+        if (data?.registration_completed && data?.legal_accepted) {
           navigate("/", { replace: true });
         }
       });
@@ -182,7 +190,7 @@ export default function Onboarding() {
     if (wantsFamily) {
       setStep("family_form");
     } else {
-      handleCompleteOnboarding();
+      setStep("consent");
     }
   };
 
@@ -194,13 +202,17 @@ export default function Onboarding() {
     setFamilyMembers(prev => prev.map((m, i) => (i === index ? { ...m, [field]: value } : m)));
 
   const handleCompleteOnboarding = async () => {
+    if (!allConsentsAccepted) {
+      toast.error("Aceite todos os termos para continuar.");
+      return;
+    }
+
     setStep("completing");
     setIsLoading(true);
 
     try {
       const cleanCpf = cpf.replace(/\D/g, "");
 
-      // Build family members array
       const validMembers = familyMembers
         .filter(m => m.full_name.trim() && m.relationship)
         .map(m => ({
@@ -225,10 +237,50 @@ export default function Onboarding() {
 
       if (rpcError) throw rpcError;
 
+      // Now save consents (separate from onboarding RPC for auditability)
+      // Fetch current legal document versions
+      const { data: legalDocs } = await supabase
+        .from("legal_documents")
+        .select("id, document_type, version")
+        .eq("active", true);
+
+      const termsDoc = legalDocs?.find(d => d.document_type === "terms");
+      const privacyDoc = legalDocs?.find(d => d.document_type === "privacy");
+      const lgpdDoc = legalDocs?.find(d => d.document_type === "lgpd");
+
+      // Insert consent record
+      const { error: consentError } = await supabase
+        .from("user_consents")
+        .insert({
+          user_id: user.id,
+          organization_id: (result as any)?.organization_id || null,
+          terms_version: termsDoc?.version || "1.0",
+          privacy_version: privacyDoc?.version || "1.0",
+          lgpd_version: lgpdDoc?.version || "1.0",
+          terms_document_id: termsDoc?.id || null,
+          privacy_document_id: privacyDoc?.id || null,
+          lgpd_document_id: lgpdDoc?.id || null,
+          user_agent: navigator.userAgent,
+        });
+
+      if (consentError) {
+        console.error("Consent save error:", consentError);
+        // Don't block onboarding for consent save failure, but log it
+      }
+
+      // Update profile legal_accepted
+      await supabase
+        .from("profiles")
+        .update({
+          legal_accepted: true,
+          legal_accepted_at: new Date().toISOString(),
+          legal_accepted_version: `terms:${termsDoc?.version || "1.0"},privacy:${privacyDoc?.version || "1.0"},lgpd:${lgpdDoc?.version || "1.0"}`,
+        })
+        .eq("user_id", user.id);
+
       // Clean up localStorage
       localStorage.removeItem("ibbra_registration");
 
-      // Set selected org from result
       const orgId = (result as any)?.organization_id;
       if (orgId) {
         localStorage.setItem("selectedOrganizationId", orgId);
@@ -239,7 +291,7 @@ export default function Onboarding() {
     } catch (err: any) {
       console.error("Onboarding error:", err);
       toast.error("Erro ao finalizar cadastro: " + (err.message || "Tente novamente."));
-      setStep("profile_form");
+      setStep("consent");
     } finally {
       setIsLoading(false);
     }
@@ -296,6 +348,7 @@ export default function Onboarding() {
     profile_form: "Preencha seus dados para continuar.",
     family_question: "Deseja cadastrar membros da família?",
     family_form: "Adicione os dados dos seus familiares.",
+    consent: "Aceite os termos para finalizar seu cadastro.",
     completing: "Finalizando seu cadastro...",
   };
 
@@ -314,7 +367,7 @@ export default function Onboarding() {
                 className="text-2xl font-semibold tracking-tight"
                 style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
               >
-                Complete seu cadastro
+                {step === "consent" ? "Consentimentos e Termos" : "Complete seu cadastro"}
               </h1>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {stepDescriptions[step]}
@@ -552,8 +605,8 @@ export default function Onboarding() {
                       onClick={() => handleFamilyAnswer(false)}
                       className="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/40 transition-all duration-200 hover:shadow-md"
                     >
-                      <Check className="h-8 w-8 text-primary/70 group-hover:text-primary transition-colors" />
-                      <span className="text-sm font-medium">Pular e concluir</span>
+                      <ArrowRight className="h-8 w-8 text-primary/70 group-hover:text-primary transition-colors" />
+                      <span className="text-sm font-medium">Pular</span>
                     </button>
                   </div>
                   <Button
@@ -656,15 +709,126 @@ export default function Onboarding() {
                     </Button>
                     <Button
                       className="flex-1 h-12 text-sm font-semibold"
+                      onClick={() => setStep("consent")}
+                    >
+                      Continuar
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* STEP: Consent */}
+              {step === "consent" && (
+                <motion.div
+                  key="consent"
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.25 }}
+                  className="space-y-5"
+                >
+                  <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                    <div className="flex items-start gap-3">
+                      <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Seus dados estão protegidos</p>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                          Seus dados serão tratados com confidencialidade e segurança, 
+                          em conformidade com a Lei Geral de Proteção de Dados (LGPD).
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/30 transition-colors">
+                      <Checkbox
+                        id="terms"
+                        checked={acceptTerms}
+                        onCheckedChange={(checked) => setAcceptTerms(checked === true)}
+                        className="mt-0.5"
+                      />
+                      <label htmlFor="terms" className="text-sm leading-relaxed cursor-pointer">
+                        Li e aceito os{" "}
+                        <a
+                          href="/termos-de-uso"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary font-medium hover:underline inline-flex items-center gap-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Termos de Uso
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </label>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/30 transition-colors">
+                      <Checkbox
+                        id="privacy"
+                        checked={acceptPrivacy}
+                        onCheckedChange={(checked) => setAcceptPrivacy(checked === true)}
+                        className="mt-0.5"
+                      />
+                      <label htmlFor="privacy" className="text-sm leading-relaxed cursor-pointer">
+                        Li e aceito a{" "}
+                        <a
+                          href="/politica-de-privacidade"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary font-medium hover:underline inline-flex items-center gap-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Política de Privacidade
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </label>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/30 transition-colors">
+                      <Checkbox
+                        id="lgpd"
+                        checked={acceptLgpd}
+                        onCheckedChange={(checked) => setAcceptLgpd(checked === true)}
+                        className="mt-0.5"
+                      />
+                      <label htmlFor="lgpd" className="text-sm leading-relaxed cursor-pointer">
+                        Autorizo o tratamento dos meus dados pessoais conforme a{" "}
+                        <a
+                          href="/lgpd"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary font-medium hover:underline inline-flex items-center gap-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          LGPD
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                      variant="outline"
+                      className="h-12"
+                      onClick={() => setStep("family_question")}
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      className="flex-1 h-12 text-sm font-semibold"
                       onClick={handleCompleteOnboarding}
-                      disabled={isLoading}
+                      disabled={!allConsentsAccepted || isLoading}
                     >
                       {isLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       ) : (
                         <Check className="h-4 w-4 mr-2" />
                       )}
-                      {isLoading ? "Finalizando..." : "Finalizar cadastro"}
+                      {isLoading ? "Finalizando..." : "Finalizar Cadastro"}
                     </Button>
                   </div>
                 </motion.div>

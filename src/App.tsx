@@ -46,6 +46,10 @@ const CallbackKlavi = lazy(() => import("./pages/CallbackKlavi"));
 const CartaoCredito = lazy(() => import("./pages/CartaoCredito"));
 const CartoesCredito = lazy(() => import("./pages/CartoesCredito"));
 const OpenFinanceMonitor = lazy(() => import("./pages/OpenFinanceMonitor"));
+const TermosDeUso = lazy(() => import("./pages/TermosDeUso"));
+const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
+const Lgpd = lazy(() => import("./pages/Lgpd"));
+const ConsentReaccept = lazy(() => import("./pages/ConsentReaccept"));
 
 const queryClient = new QueryClient();
 
@@ -99,6 +103,10 @@ const App = () => (
                     <Route path="/cartoes" element={<CartoesCredito />} />
                     <Route path="/cartao/:accountId" element={<CartaoCredito />} />
                     <Route path="/open-finance-monitor" element={<OpenFinanceMonitor />} />
+                    <Route path="/termos-de-uso" element={<TermosDeUso />} />
+                    <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
+                    <Route path="/lgpd" element={<Lgpd />} />
+                    <Route path="/consent-reaccept" element={<ConsentReaccept />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </OnboardingGuard>

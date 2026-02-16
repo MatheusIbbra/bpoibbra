@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Shield, Download, FileText, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Shield, Download, FileText, Clock, CheckCircle, AlertCircle, Loader2, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -156,6 +158,47 @@ export function PrivacySection() {
           <p className="text-xs text-muted-foreground mt-2">
             Política de retenção: seus dados são mantidos por 60 meses após inativação da conta, conforme regulamentação financeira vigente.
           </p>
+        </CardContent>
+      </Card>
+
+      {/* Exclusão de Dados */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Trash2 className="h-5 w-5 text-destructive" />
+            Exclusão de Dados (LGPD Art. 18, VI)
+          </CardTitle>
+          <CardDescription>
+            Solicite a exclusão definitiva dos seus dados pessoais
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Ao solicitar a exclusão, todos os seus dados pessoais serão removidos permanentemente. 
+            Esta ação é irreversível e pode levar até 15 dias úteis para ser processada.
+          </p>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={async () => {
+              if (!user) return;
+              const confirmed = window.confirm("Tem certeza que deseja solicitar a exclusão de todos os seus dados? Esta ação é irreversível.");
+              if (!confirmed) return;
+              try {
+                const { error } = await supabase.from("data_deletion_requests").insert({
+                  user_id: user.id,
+                  reason: "Solicitação do titular via perfil",
+                });
+                if (error) throw error;
+                toast.success("Solicitação de exclusão registrada. Você será notificado sobre o andamento.");
+              } catch (err: any) {
+                toast.error("Erro ao solicitar exclusão: " + err.message);
+              }
+            }}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Solicitar Exclusão de Dados
+          </Button>
         </CardContent>
       </Card>
     </div>
