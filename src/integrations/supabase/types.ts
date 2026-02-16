@@ -1564,6 +1564,7 @@ export type Database = {
           is_blocked: boolean | null
           is_ibbra_client: boolean | null
           phone: string | null
+          registration_completed: boolean
           updated_at: string
           user_id: string
           validated_at: string | null
@@ -1582,6 +1583,7 @@ export type Database = {
           is_blocked?: boolean | null
           is_ibbra_client?: boolean | null
           phone?: string | null
+          registration_completed?: boolean
           updated_at?: string
           user_id: string
           validated_at?: string | null
@@ -1600,6 +1602,7 @@ export type Database = {
           is_blocked?: boolean | null
           is_ibbra_client?: boolean | null
           phone?: string | null
+          registration_completed?: boolean
           updated_at?: string
           user_id?: string
           validated_at?: string | null
