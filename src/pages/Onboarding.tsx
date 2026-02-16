@@ -176,69 +176,33 @@ export default function Onboarding() {
 
       if (profileError) throw profileError;
 
-      // 2. Create organization (base) for the user
+      // 2. Update organization name to match user's full name
       const orgSlug = "base-" + user.id.substring(0, 8);
-      const { data: newOrg, error: orgError } = await supabase
+      await supabase
         .from("organizations")
-        .insert({
-          name: fullName.trim(),
-          slug: orgSlug,
-        })
+        .update({ name: fullName.trim() })
+        .eq("slug", orgSlug);
+
+      // 3. Get the user's org id for localStorage
+      const { data: orgData } = await supabase
+        .from("organizations")
         .select("id")
-        .single();
-
-      if (orgError) throw orgError;
-
-      // 3. Create organization member link
-      const { error: memberError } = await supabase
-        .from("organization_members")
-        .insert({
-          organization_id: newOrg.id,
-          user_id: user.id,
-          role: "cliente",
-        });
-
-      if (memberError) throw memberError;
-
-      // 4. Create default subscription (free plan) if exists
-      const { data: freePlan } = await supabase
-        .from("plans")
-        .select("id")
-        .eq("slug", "free")
-        .eq("is_active", true)
+        .eq("slug", orgSlug)
         .maybeSingle();
 
-      if (freePlan) {
-        await supabase
-          .from("organization_subscriptions")
-          .insert({
-            organization_id: newOrg.id,
-            plan_id: freePlan.id,
-            status: "active",
-          });
-      }
-
-      // 5. Provision categories and rules from system templates
-      const { error: provisionError } = await supabase.rpc(
-        "provision_organization_from_template",
-        { p_org_id: newOrg.id, p_user_id: user.id }
-      );
-      if (provisionError) {
-        console.error("Provisioning warning:", provisionError);
-        // Non-blocking: org is created, categories can be seeded later
-      }
-
-      // 5. Consent logs
+      // 4. Consent logs
       await supabase.from("consent_logs").insert([
         { user_id: user.id, consent_type: "terms", consent_given: true, user_agent: navigator.userAgent },
         { user_id: user.id, consent_type: "privacy", consent_given: true, user_agent: navigator.userAgent },
       ]).then(() => {});
 
-      // 6. Clean up localStorage
+      // 5. Clean up localStorage
       localStorage.removeItem("ibbra_registration");
 
-      // 7. Set selected org
-      localStorage.setItem("selectedOrganizationId", newOrg.id);
+      // 6. Set selected org
+      if (orgData?.id) {
+        localStorage.setItem("selectedOrganizationId", orgData.id);
+      }
 
       toast.success("Cadastro concluído! Bem-vindo ao IBBRA.");
       navigate("/", { replace: true });
