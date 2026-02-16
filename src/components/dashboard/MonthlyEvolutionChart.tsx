@@ -1,4 +1,5 @@
 import { forwardRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMonthlyEvolution } from "@/hooks/useMonthlyEvolution";
@@ -14,6 +15,8 @@ import {
   Legend,
 } from "recharts";
 import { Loader2, Calendar, CalendarDays } from "lucide-react";
+import { startOfMonth, endOfMonth, parse, format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", {
@@ -59,6 +62,7 @@ CustomTooltipContent.displayName = "CustomTooltipContent";
 type ViewMode = "monthly" | "daily";
 
 export function MonthlyEvolutionChart() {
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>("monthly");
   const { data: monthlyData, isLoading: isLoadingMonthly } = useMonthlyEvolution(6);
   const { data: dailyData, isLoading: isLoadingDaily } = useDailyEvolution();
@@ -134,7 +138,22 @@ export function MonthlyEvolutionChart() {
       </CardHeader>
       <CardContent className="px-4 pb-4">
         <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <BarChart
+            data={data}
+            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            onClick={(state) => {
+              if (!state?.activePayload?.length) return;
+              const clicked = state.activePayload[0].payload;
+              // month field is "yyyy-MM"
+              if (clicked.month) {
+                const monthDate = parse(clicked.month, "yyyy-MM", new Date());
+                const start = format(startOfMonth(monthDate), "yyyy-MM-dd");
+                const end = format(endOfMonth(monthDate), "yyyy-MM-dd");
+                navigate(`/movimentacoes?startDate=${start}&endDate=${end}`);
+              }
+            }}
+            style={{ cursor: "pointer" }}
+          >
             <defs>
               <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="hsl(152 55% 42%)" stopOpacity={1}/>

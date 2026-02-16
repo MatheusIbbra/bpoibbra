@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { format, isToday, isYesterday, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -88,6 +89,10 @@ function groupTransactionsByDate(transactions: Transaction[]): GroupedTransactio
 }
 
 export default function Movimentacoes() {
+  const [searchParams] = useSearchParams();
+  const startDateParam = searchParams.get("startDate") || undefined;
+  const endDateParam = searchParams.get("endDate") || undefined;
+
   const { requiresBaseSelection } = useBaseFilter();
   const [activeTab, setActiveTab] = useState("transacoes");
   const [search, setSearch] = useState("");
@@ -98,6 +103,8 @@ export default function Movimentacoes() {
 
   const { data: allTransactions, isLoading } = useTransactions({
     search: search || undefined,
+    startDate: startDateParam,
+    endDate: endDateParam,
   });
 
   const deleteTransaction = useDeleteTransaction();
