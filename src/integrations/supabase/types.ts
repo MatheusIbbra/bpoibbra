@@ -845,6 +845,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "integration_logs_bank_connection_id_fkey"
+            columns: ["bank_connection_id"]
+            isOneToOne: false
+            referencedRelation: "bank_connections_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "integration_logs_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -1638,6 +1645,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sync_audit_logs_bank_connection_id_fkey"
+            columns: ["bank_connection_id"]
+            isOneToOne: false
+            referencedRelation: "bank_connections_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sync_audit_logs_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -1885,6 +1899,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "transactions_bank_connection_id_fkey"
+            columns: ["bank_connection_id"]
+            isOneToOne: false
+            referencedRelation: "bank_connections_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "transactions_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
@@ -2032,7 +2053,71 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      bank_connections_safe: {
+        Row: {
+          access_token_encrypted: string | null
+          created_at: string | null
+          external_account_id: string | null
+          external_consent_id: string | null
+          id: string | null
+          last_sync_at: string | null
+          metadata: Json | null
+          organization_id: string | null
+          provider: string | null
+          provider_name: string | null
+          refresh_token_encrypted: string | null
+          status: string | null
+          sync_error: string | null
+          token_expires_at: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          access_token_encrypted?: never
+          created_at?: string | null
+          external_account_id?: string | null
+          external_consent_id?: string | null
+          id?: string | null
+          last_sync_at?: string | null
+          metadata?: Json | null
+          organization_id?: string | null
+          provider?: string | null
+          provider_name?: string | null
+          refresh_token_encrypted?: never
+          status?: string | null
+          sync_error?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          access_token_encrypted?: never
+          created_at?: string | null
+          external_account_id?: string | null
+          external_consent_id?: string | null
+          id?: string | null
+          last_sync_at?: string | null
+          metadata?: Json | null
+          organization_id?: string | null
+          provider?: string | null
+          provider_name?: string | null
+          refresh_token_encrypted?: never
+          status?: string | null
+          sync_error?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_connections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       calculate_account_balance: {
