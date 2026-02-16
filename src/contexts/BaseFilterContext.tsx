@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -25,6 +25,7 @@ interface BaseFilterContextType {
   // Security: require base selection for creation operations
   requiresBaseSelection: boolean;
   getRequiredOrganizationId: () => string | null;
+  refreshOrganizations: () => void;
 }
 
 const BaseFilterContext = createContext<BaseFilterContextType | undefined>(undefined);
@@ -36,6 +37,11 @@ export function BaseFilterProvider({ children }: { children: ReactNode }) {
   const [viewableOrganizationIds, setViewableOrganizationIds] = useState<string[]>([]);
   const [userRole, setUserRole] = useState<AppRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const refreshOrganizations = useCallback(() => {
+    setRefreshKey(k => k + 1);
+  }, []);
 
   // Perfis que podem filtrar por base
   const canFilterByBase = userRole === "admin" || userRole === "supervisor" || userRole === "fa" || userRole === "kam";
@@ -119,7 +125,7 @@ export function BaseFilterProvider({ children }: { children: ReactNode }) {
     }
 
     loadData();
-  }, [user, authLoading]);
+  }, [user, authLoading, refreshKey]);
 
   const selectedOrganization = availableOrganizations.find(
     org => org.id === selectedOrganizationId
@@ -172,6 +178,7 @@ export function BaseFilterProvider({ children }: { children: ReactNode }) {
         getOrganizationFilter,
         requiresBaseSelection,
         getRequiredOrganizationId,
+        refreshOrganizations,
       }}
     >
       {children}
