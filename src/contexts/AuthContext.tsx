@@ -72,6 +72,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Avoid spamming toasts / loops for the same user id
         if (lastBlockedUserIdRef.current === u.id) return;
 
+        // Block new users who signed up via Google OAuth (only existing accounts allowed)
+        const provider = u.app_metadata?.provider;
+        if (provider === 'google') {
+          const createdAt = new Date(u.created_at).getTime();
+          const now = Date.now();
+          // If the account was created less than 60 seconds ago, it's a new signup via Google
+          if (now - createdAt < 60000) {
+            lastBlockedUserIdRef.current = u.id;
+            toast.error("Login com Google permitido apenas para contas já cadastradas. Crie sua conta primeiro.");
+            await supabase.auth.signOut();
+            if (!isMounted) return;
+            setSession(null);
+            setUser(null);
+            return;
+          }
+        }
+
         const { blocked, reason } = await checkUserBlocked(u.id);
         if (!isMounted) return;
 
