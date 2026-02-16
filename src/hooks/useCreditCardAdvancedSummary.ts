@@ -158,16 +158,15 @@ export function useCreditCardAdvancedSummary() {
 
         let limit = 0;
         let available = 0;
+        // Use OF balance as the real debt if available (more accurate than current_balance)
+        let used = ofData?.balance != null ? Math.abs(ofData.balance) : debt;
 
         if (ofData?.creditLimit != null && ofData.creditLimit > 0) {
-          // Best source: open_finance_accounts credit_limit
           limit = ofData.creditLimit;
-          available = ofData.availableCredit != null ? Math.max(0, ofData.availableCredit) : Math.max(0, limit - debt);
+          available = Math.max(0, limit - used);
         } else if (ofData?.balance != null && ofData.availableCredit != null) {
-          // Derive from OF balance + available_credit
-          const ofDebt = Math.abs(ofData.balance);
           available = Math.max(0, ofData.availableCredit);
-          limit = ofDebt + available;
+          limit = Math.abs(ofData.balance) + available;
         } else {
           // Fallback: try Pluggy metadata
           let foundCreditData = false;
@@ -179,13 +178,11 @@ export function useCreditCardAdvancedSummary() {
               break;
             }
           }
-          if (!foundCreditData && debt > 0) {
-            limit = debt * 1.5;
-            available = Math.max(0, limit - debt);
+          if (!foundCreditData && used > 0) {
+            limit = used * 1.5;
+            available = Math.max(0, limit - used);
           }
         }
-
-        const used = Math.min(debt, limit > 0 ? limit : debt);
 
         // Due date from open_finance_accounts
         let dueDate: string | null = null;

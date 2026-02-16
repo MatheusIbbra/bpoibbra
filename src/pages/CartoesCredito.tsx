@@ -132,7 +132,8 @@ function CreditCardVisual({ card, onViewInvoices, onNavigate }: {
 }) {
   const bankColor = getBankColor(card.bankName);
   const textLight = isDarkColor(bankColor);
-  const usagePercent = card.limit > 0 ? Math.min(100, Math.round((card.used / card.limit) * 100)) : 0;
+  const usagePercent = card.limit > 0 ? Math.round((card.used / card.limit) * 100) : 0;
+  const isOverLimit = usagePercent > 100;
   const status = getUsageStatus(usagePercent);
 
   return (
@@ -216,7 +217,7 @@ function CreditCardVisual({ card, onViewInvoices, onNavigate }: {
           <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">
             <div
               className={cn("h-full rounded-full transition-all duration-500", status.barColor)}
-              style={{ width: `${usagePercent}%` }}
+              style={{ width: `${Math.min(100, usagePercent)}%` }}
             />
           </div>
         </div>
