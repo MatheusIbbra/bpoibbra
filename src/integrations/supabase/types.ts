@@ -550,6 +550,39 @@ export type Database = {
           },
         ]
       }
+      consent_logs: {
+        Row: {
+          consent_given: boolean
+          consent_type: string
+          created_at: string
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          consent_given?: boolean
+          consent_type: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          consent_given?: boolean
+          consent_type?: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       cost_centers: {
         Row: {
           created_at: string
@@ -584,6 +617,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "cost_centers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_export_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          expires_at: string | null
+          export_type: string
+          file_url: string | null
+          id: string
+          organization_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          export_type?: string
+          file_url?: string | null
+          id?: string
+          organization_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          export_type?: string
+          file_url?: string | null
+          id?: string
+          organization_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_export_requests_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -667,6 +747,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      feature_flags: {
+        Row: {
+          created_at: string
+          description: string | null
+          enabled_for_orgs: string[] | null
+          enabled_for_plans: string[] | null
+          enabled_for_roles: Database["public"]["Enums"]["app_role"][] | null
+          feature_key: string
+          id: string
+          is_active: boolean
+          is_global: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          enabled_for_orgs?: string[] | null
+          enabled_for_plans?: string[] | null
+          enabled_for_roles?: Database["public"]["Enums"]["app_role"][] | null
+          feature_key: string
+          id?: string
+          is_active?: boolean
+          is_global?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          enabled_for_orgs?: string[] | null
+          enabled_for_plans?: string[] | null
+          enabled_for_roles?: Database["public"]["Enums"]["app_role"][] | null
+          feature_key?: string
+          id?: string
+          is_active?: boolean
+          is_global?: boolean
+          updated_at?: string
+        }
+        Relationships: []
       }
       file_imports: {
         Row: {
@@ -2301,6 +2420,10 @@ export type Database = {
         Args: { _target_user_id: string; _viewer_id: string }
         Returns: boolean
       }
+      check_feature_access: {
+        Args: { p_feature_key: string; p_organization_id: string }
+        Returns: boolean
+      }
       check_rate_limit: {
         Args: {
           p_endpoint: string
@@ -2373,6 +2496,7 @@ export type Database = {
         Returns: Json
       }
       get_subordinates: { Args: { _user_id: string }; Returns: string[] }
+      get_user_features: { Args: { p_organization_id: string }; Returns: Json }
       get_user_org_ids: { Args: { _user_id: string }; Returns: string[] }
       get_user_organizations: { Args: { _user_id: string }; Returns: string[] }
       get_viewable_organizations: {

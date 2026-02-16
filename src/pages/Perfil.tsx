@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PrivacySection } from "@/components/profile/PrivacySection";
 
 export default function Perfil() {
   const { user } = useAuth();
@@ -144,6 +145,8 @@ export default function Perfil() {
             </form>
           </CardContent>
         </Card>
+
+        <PrivacySection />
       </div>
     </AppLayout>
   );
