@@ -2082,6 +2082,10 @@ export type Database = {
         Args: { p_organization_id: string }
         Returns: Json
       }
+      detect_transaction_anomalies: {
+        Args: { p_lookback_days?: number; p_organization_id: string }
+        Returns: Json
+      }
       generate_cashflow_forecast: {
         Args: { p_days?: number; p_organization_id: string }
         Returns: Json
