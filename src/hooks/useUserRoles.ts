@@ -126,7 +126,7 @@ export function useCanManageUsers() {
 export function useCanClassify() {
   const { data: role, isLoading } = useCurrentUserRole();
   return {
-    canClassify: role === "admin" || role === "supervisor" || role === "fa" || role === "projetista" || role === "cliente",
+    canClassify: role === "admin" || role === "supervisor" || role === "fa" || role === "projetista" || role === "kam" || role === "cliente",
     isLoading,
   };
 }
@@ -134,7 +134,7 @@ export function useCanClassify() {
 export function useCanEditFinancials() {
   const { data: role, isLoading } = useCurrentUserRole();
   return {
-    canEdit: role === "admin" || role === "supervisor" || role === "fa" || role === "projetista" || role === "cliente",
+    canEdit: role === "admin" || role === "supervisor" || role === "fa" || role === "projetista" || role === "kam" || role === "cliente",
     isLoading,
   };
 }
