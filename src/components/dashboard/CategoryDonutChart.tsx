@@ -145,7 +145,8 @@ function DonutSection({ title, data, type }: { title: string; data: DonutData[];
                   fontSize: "11px",
                   borderRadius: "8px",
                   border: "1px solid hsl(var(--border))",
-                  background: "hsl(var(--background))",
+                  background: "hsl(var(--popover))",
+                  color: "hsl(var(--popover-foreground))",
                 }}
               />
             </PieChart>
