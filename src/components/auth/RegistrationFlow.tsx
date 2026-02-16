@@ -1,9 +1,22 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, Loader2, UserCheck, UserPlus, ShieldCheck, AlertCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Loader2,
+  UserCheck,
+  UserPlus,
+  ShieldCheck,
+  AlertCircle,
+  Users,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -18,7 +31,42 @@ interface RegistrationFlowProps {
   onGoogleSignUp?: () => void;
 }
 
-type Step = "client_question" | "cpf_validation" | "form_standard" | "form_ibbra";
+interface FamilyMember {
+  relationship: string;
+  full_name: string;
+  age: string;
+  phone: string;
+  email: string;
+}
+
+type Step =
+  | "client_question"
+  | "cpf_validation"
+  | "signup_method"
+  | "form_standard"
+  | "form_ibbra"
+  | "family_question"
+  | "family_form";
+
+const RELATIONSHIP_OPTIONS = [
+  "Cônjuge",
+  "Filho(a)",
+  "Pai/Mãe",
+  "Irmão(ã)",
+  "Avô/Avó",
+  "Neto(a)",
+  "Tio(a)",
+  "Sobrinho(a)",
+  "Outro",
+];
+
+const emptyFamilyMember = (): FamilyMember => ({
+  relationship: "",
+  full_name: "",
+  age: "",
+  phone: "",
+  email: "",
+});
 
 export default function RegistrationFlow({ onBack, onGoogleSignUp }: RegistrationFlowProps) {
   const [step, setStep] = useState<Step>("client_question");
@@ -39,15 +87,25 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const currentStepIndex = step === "client_question" ? 0 : step === "cpf_validation" ? 1 : 2;
-  const totalSteps = isIbbraClient ? 3 : 2;
+  // Family members state
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([emptyFamilyMember()]);
+
+  const stepDescriptions: Record<Step, string> = {
+    client_question: "Responda para personalizarmos seu cadastro.",
+    cpf_validation: "Validação do seu cadastro IBBRA.",
+    signup_method: "Escolha como deseja criar sua conta.",
+    form_standard: "Preencha seus dados para continuar.",
+    form_ibbra: "Confirme seus dados e crie sua senha.",
+    family_question: "Deseja cadastrar familiares?",
+    family_form: "Adicione os dados dos seus familiares.",
+  };
 
   const handleClientAnswer = (answer: boolean) => {
     setIsIbbraClient(answer);
     if (answer) {
       setStep("cpf_validation");
     } else {
-      setStep("form_standard");
+      setStep("signup_method");
     }
   };
 
@@ -59,19 +117,15 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
 
   const handleValidateCpf = async () => {
     const cleanCpf = cpf.replace(/\D/g, "");
-
     if (!isValidCPF(cleanCpf)) {
       setValidationError("CPF inválido. Verifique os dígitos informados.");
       return;
     }
-
     setIsLoading(true);
     setValidationError("");
-
     try {
       const result = await validateClientByCPF(cleanCpf);
       setValidationResult(result);
-
       if (result.found) {
         setFullName(result.full_name || "");
         setBirthDate(result.birth_date || "");
@@ -90,7 +144,46 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
 
   const handleProceedToForm = () => {
     if (validationResult?.found) {
+      setStep("signup_method");
+    }
+  };
+
+  const handleChooseGoogle = () => {
+    // Store IBBRA client info in localStorage so AuthContext can use it after OAuth redirect
+    localStorage.setItem("ibbra_registration", JSON.stringify({
+      isIbbraClient,
+      cpf: cpf.replace(/\D/g, ""),
+      fullName: validationResult?.found ? fullName : undefined,
+      birthDate: validationResult?.found ? birthDate : undefined,
+      validated: validationResult?.found || false,
+    }));
+    onGoogleSignUp?.();
+  };
+
+  const handleChooseManual = () => {
+    if (isIbbraClient && validationResult?.found) {
       setStep("form_ibbra");
+    } else {
+      setStep("form_standard");
+    }
+  };
+
+  const saveFamilyMembers = async (userId: string) => {
+    const validMembers = familyMembers.filter(m => m.full_name.trim() && m.relationship);
+    if (validMembers.length === 0) return;
+
+    const rows = validMembers.map(m => ({
+      user_id: userId,
+      relationship: m.relationship,
+      full_name: m.full_name.trim(),
+      age: m.age ? parseInt(m.age) : null,
+      phone: m.phone || null,
+      email: m.email || null,
+    }));
+
+    const { error } = await supabase.from("family_members").insert(rows);
+    if (error) {
+      console.warn("Error saving family members:", error.message);
     }
   };
 
@@ -126,7 +219,6 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
 
       if (error) throw error;
 
-      // Update profile with additional data
       if (data.user) {
         const cleanCpf = cpf.replace(/\D/g, "");
         const profileData: Record<string, unknown> = {
@@ -141,7 +233,6 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
           validated_at: validationResult?.found ? new Date().toISOString() : null,
         };
 
-        // Try upsert on profiles
         const { error: profileError } = await supabase
           .from("profiles")
           .update(profileData)
@@ -150,6 +241,9 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
         if (profileError) {
           console.warn("Profile update warning:", profileError.message);
         }
+
+        // Save family members if any
+        await saveFamilyMembers(data.user.id);
       }
 
       toast.success("Conta criada com sucesso! Verifique seu email para confirmar o cadastro.");
@@ -163,6 +257,13 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
       setIsLoading(false);
     }
   };
+
+  // Family member helpers
+  const addFamilyMember = () => setFamilyMembers(prev => [...prev, emptyFamilyMember()]);
+  const removeFamilyMember = (index: number) =>
+    setFamilyMembers(prev => prev.filter((_, i) => i !== index));
+  const updateFamilyMember = (index: number, field: keyof FamilyMember, value: string) =>
+    setFamilyMembers(prev => prev.map((m, i) => (i === index ? { ...m, [field]: value } : m)));
 
   const slideVariants = {
     enter: { x: 40, opacity: 0 },
@@ -187,24 +288,7 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
         >
           Criar sua conta
         </h1>
-        <p className="text-sm text-muted-foreground">
-          {step === "client_question" && "Responda para personalizarmos seu cadastro."}
-          {step === "cpf_validation" && "Validação do seu cadastro IBBRA."}
-          {step === "form_standard" && "Preencha seus dados para continuar."}
-          {step === "form_ibbra" && "Confirme seus dados e crie sua senha."}
-        </p>
-      </div>
-
-      {/* Step indicator */}
-      <div className="flex gap-1.5">
-        {Array.from({ length: totalSteps }).map((_, i) => (
-          <div
-            key={i}
-            className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-              i <= currentStepIndex ? "bg-primary" : "bg-muted"
-            }`}
-          />
-        ))}
+        <p className="text-sm text-muted-foreground">{stepDescriptions[step]}</p>
       </div>
 
       {/* Steps */}
@@ -220,36 +304,6 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
             transition={{ duration: 0.25 }}
             className="space-y-5"
           >
-            {/* Google Sign Up */}
-            {onGoogleSignUp && (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-12 text-sm"
-                  onClick={onGoogleSignUp}
-                >
-                  <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                  </svg>
-                  Cadastrar com Google
-                </Button>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">ou cadastre-se manualmente</span>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* Client question */}
             <div className="space-y-2">
               <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 Você já é cliente IBBRA?
@@ -313,7 +367,6 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
                 />
               </div>
 
-              {/* Validation error */}
               {validationError && (
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}
@@ -325,7 +378,6 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
                 </motion.div>
               )}
 
-              {/* Validation success */}
               {validationResult?.found && (
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}
@@ -381,6 +433,74 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
           </motion.div>
         )}
 
+        {/* STEP: Signup Method */}
+        {step === "signup_method" && (
+          <motion.div
+            key="signup_method"
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.25 }}
+            className="space-y-5"
+          >
+            <div className="space-y-2">
+              <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Como deseja criar sua conta?
+              </Label>
+            </div>
+
+            {onGoogleSignUp && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-12 text-sm"
+                onClick={handleChooseGoogle}
+              >
+                <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                </svg>
+                Cadastrar com Google
+              </Button>
+            )}
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">ou</span>
+              </div>
+            </div>
+
+            <Button
+              className="w-full h-12 text-sm font-semibold"
+              onClick={handleChooseManual}
+            >
+              Cadastrar com email e senha
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              className="w-full h-10 text-sm text-muted-foreground"
+              onClick={() => {
+                if (isIbbraClient) {
+                  setStep("cpf_validation");
+                } else {
+                  setStep("client_question");
+                }
+              }}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Voltar
+            </Button>
+          </motion.div>
+        )}
+
         {/* STEP: Standard Form (non-IBBRA) */}
         {step === "form_standard" && (
           <motion.div
@@ -422,12 +542,12 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button variant="outline" className="h-12" onClick={() => { setStep("client_question"); }}>
+              <Button variant="outline" className="h-12" onClick={() => setStep("signup_method")}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <Button className="flex-1 h-12 text-sm font-semibold" onClick={handleSubmit} disabled={isLoading}>
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
-                {isLoading ? "Criando conta..." : "Criar conta"}
+              <Button className="flex-1 h-12 text-sm font-semibold" onClick={() => setStep("family_question")} disabled={!email.trim() || !password || password.length < 6 || password !== confirmPassword || !fullName.trim()}>
+                Continuar
+                <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
           </motion.div>
@@ -444,15 +564,12 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
             transition={{ duration: 0.25 }}
             className="space-y-4"
           >
-            {/* Pre-filled (read-only) fields */}
             <FieldGroup label="Nome completo (validado)">
               <Input value={fullName} readOnly className="h-11 text-sm input-executive bg-muted/50 cursor-not-allowed" />
             </FieldGroup>
             <FieldGroup label="Data de nascimento (validada)">
               <Input type="date" value={birthDate} readOnly className="h-11 text-sm input-executive bg-muted/50 cursor-not-allowed" />
             </FieldGroup>
-
-            {/* Editable fields */}
             <FieldGroup label="Telefone">
               <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-0000" className="h-11 text-sm input-executive" inputMode="tel" />
             </FieldGroup>
@@ -472,7 +589,139 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button variant="outline" className="h-12" onClick={() => setStep("cpf_validation")}>
+              <Button variant="outline" className="h-12" onClick={() => setStep("signup_method")}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <Button className="flex-1 h-12 text-sm font-semibold" onClick={() => setStep("family_question")} disabled={!email.trim() || !password || password.length < 6 || password !== confirmPassword}>
+                Continuar
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* STEP: Family Question */}
+        {step === "family_question" && (
+          <motion.div
+            key="family_question"
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.25 }}
+            className="space-y-5"
+          >
+            <div className="space-y-2">
+              <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Cadastrar familiares?
+              </Label>
+              <p className="text-xs text-muted-foreground/70">
+                Você pode adicionar parentes ao seu cadastro agora ou fazer isso depois.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setStep("family_form")}
+                className="group relative flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/40 transition-all duration-200 hover:shadow-md"
+              >
+                <Users className="h-8 w-8 text-primary/70 group-hover:text-primary transition-colors" />
+                <span className="text-sm font-medium">Sim, adicionar</span>
+              </button>
+
+              <button
+                onClick={handleSubmit}
+                disabled={isLoading}
+                className="group relative flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/40 transition-all duration-200 hover:shadow-md"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-8 w-8 animate-spin text-primary/70" />
+                ) : (
+                  <Check className="h-8 w-8 text-primary/70 group-hover:text-primary transition-colors" />
+                )}
+                <span className="text-sm font-medium">{isLoading ? "Criando..." : "Não, finalizar"}</span>
+              </button>
+            </div>
+
+            <Button
+              variant="ghost"
+              className="w-full h-10 text-sm text-muted-foreground"
+              onClick={() => {
+                if (isIbbraClient && validationResult?.found) {
+                  setStep("form_ibbra");
+                } else {
+                  setStep("form_standard");
+                }
+              }}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Voltar ao formulário
+            </Button>
+          </motion.div>
+        )}
+
+        {/* STEP: Family Form */}
+        {step === "family_form" && (
+          <motion.div
+            key="family_form"
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.25 }}
+            className="space-y-4"
+          >
+            {familyMembers.map((member, index) => (
+              <div key={index} className="space-y-3 p-4 rounded-lg border border-border bg-muted/20">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Familiar {index + 1}
+                  </span>
+                  {familyMembers.length > 1 && (
+                    <button
+                      onClick={() => removeFamilyMember(index)}
+                      className="text-destructive/70 hover:text-destructive transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <FieldGroup label="Grau de parentesco">
+                  <Select value={member.relationship} onValueChange={(v) => updateFamilyMember(index, "relationship", v)}>
+                    <SelectTrigger className="h-11 text-sm input-executive">
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RELATIONSHIP_OPTIONS.map((opt) => (
+                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FieldGroup>
+                <FieldGroup label="Nome completo">
+                  <Input value={member.full_name} onChange={(e) => updateFamilyMember(index, "full_name", e.target.value)} placeholder="Nome do familiar" className="h-11 text-sm input-executive" />
+                </FieldGroup>
+                <div className="grid grid-cols-3 gap-3">
+                  <FieldGroup label="Idade">
+                    <Input value={member.age} onChange={(e) => updateFamilyMember(index, "age", e.target.value)} placeholder="Ex: 35" className="h-11 text-sm input-executive" inputMode="numeric" />
+                  </FieldGroup>
+                  <FieldGroup label="Telefone">
+                    <Input value={member.phone} onChange={(e) => updateFamilyMember(index, "phone", e.target.value)} placeholder="(11) 99999-0000" className="h-11 text-sm input-executive" inputMode="tel" />
+                  </FieldGroup>
+                  <FieldGroup label="Email">
+                    <Input type="email" value={member.email} onChange={(e) => updateFamilyMember(index, "email", e.target.value)} placeholder="email@email.com" className="h-11 text-sm input-executive" />
+                  </FieldGroup>
+                </div>
+              </div>
+            ))}
+
+            <Button variant="outline" className="w-full h-10 text-sm" onClick={addFamilyMember}>
+              <Plus className="h-4 w-4 mr-2" />
+              Adicionar outro familiar
+            </Button>
+
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" className="h-12" onClick={() => setStep("family_question")}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <Button className="flex-1 h-12 text-sm font-semibold" onClick={handleSubmit} disabled={isLoading}>
