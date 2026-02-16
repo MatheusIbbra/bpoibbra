@@ -1385,37 +1385,58 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
           avatar_url: string | null
+          birth_date: string | null
           blocked_at: string | null
           blocked_reason: string | null
+          cpf: string | null
           created_at: string
+          external_client_validated: boolean | null
           full_name: string | null
           id: string
           is_blocked: boolean | null
+          is_ibbra_client: boolean | null
+          phone: string | null
           updated_at: string
           user_id: string
+          validated_at: string | null
         }
         Insert: {
+          address?: string | null
           avatar_url?: string | null
+          birth_date?: string | null
           blocked_at?: string | null
           blocked_reason?: string | null
+          cpf?: string | null
           created_at?: string
+          external_client_validated?: boolean | null
           full_name?: string | null
           id?: string
           is_blocked?: boolean | null
+          is_ibbra_client?: boolean | null
+          phone?: string | null
           updated_at?: string
           user_id: string
+          validated_at?: string | null
         }
         Update: {
+          address?: string | null
           avatar_url?: string | null
+          birth_date?: string | null
           blocked_at?: string | null
           blocked_reason?: string | null
+          cpf?: string | null
           created_at?: string
+          external_client_validated?: boolean | null
           full_name?: string | null
           id?: string
           is_blocked?: boolean | null
+          is_ibbra_client?: boolean | null
+          phone?: string | null
           updated_at?: string
           user_id?: string
+          validated_at?: string | null
         }
         Relationships: []
       }
