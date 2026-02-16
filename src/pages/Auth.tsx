@@ -162,6 +162,7 @@ export default function Auth() {
             </div>
             <RegistrationFlow
               onBack={() => setView("login")}
+              onGoogleSignUp={handleGoogleSignIn}
             />
             <p className="text-center text-[11px] text-muted-foreground/50 mt-8 lg:hidden">
               © {new Date().getFullYear()} IBBRA Family Office
