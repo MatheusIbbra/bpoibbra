@@ -10,16 +10,22 @@ export function useUserEmails() {
   return useQuery({
     queryKey: ["user-emails"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("get-user-emails");
+      try {
+        const { data, error } = await supabase.functions.invoke("get-user-emails");
 
-      if (error) {
-        console.error("Error fetching user emails:", error);
+        if (error) {
+          console.error("Error fetching user emails:", error);
+          return {} as Record<string, string>;
+        }
+
+        return (data?.emails || {}) as Record<string, string>;
+      } catch (e) {
+        console.error("Exception fetching user emails:", e);
         return {} as Record<string, string>;
       }
-
-      return (data?.emails || {}) as Record<string, string>;
     },
-    enabled: !!user && isAdmin,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!user && isAdmin === true,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 }
