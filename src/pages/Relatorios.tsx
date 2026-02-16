@@ -23,6 +23,8 @@ import { LifestylePatternCard } from "@/components/dashboard/LifestylePatternCar
 import { FinancialSimulatorCard } from "@/components/dashboard/FinancialSimulatorCard";
 import { PatrimonyEvolutionCard } from "@/components/dashboard/PatrimonyEvolutionCard";
 import { AnomalyDetectionCard } from "@/components/dashboard/AnomalyDetectionCard";
+import { StrategicHistoryCard } from "@/components/dashboard/StrategicHistoryCard";
+import { MacroSimulationCard } from "@/components/dashboard/MacroSimulationCard";
 import { StaggerGrid, StaggerItem } from "@/components/ui/motion";
 
 export default function Relatorios() {
@@ -123,6 +125,11 @@ export default function Relatorios() {
                   Métricas profundas de liquidez, sustentabilidade e projeções financeiras.
                 </p>
               </div>
+              {/* Histórico & Simulação Macro */}
+              <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+                <StaggerItem><StrategicHistoryCard /></StaggerItem>
+                <StaggerItem><MacroSimulationCard /></StaggerItem>
+              </StaggerGrid>
               <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
                 <StaggerItem><PatrimonyEvolutionCard /></StaggerItem>
                 <StaggerItem><AnomalyDetectionCard /></StaggerItem>
