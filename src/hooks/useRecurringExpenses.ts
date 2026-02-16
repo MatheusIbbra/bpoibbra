@@ -24,9 +24,23 @@ export function useRecurringExpenses() {
     queryKey: ["recurring-expenses", user?.id, orgFilter.type, orgFilter.ids],
     queryFn: async (): Promise<RecurringExpense[]> => {
       if (orgFilter.type !== "single" || !orgFilter.ids[0]) return [];
+      const orgId = orgFilter.ids[0];
 
+      // Try materialized cache first
+      const { data: cached } = await supabase
+        .from("materialized_metrics")
+        .select("data, expires_at")
+        .eq("organization_id", orgId)
+        .eq("metric_type", "recurring_expenses")
+        .maybeSingle();
+
+      if (cached && new Date(cached.expires_at) > new Date()) {
+        return (cached.data as unknown as RecurringExpense[]) || [];
+      }
+
+      // Fallback to live RPC
       const { data, error } = await supabase.rpc("detect_recurring_expenses", {
-        p_organization_id: orgFilter.ids[0],
+        p_organization_id: orgId,
       });
 
       if (error) {

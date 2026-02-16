@@ -54,5 +54,8 @@ verify_jwt = false
 [functions.financial-core-engine]
 verify_jwt = false
 
+[functions.background-jobs]
+verify_jwt = false
+
 [functions.generate-ai-analysis]
 verify_jwt = false

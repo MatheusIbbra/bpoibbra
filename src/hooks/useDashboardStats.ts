@@ -57,10 +57,10 @@ export function useDashboardStats() {
       // Last month transactions
       const { data: lastMonthData } = await buildTransactionQuery(startOfLastMonth, endOfLastMonth);
       
-      // Get local accounts
+      // Get local accounts with snapshot balances (no full-scan RPC)
       let accountsQuery = supabase
         .from("accounts")
-        .select("id, initial_balance, account_type, official_balance, last_official_balance_at");
+        .select("id, initial_balance, current_balance, account_type, official_balance, last_official_balance_at");
       
       if (orgFilter.type === 'single') {
         accountsQuery = accountsQuery.eq("organization_id", orgFilter.ids[0]);
@@ -86,13 +86,10 @@ export function useDashboardStats() {
       // Build a map of local_account_id -> sum of OF balances (non-credit-card only)
       const ofBalanceByLocalAccount = new Map<string, number>();
       const localAccountsWithOF = new Set<string>();
-      let unlinkedOFBalance = 0;
       
       if (ofAccounts) {
         for (const ofa of ofAccounts) {
-          // Skip credit cards
           if (ofa.account_type?.toUpperCase() === 'CREDIT') continue;
-          
           if (ofa.local_account_id) {
             localAccountsWithOF.add(ofa.local_account_id);
             ofBalanceByLocalAccount.set(
@@ -100,28 +97,22 @@ export function useDashboardStats() {
               (ofBalanceByLocalAccount.get(ofa.local_account_id) || 0) + Number(ofa.balance || 0)
             );
           }
-          // Unlinked OF accounts are informational only — not included in balance
         }
       }
       
-      let totalAccountBalance = unlinkedOFBalance;
+      let totalAccountBalance = 0;
       
       if (accountsData) {
         for (const account of accountsData) {
-          // Exclude credit cards and investments from available balance
           if (account.account_type === 'credit_card' || account.account_type === 'investment') continue;
           
-          // If this local account has linked OF accounts, use the sum of OF balances
           if (localAccountsWithOF.has(account.id)) {
             totalAccountBalance += ofBalanceByLocalAccount.get(account.id) || 0;
             continue;
           }
           
-          // FALLBACK: Use calculate_account_balance for manual accounts
-          const { data: balanceData } = await supabase.rpc("calculate_account_balance", {
-            account_uuid: account.id,
-          });
-          totalAccountBalance += balanceData ?? Number(account.initial_balance) ?? 0;
+          // Use current_balance from snapshot (maintained by trigger) — no full-scan RPC
+          totalAccountBalance += account.current_balance ?? account.initial_balance ?? 0;
         }
       }
       
