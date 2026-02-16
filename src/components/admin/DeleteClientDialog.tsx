@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -35,6 +36,7 @@ export function DeleteClientDialog({
   const [confirmedName, setConfirmedName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
+  const { refreshOrganizations, selectedOrganizationId, setSelectedOrganizationId } = useBaseFilter();
 
   const nameMatches = confirmedName.trim() === clientName.trim() && clientName.trim().length > 0;
 
@@ -70,6 +72,14 @@ export function DeleteClientDialog({
       queryClient.invalidateQueries({ queryKey: ["all-users-with-roles"] });
       queryClient.invalidateQueries({ queryKey: ["organizations"] });
       queryClient.invalidateQueries({ queryKey: ["viewable-organizations"] });
+
+      // If the deleted org was selected in the header, clear selection
+      if (selectedOrganizationId === organizationId) {
+        setSelectedOrganizationId(null);
+      }
+
+      // Refresh the base selector in the header
+      refreshOrganizations();
 
       toast.success("Cliente excluído permanentemente.");
       setConfirmedName("");
