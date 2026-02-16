@@ -145,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string, fullName?: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -155,6 +155,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       },
     });
+
+    // Record consent on successful signup
+    if (!error && data?.user) {
+      try {
+        await supabase.from("consent_logs").insert([
+          { user_id: data.user.id, consent_type: "terms", consent_given: true, user_agent: navigator.userAgent },
+          { user_id: data.user.id, consent_type: "privacy", consent_given: true, user_agent: navigator.userAgent },
+        ]);
+      } catch (e) {
+        console.warn("Error recording consent:", e);
+      }
+    }
     
     return { error: error as Error | null };
   };

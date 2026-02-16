@@ -15,6 +15,7 @@ import {
   Info,
 } from "lucide-react";
 import { useStrategicInsights } from "@/hooks/useStrategicInsights";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -26,10 +27,11 @@ export function InsightsHeaderButton() {
     generateInsights,
     hasValidBase,
   } = useStrategicInsights();
+  const { hasFeature } = useFeatureFlags();
 
   const [open, setOpen] = useState(false);
 
-  if (!hasValidBase) return null;
+  if (!hasValidBase || !hasFeature("strategic_insights")) return null;
 
   const insightsList = insights?.insights || [];
   const createdAt = insights?.created_at;

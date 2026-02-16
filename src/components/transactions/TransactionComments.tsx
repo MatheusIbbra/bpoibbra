@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTransactionComments, useCreateComment, useDeleteComment } from "@/hooks/useTransactionComments";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRoleView } from "@/hooks/useRoleView";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MessageSquare, Send, Trash2 } from "lucide-react";
@@ -14,6 +15,7 @@ interface TransactionCommentsProps {
 }
 
 export function TransactionComments({ transactionId }: TransactionCommentsProps) {
+  const { showInternalComments } = useRoleView();
   const { user } = useAuth();
   const { data: comments, isLoading } = useTransactionComments(transactionId);
   const createComment = useCreateComment();
@@ -42,11 +44,14 @@ export function TransactionComments({ transactionId }: TransactionCommentsProps)
     );
   }
 
+  // Clients don't see internal comments section
+  if (!showInternalComments) return null;
+
   return (
     <div className="space-y-3 mt-4 border-t pt-4">
       <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
         <MessageSquare className="h-4 w-4" />
-        <span>Comentários ({comments?.length || 0})</span>
+        <span>Comentários internos ({comments?.length || 0})</span>
       </div>
 
       {/* Comments list */}

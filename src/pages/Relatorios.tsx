@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { Loader2, Receipt, BarChart3, FileText, PieChart, CircleDollarSign, Layers, Tags, Lightbulb } from "lucide-react";
 
 // Report components
@@ -30,6 +31,7 @@ import { StaggerGrid, StaggerItem } from "@/components/ui/motion";
 export default function Relatorios() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { hasFeature } = useFeatureFlags();
   const [activeTab, setActiveTab] = useState("movimentacoes");
 
   useEffect(() => {
@@ -125,24 +127,26 @@ export default function Relatorios() {
                   Métricas profundas de liquidez, sustentabilidade e projeções financeiras.
                 </p>
               </div>
-              {/* Histórico & Simulação Macro */}
-              <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-                <StaggerItem><StrategicHistoryCard /></StaggerItem>
-                <StaggerItem><MacroSimulationCard /></StaggerItem>
-              </StaggerGrid>
+              {/* Histórico & Simulação Macro - feature flagged */}
+              {(hasFeature("strategic_history") || hasFeature("macro_simulation")) && (
+                <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+                  {hasFeature("strategic_history") && <StaggerItem><StrategicHistoryCard /></StaggerItem>}
+                  {hasFeature("macro_simulation") && <StaggerItem><MacroSimulationCard /></StaggerItem>}
+                </StaggerGrid>
+              )}
               <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
                 <StaggerItem><PatrimonyEvolutionCard /></StaggerItem>
-                <StaggerItem><AnomalyDetectionCard /></StaggerItem>
+                {hasFeature("anomaly_detection") && <StaggerItem><AnomalyDetectionCard /></StaggerItem>}
               </StaggerGrid>
               <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
                 <StaggerItem><StructuredLiquidityCard /></StaggerItem>
                 <StaggerItem><PersonalRunwayCard /></StaggerItem>
               </StaggerGrid>
               <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-                <StaggerItem><CashflowForecastCard /></StaggerItem>
+                {hasFeature("cashflow_forecast") && <StaggerItem><CashflowForecastCard /></StaggerItem>}
                 <StaggerItem><LifestylePatternCard /></StaggerItem>
               </StaggerGrid>
-              <FinancialSimulatorCard />
+              {hasFeature("financial_simulator") && <FinancialSimulatorCard />}
             </div>
           </TabsContent>
         </Tabs>
