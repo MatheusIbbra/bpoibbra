@@ -20,6 +20,7 @@ import { StructuredLiquidityCard } from "@/components/dashboard/StructuredLiquid
 import { PersonalRunwayCard } from "@/components/dashboard/PersonalRunwayCard";
 import { LifestylePatternCard } from "@/components/dashboard/LifestylePatternCard";
 import { PatrimonyEvolutionCard } from "@/components/dashboard/PatrimonyEvolutionCard";
+import { AnomalyDetectionCard } from "@/components/dashboard/AnomalyDetectionCard";
 
 import { StatCard } from "@/components/dashboard/StatCard";
 import { StatCardHoverTransactions } from "@/components/dashboard/StatCardHoverTransactions";
@@ -120,6 +121,9 @@ const Index = () => {
 
         {/* 4. Evolução Patrimonial 12M */}
         <PatrimonyEvolutionCard />
+
+        {/* Detecção de Anomalias */}
+        <AnomalyDetectionCard />
 
         {/* Alertas de Orçamento */}
         <BudgetAlerts showNotifications={true} />
