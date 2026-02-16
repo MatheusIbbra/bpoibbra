@@ -113,7 +113,7 @@ export function FintechTransactionsList() {
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-lg font-semibold">Últimas Movimentações</CardTitle>
+          <CardTitle className="text-sm font-semibold">Últimas Movimentações</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -127,9 +127,9 @@ export function FintechTransactionsList() {
   }
 
   return (
-    <Card>
+    <Card className="flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-lg font-semibold">Últimas Movimentações</CardTitle>
+        <CardTitle className="text-sm font-semibold">Últimas Movimentações</CardTitle>
         <Button
           variant="ghost"
           size="sm"
@@ -140,16 +140,16 @@ export function FintechTransactionsList() {
           <ChevronRight className="h-3 w-3 ml-0.5" />
         </Button>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1">
         {grouped.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">
+          <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
             Nenhuma movimentação encontrada
-          </p>
+          </div>
         ) : (
-          <div>
+          <div className="space-y-0">
             {grouped.map((group) => (
               <div key={group.label}>
-                <div className="pt-2 pb-1">
+                <div className="pt-1.5 pb-1">
                   <p className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-widest">
                     {group.label}
                   </p>
@@ -159,7 +159,7 @@ export function FintechTransactionsList() {
                     <div
                       key={tx.id}
                       className={cn(
-                        "flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer",
+                        "flex items-center gap-2 px-1.5 py-1.5 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer",
                         tx.is_ignored && "opacity-50"
                       )}
                       onClick={() => navigate("/movimentacoes")}
@@ -172,33 +172,14 @@ export function FintechTransactionsList() {
                       >
                         {getTransactionIcon(tx.type, tx.categories?.icon)}
                       </div>
-                      <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-x-2 items-center">
-                        <div className="min-w-0">
-                          <p className="text-xs font-medium truncate leading-tight">
-                            {tx.description || "Movimentação"}
-                          </p>
-                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground truncate">
-                            <span>{format(parseLocalDate(tx.date), "dd/MM", { locale: ptBR })}</span>
-                            {tx.accounts?.bank_name && (
-                              <>
-                                <span>·</span>
-                                <span className="truncate">{tx.accounts.bank_name}</span>
-                              </>
-                            )}
-                            {tx.categories?.name && (
-                              <>
-                                <span>·</span>
-                                <span className="truncate hidden sm:inline">{tx.categories.name}</span>
-                              </>
-                            )}
-                            {tx.cost_centers?.name && (
-                              <>
-                                <span className="hidden md:inline">·</span>
-                                <span className="truncate hidden md:inline">{tx.cost_centers.name}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate leading-tight">
+                          {tx.description || "Movimentação"}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {format(parseLocalDate(tx.date), "dd/MM", { locale: ptBR })}
+                          {tx.categories?.name && ` · ${tx.categories.name}`}
+                        </p>
                       </div>
                       <p
                         className={cn(
