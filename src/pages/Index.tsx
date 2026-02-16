@@ -123,14 +123,14 @@ const Index = () => {
           <BudgetProgress />
         </div>
 
-        {/* Previsão de Caixa + Despesas Recorrentes */}
+        {/* Previsão de Caixa + Simulador Financeiro */}
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
           <CashflowForecastCard />
-          <RecurringExpensesCard />
+          <FinancialSimulatorCard />
         </div>
 
-        {/* Simulador Financeiro */}
-        <FinancialSimulatorCard />
+        {/* Despesas Recorrentes */}
+        <RecurringExpensesCard />
 
         {/* Últimas Movimentações */}
         <FintechTransactionsList />
