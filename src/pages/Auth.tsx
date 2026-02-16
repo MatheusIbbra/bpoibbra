@@ -78,14 +78,36 @@ export default function Auth() {
   };
 
   const handleGoogleSignIn = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
+        skipBrowserRedirect: true,
         redirectTo: `${window.location.origin}/`,
       },
     });
     if (error) {
       toast.error("Erro ao conectar com Google: " + error.message);
+      return;
+    }
+    if (data?.url) {
+      const popup = window.open(data.url, "google_oauth_popup", "width=500,height=600");
+      if (!popup) {
+        toast.error("Permita pop-ups para fazer login com Google.");
+        return;
+      }
+      const interval = setInterval(async () => {
+        try {
+          if (popup.closed) {
+            clearInterval(interval);
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (sessionData.session) {
+              navigate("/");
+            }
+          }
+        } catch {
+          // cross-origin errors expected while popup is on Google's domain
+        }
+      }, 500);
     }
   };
 
