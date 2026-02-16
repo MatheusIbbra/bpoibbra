@@ -40,32 +40,30 @@ export function AppLayout({ children, title }: AppLayoutProps) {
 
   return (
     <SidebarProvider open={sidebarOpen} onOpenChange={handleSidebarChange}>
-      <div className="flex min-h-screen w-full">
-        <BrandBackground />
-        <AppSidebar />
-        <SidebarInset className="flex flex-1 flex-col min-w-0 relative z-[1]">
-          <AppHeader title={title} />
-          <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8 xl:p-10">
-            {baseLoading ?
-            <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div> :
-            hasNoBases ?
-            <div className="flex items-center justify-center py-20">
-                <Alert variant="destructive" className="max-w-md">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Acesso restrito</AlertTitle>
-                  <AlertDescription>
-                    Nenhuma base vinculada ao seu cadastro. Entre em contato com seu administrador para liberar o acesso.
-                  </AlertDescription>
-                </Alert>
-              </div> :
+      <BrandBackground />
+      <AppSidebar />
+      <SidebarInset className="flex flex-1 flex-col min-w-0 relative z-[1]">
+        <AppHeader title={title} />
+        <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8 xl:p-10">
+          {baseLoading ?
+          <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div> :
+          hasNoBases ?
+          <div className="flex items-center justify-center py-20">
+              <Alert variant="destructive" className="max-w-md">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Acesso restrito</AlertTitle>
+                <AlertDescription>
+                  Nenhuma base vinculada ao seu cadastro. Entre em contato com seu administrador para liberar o acesso.
+                </AlertDescription>
+              </Alert>
+            </div> :
 
-            children
-            }
-          </main>
-        </SidebarInset>
-      </div>
+          children
+          }
+        </main>
+      </SidebarInset>
     </SidebarProvider>);
 
 }
