@@ -168,25 +168,6 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
     }
   };
 
-  const saveFamilyMembers = async (userId: string) => {
-    const validMembers = familyMembers.filter(m => m.full_name.trim() && m.relationship);
-    if (validMembers.length === 0) return;
-
-    const rows = validMembers.map(m => ({
-      user_id: userId,
-      relationship: m.relationship,
-      full_name: m.full_name.trim(),
-      age: m.age ? parseInt(m.age) : null,
-      phone: m.phone || null,
-      email: m.email || null,
-    }));
-
-    const { error } = await supabase.from("family_members").insert(rows);
-    if (error) {
-      console.warn("Error saving family members:", error.message);
-    }
-  };
-
   const handleSubmit = async () => {
     if (!email.trim()) {
       toast.error("Informe seu email.");
@@ -208,6 +189,19 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
     setIsLoading(true);
 
     try {
+      // Save registration data to localStorage so Onboarding can use it
+      const validMembers = familyMembers.filter(m => m.full_name.trim() && m.relationship);
+      localStorage.setItem("ibbra_registration", JSON.stringify({
+        isIbbraClient,
+        cpf: cpf.replace(/\D/g, ""),
+        fullName,
+        birthDate,
+        phone,
+        address,
+        validated: validationResult?.found || false,
+        familyMembers: validMembers.length > 0 ? validMembers : undefined,
+      }));
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -219,34 +213,15 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
 
       if (error) throw error;
 
-      if (data.user) {
-        const cleanCpf = cpf.replace(/\D/g, "");
-        const profileData: Record<string, unknown> = {
-          user_id: data.user.id,
-          full_name: fullName,
-          cpf: cleanCpf || null,
-          birth_date: birthDate || null,
-          phone: phone || null,
-          address: address || null,
-          is_ibbra_client: isIbbraClient || false,
-          external_client_validated: validationResult?.found || false,
-          validated_at: validationResult?.found ? new Date().toISOString() : null,
-        };
+      // Check if email confirmation is required
+      const needsConfirmation = data.user && !data.session;
 
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update(profileData)
-          .eq("user_id", data.user.id);
-
-        if (profileError) {
-          console.warn("Profile update warning:", profileError.message);
-        }
-
-        // Save family members if any
-        await saveFamilyMembers(data.user.id);
+      if (needsConfirmation) {
+        toast.success("Conta criada! Verifique seu e-mail para confirmar o cadastro antes de fazer login.");
+      } else {
+        toast.success("Conta criada com sucesso!");
       }
-
-      toast.success("Conta criada com sucesso! Verifique seu email para confirmar o cadastro.");
+      
       onBack();
     } catch (err: any) {
       const msg = err.message?.includes("already registered")

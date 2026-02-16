@@ -79,7 +79,7 @@ export default function Onboarding() {
 
   const allConsentsAccepted = acceptTerms && acceptPrivacy && acceptLgpd;
 
-  // Load existing data from localStorage (Google OAuth) or profile
+  // Load existing data from localStorage (Google OAuth or manual registration) or profile
   useEffect(() => {
     if (!user) return;
 
@@ -91,8 +91,20 @@ export default function Onboarding() {
         if (regData.cpf) setCpf(formatCPF(regData.cpf));
         if (regData.fullName) setFullName(regData.fullName);
         if (regData.birthDate) setBirthDate(regData.birthDate);
+        if (regData.phone) setPhone(regData.phone);
+        if (regData.address) setAddress(regData.address);
         if (regData.validated) {
           setValidationResult({ found: true, full_name: regData.fullName, birth_date: regData.birthDate });
+        }
+        // Load family members if saved from registration
+        if (regData.familyMembers && Array.isArray(regData.familyMembers) && regData.familyMembers.length > 0) {
+          setFamilyMembers(regData.familyMembers.map((m: any) => ({
+            relationship: m.relationship || "",
+            full_name: m.full_name || "",
+            age: m.age?.toString() || "",
+            phone: m.phone || "",
+            email: m.email || "",
+          })));
         }
         setStep("profile_form");
       } catch {
