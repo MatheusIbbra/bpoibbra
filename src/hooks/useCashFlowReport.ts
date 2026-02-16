@@ -103,13 +103,11 @@ export function useCashFlowReport(
       const { data: priorTransactions } = await priorQuery;
 
       let openingBalance = 0;
+      const ALLOWED_ACCOUNT_TYPES = ['checking', 'savings', 'investment', 'cash'];
       priorTransactions?.forEach((tx) => {
         const accountType = (tx.accounts as any)?.account_type;
-        // CREDIT CARD RULE:
-        // credit_card accounts are liabilities (passivo).
-        // Never include in available balance calculations.
-        // Purchases affect DRE only, not cash flow.
-        if (accountType === 'credit_card') return;
+        // Only consider checking, savings, investment and cash accounts for cash flow
+        if (!accountType || !ALLOWED_ACCOUNT_TYPES.includes(accountType)) return;
 
         const amount = parseFloat(String(tx.amount));
         if (tx.type === "income" || tx.type === "redemption") {
@@ -117,7 +115,6 @@ export function useCashFlowReport(
         } else if (tx.type === "expense" || tx.type === "investment") {
           openingBalance -= amount;
         } else if (tx.type === "transfer") {
-          // Bill payments (transfer type) are cash outflows
           openingBalance -= amount;
         }
       });
@@ -174,10 +171,8 @@ export function useCashFlowReport(
         periodTransactions.forEach((tx) => {
           const accountType = (tx.accounts as any)?.account_type;
           
-          // CREDIT CARD RULE:
-          // credit_card accounts are liabilities (passivo).
-          // Purchases don't affect cash flow, only DRE.
-          if (accountType === 'credit_card') return;
+          // Only consider checking, savings, investment and cash accounts for cash flow
+          if (!accountType || !ALLOWED_ACCOUNT_TYPES.includes(accountType)) return;
 
           const amount = Number(tx.amount);
           switch (tx.type) {
