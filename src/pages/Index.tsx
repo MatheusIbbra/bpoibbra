@@ -117,17 +117,17 @@ const Index = () => {
           <MonthlyEvolutionChart />
         </div>
 
-        {/* Saúde Financeira + Orçamento do Mês */}
+        {/* Saúde Financeira */}
+        <FinancialHealthCard />
+
+        {/* Orçamento do Mês + Últimas Movimentações */}
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <FinancialHealthCard />
           <BudgetProgress />
+          <FintechTransactionsList />
         </div>
 
-        {/* Últimas Movimentações + Despesas Recorrentes */}
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <FintechTransactionsList />
-          <RecurringExpensesCard />
-        </div>
+        {/* Despesas Recorrentes */}
+        <RecurringExpensesCard />
 
         {/* Previsão de Caixa + Simulador Financeiro */}
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
