@@ -72,6 +72,7 @@ interface ClientOrganization {
   client_user_id: string | null;
   client_name: string | null;
   client_email: string | null;
+  is_ibbra_client: boolean;
 }
 
 interface KamUser {
@@ -607,27 +608,32 @@ export function ClientManagementTab() {
       clientMembers.forEach(m => allUserIds.add(m.user_id));
       orgs?.forEach(o => o.kam_id && allUserIds.add(o.kam_id));
 
-      let profilesMap: Record<string, string> = {};
+      let profilesMap: Record<string, { full_name: string; is_ibbra_client: boolean }> = {};
       if (allUserIds.size > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("user_id, full_name")
+          .select("user_id, full_name, is_ibbra_client")
           .in("user_id", Array.from(allUserIds));
         
         profiles?.forEach(p => {
-          profilesMap[p.user_id] = p.full_name || "";
+          profilesMap[p.user_id] = { 
+            full_name: p.full_name || "", 
+            is_ibbra_client: p.is_ibbra_client || false 
+          };
         });
       }
 
       return (orgs || []).map(org => {
         const clientMember = clientMembers.find(m => m.organization_id === org.id);
+        const clientProfile = clientMember ? profilesMap[clientMember.user_id] : null;
         return {
           ...org,
           is_blocked: org.is_blocked || false,
-          kam_name: org.kam_id ? profilesMap[org.kam_id] || null : null,
+          kam_name: org.kam_id ? profilesMap[org.kam_id]?.full_name || null : null,
           client_user_id: clientMember?.user_id || null,
-          client_name: clientMember ? profilesMap[clientMember.user_id] || null : null,
+          client_name: clientProfile?.full_name || null,
           client_email: null,
+          is_ibbra_client: clientProfile?.is_ibbra_client || false,
         } as ClientOrganization;
       });
     },
@@ -754,9 +760,9 @@ export function ClientManagementTab() {
                     {filteredOrgs.map((org) => (
                       <TableRow 
                         key={org.id} 
-                        className={org.is_blocked ? "bg-destructive/5" : !org.kam_id ? "bg-warning/5" : ""}
+                        className={org.is_blocked ? "bg-destructive/5" : ""}
                       >
-                        <TableCell>
+                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar className="h-9 w-9">
                               <AvatarImage src={org.logo_url || undefined} />
@@ -767,9 +773,14 @@ export function ClientManagementTab() {
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
                                 <p className="font-medium truncate">{org.name}</p>
-                                {!org.kam_id && !org.is_blocked && (
-                                  <Badge variant="outline" className="text-warning border-warning/50 text-xs">
-                                    Sem KAM
+                                {org.is_ibbra_client ? (
+                                  <Badge variant="outline" className="text-primary border-primary/50 text-xs">
+                                    <UserCheck className="h-3 w-3 mr-1" />
+                                    Cliente IBBRA
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-muted-foreground border-muted text-xs">
+                                    Cadastro Externo
                                   </Badge>
                                 )}
                               </div>
