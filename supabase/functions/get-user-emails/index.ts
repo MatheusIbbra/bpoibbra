@@ -28,19 +28,20 @@ serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Create client with caller's token to verify role
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: { Authorization: authHeader },
+    // Create admin client with service role to bypass RLS
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
       },
     });
 
-    // Get the user from the token
+    // Validate token using admin client (works reliably in edge functions)
     const token = authHeader.replace("Bearer ", "");
     const {
       data: { user },
       error: userError,
-    } = await supabaseClient.auth.getUser(token);
+    } = await adminClient.auth.getUser(token);
 
     if (userError || !user) {
       console.log("Invalid token or user error:", userError);
@@ -51,14 +52,6 @@ serve(async (req) => {
     }
 
     console.log("User found:", user.id);
-
-    // Check if user is admin using service role to bypass RLS
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
 
     const { data: roleData, error: roleError } = await adminClient
       .from("user_roles")
