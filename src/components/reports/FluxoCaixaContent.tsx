@@ -1,7 +1,8 @@
-import { useState, forwardRef } from "react";
+import { useState, useEffect, forwardRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -18,7 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
-import { useCashFlowReport, Granularity } from "@/hooks/useCashFlowReport";
+import { useCashFlowReport, Granularity, ReportBasis } from "@/hooks/useCashFlowReport";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { PeriodSelector } from "@/components/reports/PeriodSelector";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
@@ -32,6 +33,8 @@ import {
 import {
   Download,
   Loader2,
+  FileText,
+  Banknote,
   TrendingUp,
   TrendingDown,
   ArrowRightLeft,
@@ -88,10 +91,17 @@ export function FluxoCaixaContent() {
     end: endOfMonth(new Date()),
   });
   const [granularity, setGranularity] = useState<Granularity>("daily");
+  const [basis, setBasis] = useState<ReportBasis>(() => {
+    return (localStorage.getItem("report-basis-fluxo") as ReportBasis) || "cash";
+  });
   const [costCenterId, setCostCenterId] = useState<string | undefined>(undefined);
 
+  useEffect(() => {
+    localStorage.setItem("report-basis-fluxo", basis);
+  }, [basis]);
+
   const { data: costCenters } = useCostCenters();
-  const { data, isLoading } = useCashFlowReport(dateRange.start, dateRange.end, "cash", granularity, costCenterId);
+  const { data, isLoading } = useCashFlowReport(dateRange.start, dateRange.end, basis, granularity, costCenterId);
 
   const displayPeriods = (() => {
     if (!data) return [];
@@ -119,7 +129,7 @@ export function FluxoCaixaContent() {
   const exportToPDF = async () => {
     if (!data) return;
 
-    const basisLabel = "Regime de Caixa";
+    const basisLabel = basis === "cash" ? "Regime de Caixa" : "Regime de Competência";
 
     const doc = await createProfessionalPDF({
       title: "Fluxo de Caixa",
@@ -184,6 +194,19 @@ export function FluxoCaixaContent() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4 flex-wrap">
           <PeriodSelector dateRange={dateRange} onDateRangeChange={setDateRange} />
+
+          <Tabs value={basis} onValueChange={(v) => setBasis(v as ReportBasis)}>
+            <TabsList className="h-8">
+              <TabsTrigger value="cash" className="gap-2 text-xs h-7">
+                <Banknote className="h-3 w-3" />
+                Caixa
+              </TabsTrigger>
+              <TabsTrigger value="accrual" className="gap-2 text-xs h-7">
+                <FileText className="h-3 w-3" />
+                Competência
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
 
           <Select value={granularity} onValueChange={(v) => setGranularity(v as Granularity)}>
             <SelectTrigger className="w-[140px] h-9">
@@ -268,7 +291,7 @@ export function FluxoCaixaContent() {
             <CardHeader className="py-3 px-4">
               <CardTitle className="flex items-center gap-2 text-sm">
                 Evolução do Saldo
-                <Badge variant="secondary" className="text-xs">Regime de Caixa</Badge>
+                <Badge variant="secondary" className="text-xs">{basis === "cash" ? "Regime de Caixa" : "Regime de Competência"}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4">
@@ -371,6 +394,17 @@ export function FluxoCaixaContent() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Regime info banner */}
+          <div className="px-3 py-2 rounded-lg bg-muted/50 border border-border/50">
+            <p className="text-[11px] text-muted-foreground text-center">
+              📊 Este relatório está sendo exibido no <strong>{basis === "cash" ? "Regime de Caixa" : "Regime de Competência"}</strong>.
+              {basis === "cash" 
+                ? " Os valores refletem as datas de movimentação financeira efetiva."
+                : " Os valores refletem as datas de competência (fato gerador)."
+              }
+            </p>
+          </div>
         </>
       )}
     </div>
