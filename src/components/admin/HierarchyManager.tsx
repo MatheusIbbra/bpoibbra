@@ -17,13 +17,13 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 // Define quem pode supervisionar quem - seguindo a hierarquia obrigatória
-// FA deve ser supervisionado por Supervisor
-// KAM deve ser supervisionado por FA
+// Admin → Supervisor → Projetista → FA → KAM
 const SUPERVISION_RULES: Record<string, string[]> = {
   admin: [], // Admin não tem supervisor
   supervisor: ["admin"], // Supervisor pode ser supervisionado por Admin
-  fa: ["supervisor", "admin"], // FA DEVE ser supervisionado por Supervisor (ou Admin)
-  kam: ["fa", "supervisor", "admin"], // KAM DEVE ser supervisionado por FA (ou níveis acima)
+  projetista: ["supervisor", "admin"], // Projetista supervisionado por Supervisor (ou Admin)
+  fa: ["projetista", "supervisor", "admin"], // FA supervisionado por Projetista (ou níveis acima)
+  kam: ["fa", "projetista", "supervisor", "admin"], // KAM supervisionado por FA (ou níveis acima)
   cliente: [], // Cliente não usa hierarquia - usa kam_id da organização
 };
 
@@ -66,7 +66,8 @@ export function HierarchyManager() {
   // Verificar usuários com vínculos obrigatórios faltando
   const getMissingLink = (userRole: string | null, hasSupervisor: boolean) => {
     if (!userRole) return null;
-    if (userRole === "fa" && !hasSupervisor) return "FA deve ter um Supervisor";
+    if (userRole === "projetista" && !hasSupervisor) return "Projetista deve ter um Supervisor";
+    if (userRole === "fa" && !hasSupervisor) return "FA deve ter um Projetista ou Supervisor";
     if (userRole === "kam" && !hasSupervisor) return "KAM deve ter um FA";
     return null;
   };
@@ -79,7 +80,7 @@ export function HierarchyManager() {
           Hierarquia de Supervisão
         </CardTitle>
         <CardDescription>
-          Defina quem supervisiona cada usuário. Hierarquia: Admin → Supervisor → FA → KAM.
+          Defina quem supervisiona cada usuário. Hierarquia: Admin → Supervisor → Projetista → FA → KAM.
           <br />
           <strong>Clientes são vinculados via KAM da organização na aba "Clientes".</strong>
         </CardDescription>

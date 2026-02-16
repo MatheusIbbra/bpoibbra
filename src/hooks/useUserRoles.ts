@@ -22,14 +22,14 @@ export interface UserWithRole {
 }
 
 // Role hierarchy - higher index = more permissions
-const ROLE_HIERARCHY: AppRole[] = ["cliente", "projetista", "kam", "fa", "supervisor", "admin"];
+const ROLE_HIERARCHY: AppRole[] = ["cliente", "kam", "fa", "projetista", "supervisor", "admin"];
 
 export const ROLE_LABELS: Record<AppRole, string> = {
   admin: "Administrador",
   supervisor: "Supervisor",
+  projetista: "Projetista",
   fa: "Analista Financeiro (FA)",
   kam: "Key Account Manager (KAM)",
-  projetista: "Projetista",
   cliente: "Cliente",
 };
 
@@ -46,6 +46,12 @@ export const ROLE_DESCRIPTIONS: Record<AppRole, string[]> = {
     "Valida classificações",
     "Acompanha qualidade",
   ],
+  projetista: [
+    "Acesso às Bases vinculadas",
+    "Mesmas permissões do FA",
+    "Classifica movimentações",
+    "Analisa extratos",
+  ],
   fa: [
     "Classifica movimentações",
     "Acesso às Bases vinculadas",
@@ -58,17 +64,11 @@ export const ROLE_DESCRIPTIONS: Record<AppRole, string[]> = {
     "Visualiza relatórios",
     "Acompanha metas/orçamento",
   ],
-  projetista: [
-    "Acesso às Bases vinculadas",
-    "Mesmas permissões do FA",
-    "Classifica movimentações",
-    "Analisa extratos",
-  ],
   cliente: [
-    "Visualiza APENAS seus dados",
-    "Upload de extratos/documentos",
-    "Acompanha relatórios",
-    "⛔ Não altera classificações",
+    "Visualiza seus dados",
+    "Altera dados financeiros",
+    "Aprova/rejeita sugestões IA",
+    "Classifica transações",
   ],
 };
 
@@ -126,7 +126,7 @@ export function useCanManageUsers() {
 export function useCanClassify() {
   const { data: role, isLoading } = useCurrentUserRole();
   return {
-    canClassify: role === "admin" || role === "supervisor" || role === "fa" || role === "projetista",
+    canClassify: role === "admin" || role === "supervisor" || role === "fa" || role === "projetista" || role === "cliente",
     isLoading,
   };
 }
@@ -134,7 +134,7 @@ export function useCanClassify() {
 export function useCanEditFinancials() {
   const { data: role, isLoading } = useCurrentUserRole();
   return {
-    canEdit: role === "admin" || role === "supervisor" || role === "fa" || role === "projetista",
+    canEdit: role === "admin" || role === "supervisor" || role === "fa" || role === "projetista" || role === "cliente",
     isLoading,
   };
 }
