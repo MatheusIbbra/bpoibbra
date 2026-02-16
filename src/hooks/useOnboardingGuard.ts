@@ -3,15 +3,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
-/**
- * Global onboarding guard.
- * Checks if the user has completed registration.
- * If not, redirects to /onboarding.
- * 
- * Returns { checking: true } while loading,
- * { checking: false, completed: true } when user can proceed,
- * { checking: false, completed: false } when redirecting to onboarding.
- */
 export function useOnboardingGuard() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -19,8 +10,7 @@ export function useOnboardingGuard() {
   const [checking, setChecking] = useState(true);
   const [completed, setCompleted] = useState(false);
 
-  // Pages that don't require onboarding check
-  const publicPaths = ["/auth", "/onboarding", "/callback-klavi"];
+  const publicPaths = ["/auth", "/onboarding", "/callback-klavi", "/termos-de-uso", "/politica-de-privacidade", "/lgpd", "/consent-reaccept"];
   const isPublicPath = publicPaths.some(p => location.pathname.startsWith(p));
 
   useEffect(() => {
@@ -44,7 +34,7 @@ export function useOnboardingGuard() {
       try {
         const { data: profile, error } = await supabase
           .from("profiles")
-          .select("registration_completed")
+          .select("registration_completed, legal_accepted")
           .eq("user_id", user.id)
           .maybeSingle();
 
@@ -57,8 +47,46 @@ export function useOnboardingGuard() {
           return;
         }
 
-        // Check user role — non-client roles (admin, supervisor, fa, kam, projetista)
-        // don't need org membership since they access orgs via hierarchy
+        // Check legal consent - if registration is done but legal not accepted, redirect to consent
+        if (!profile.legal_accepted) {
+          // Check if consent is outdated (new version published)
+          const { data: isValid } = await supabase.rpc("check_user_consent_valid", { p_user_id: user.id });
+          
+          if (cancelled) return;
+
+          if (!isValid) {
+            setCompleted(false);
+            setChecking(false);
+            navigate("/consent-reaccept", { replace: true });
+            return;
+          }
+
+          // If consent is valid but flag not set, update it
+          await supabase
+            .from("profiles")
+            .update({ legal_accepted: true })
+            .eq("user_id", user.id);
+        } else {
+          // Even if legal_accepted is true, check version freshness
+          const { data: isValid } = await supabase.rpc("check_user_consent_valid", { p_user_id: user.id });
+
+          if (cancelled) return;
+
+          if (isValid === false) {
+            // New version published, force reaccept
+            await supabase
+              .from("profiles")
+              .update({ legal_accepted: false })
+              .eq("user_id", user.id);
+
+            setCompleted(false);
+            setChecking(false);
+            navigate("/consent-reaccept", { replace: true });
+            return;
+          }
+        }
+
+        // Check user role
         const { data: roleData } = await supabase
           .from("user_roles")
           .select("role")
@@ -70,7 +98,6 @@ export function useOnboardingGuard() {
         const role = roleData?.role;
         const isStaffRole = role && ["admin", "supervisor", "fa", "kam", "projetista"].includes(role);
 
-        // Only require org membership for clients (or users without a role)
         if (!isStaffRole) {
           const { data: memberships } = await supabase
             .from("organization_members")
