@@ -10,8 +10,6 @@ import { BudgetProgress } from "@/components/dashboard/BudgetProgress";
 import { ReconciliationMetricsCard } from "@/components/dashboard/ReconciliationMetricsCard";
 import { ConnectedAccountsSection } from "@/components/dashboard/ConnectedAccountsSection";
 import { MultiCurrencyBalanceSection } from "@/components/dashboard/MultiCurrencyBalanceSection";
-import { PatrimonyEvolutionCard } from "@/components/dashboard/PatrimonyEvolutionCard";
-import { AnomalyDetectionCard } from "@/components/dashboard/AnomalyDetectionCard";
 
 import { StatCard } from "@/components/dashboard/StatCard";
 import { StatCardHoverTransactions } from "@/components/dashboard/StatCardHoverTransactions";
@@ -127,26 +125,16 @@ const Index = () => {
           <StaggerItem><MonthlyEvolutionChart /></StaggerItem>
         </StaggerGrid>
 
-        {/* 4. Evolução Patrimonial 12M */}
-        <AnimatedCard delay={0.1}>
-          <PatrimonyEvolutionCard />
-        </AnimatedCard>
-
-        {/* 5. Alertas de Orçamento */}
+        {/* 4. Alertas de Orçamento */}
         <AnimatedCard delay={0.1}>
           <BudgetAlerts showNotifications={true} />
         </AnimatedCard>
 
-        {/* 6. Orçamento do Mês + Últimas Movimentações */}
+        {/* 5. Orçamento do Mês + Últimas Movimentações */}
         <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
           <StaggerItem><BudgetProgress /></StaggerItem>
           <StaggerItem><FintechTransactionsList /></StaggerItem>
         </StaggerGrid>
-
-        {/* 7. Detecção de Anomalias */}
-        <AnimatedCard delay={0.1}>
-          <AnomalyDetectionCard />
-        </AnimatedCard>
 
         {/* 8. Conciliação */}
         <AnimatedCard delay={0.05}>
