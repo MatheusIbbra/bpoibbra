@@ -42,13 +42,13 @@ export function CategoryAnalysisContent() {
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex flex-wrap gap-2 items-center">
+      <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
         <PeriodSelector dateRange={dateRange} onDateRangeChange={setDateRange} />
         <Select
           value={costCenterId || "all"}
           onValueChange={(v) => setCostCenterId(v === "all" ? undefined : v)}
         >
-          <SelectTrigger className="w-[160px] h-8 text-xs">
+          <SelectTrigger className="w-full sm:w-[160px] h-8 text-xs">
             <SelectValue placeholder="Centro de Custo" />
           </SelectTrigger>
           <SelectContent>
@@ -61,24 +61,24 @@ export function CategoryAnalysisContent() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+      <div className="grid gap-3 grid-cols-2">
         <Card className="card-executive">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="h-4 w-4 text-success" />
-              <span className="text-xs text-muted-foreground uppercase">Total Receitas</span>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-1.5 mb-1">
+              <TrendingUp className="h-3.5 w-3.5 text-success" />
+              <span className="text-[10px] sm:text-xs text-muted-foreground uppercase">Receitas</span>
             </div>
-            <p className="text-2xl font-bold text-success">{formatCurrency(data?.totalIncome ?? 0)}</p>
+            <p className="text-lg sm:text-2xl font-bold text-success">{formatCurrency(data?.totalIncome ?? 0)}</p>
             <p className="text-[10px] text-muted-foreground">{data?.incomeCategories?.length ?? 0} categorias</p>
           </CardContent>
         </Card>
         <Card className="card-executive">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingDown className="h-4 w-4 text-destructive" />
-              <span className="text-xs text-muted-foreground uppercase">Total Despesas</span>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-1.5 mb-1">
+              <TrendingDown className="h-3.5 w-3.5 text-destructive" />
+              <span className="text-[10px] sm:text-xs text-muted-foreground uppercase">Despesas</span>
             </div>
-            <p className="text-2xl font-bold text-destructive">{formatCurrency(data?.totalExpense ?? 0)}</p>
+            <p className="text-lg sm:text-2xl font-bold text-destructive">{formatCurrency(data?.totalExpense ?? 0)}</p>
             <p className="text-[10px] text-muted-foreground">{data?.expenseCategories?.length ?? 0} categorias</p>
           </CardContent>
         </Card>
@@ -99,7 +99,7 @@ export function CategoryAnalysisContent() {
           {isLoading ? (
             <Skeleton className="h-[300px] rounded-xl" />
           ) : (
-            <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-1 lg:grid-cols-2">
               {/* Donut Chart */}
               <Card className="card-executive">
                 <CardHeader className="py-3 px-4">
@@ -145,9 +145,9 @@ export function CategoryAnalysisContent() {
                   <Table>
                     <TableHeader>
                       <TableRow className="text-[11px]">
-                        <TableHead>Categoria</TableHead>
-                        <TableHead className="text-right">Valor</TableHead>
-                        <TableHead className="text-right">%</TableHead>
+                        <TableHead className="whitespace-nowrap">Categoria</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">Valor</TableHead>
+                        <TableHead className="text-right hidden sm:table-cell">%</TableHead>
                         <TableHead className="w-8"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -174,7 +174,7 @@ export function CategoryAnalysisContent() {
                             <TableCell className="text-right font-medium">
                               {formatCurrency(cat.total)}
                             </TableCell>
-                            <TableCell className="text-right text-muted-foreground">
+                            <TableCell className="text-right text-muted-foreground hidden sm:table-cell">
                               {cat.percentage.toFixed(1)}%
                             </TableCell>
                             <TableCell>

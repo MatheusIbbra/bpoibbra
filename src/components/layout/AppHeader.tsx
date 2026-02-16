@@ -185,13 +185,15 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
               <User className="mr-2 h-4 w-4" />
               Meu Perfil
             </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => window.location.href = '/admin'}
-              className="cursor-pointer py-2 px-3 rounded-lg"
-            >
-              <Settings className="mr-2 h-4 w-4" />
-              Configurações
-            </DropdownMenuItem>
+            {userRole && userRole !== 'cliente' && (
+              <DropdownMenuItem 
+                onClick={() => window.location.href = '/admin'}
+                className="cursor-pointer py-2 px-3 rounded-lg"
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                Configurações
+              </DropdownMenuItem>
+            )}
             {/* Theme toggle - mobile */}
             <DropdownMenuItem 
               onClick={toggleTheme} 
