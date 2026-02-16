@@ -16,13 +16,19 @@ type OrgFilter =
 export async function getLegacyInitialBalanceAdjustment(params: {
   orgFilter: OrgFilter;
   beforeDate: string; // yyyy-MM-dd
+  allowedAccountIds?: string[]; // optional filter to restrict to specific accounts
 }): Promise<number> {
-  const { orgFilter, beforeDate } = params;
+  const { orgFilter, beforeDate, allowedAccountIds } = params;
 
   let accountsQuery = supabase
     .from("accounts")
     .select("id, initial_balance, start_date")
     .not("initial_balance", "is", null);
+
+  // If allowedAccountIds provided, restrict to those accounts only
+  if (allowedAccountIds && allowedAccountIds.length > 0) {
+    accountsQuery = accountsQuery.in("id", allowedAccountIds);
+  }
 
   if (orgFilter.type === "single") {
     accountsQuery = accountsQuery.eq("organization_id", orgFilter.ids[0]);

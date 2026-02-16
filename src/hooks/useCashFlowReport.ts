@@ -150,10 +150,11 @@ export function useCashFlowReport(
         }
       });
 
-      // Add legacy account initial balances
+      // Add legacy account initial balances (only for allowed account types)
       openingBalance += await getLegacyInitialBalanceAdjustment({
         orgFilter: orgFilter as any,
         beforeDate: format(startDate, "yyyy-MM-dd"),
+        allowedAccountIds,
       });
 
       // Group transactions by period
