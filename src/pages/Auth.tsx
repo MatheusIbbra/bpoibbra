@@ -82,6 +82,7 @@ export default function Auth() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
+        // Always redirect to root - the onboarding guard will handle routing
         redirectTo: window.location.origin + "/",
       },
     });

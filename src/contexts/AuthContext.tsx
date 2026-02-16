@@ -72,34 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Avoid spamming toasts / loops for the same user id
         if (lastBlockedUserIdRef.current === u.id) return;
 
-        // Handle IBBRA registration data for Google OAuth signups
-        const provider = u.app_metadata?.provider;
-        if (provider === 'google') {
-          const createdAt = new Date(u.created_at).getTime();
-          const now = Date.now();
-          // If the account was created less than 60 seconds ago, process registration data
-          if (now - createdAt < 60000) {
-            const regDataStr = localStorage.getItem("ibbra_registration");
-            if (regDataStr) {
-              try {
-                const regData = JSON.parse(regDataStr);
-                localStorage.removeItem("ibbra_registration");
-                // Update profile with IBBRA data
-                await supabase.from("profiles").update({
-                  is_ibbra_client: regData.isIbbraClient || false,
-                  cpf: regData.cpf || null,
-                  full_name: regData.fullName || u.user_metadata?.full_name || null,
-                  birth_date: regData.birthDate || null,
-                  external_client_validated: regData.validated || false,
-                  validated_at: regData.validated ? new Date().toISOString() : null,
-                }).eq("user_id", u.id);
-              } catch (e) {
-                console.warn("Error processing IBBRA registration data:", e);
-                localStorage.removeItem("ibbra_registration");
-              }
-            }
-          }
-        }
+        // NOTE: IBBRA registration data is now handled in /onboarding page
+        // No automatic profile hydration here - onboarding guard enforces completion
 
         const { blocked, reason } = await checkUserBlocked(u.id);
         if (!isMounted) return;
