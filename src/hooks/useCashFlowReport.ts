@@ -9,6 +9,9 @@ import { parseLocalDate } from "@/lib/formatters";
 export type ReportBasis = "cash" | "accrual";
 export type Granularity = "daily" | "weekly" | "monthly";
 
+// Only these account types are considered for cash flow
+const CASHFLOW_ACCOUNT_TYPES = ['checking', 'savings', 'investment', 'cash'] as const;
+
 interface CashFlowPeriod {
   period: string;
   inflows: number;
@@ -46,10 +49,44 @@ export function useCashFlowReport(
   return useQuery({
     queryKey: ["cashflow-report", user?.id, orgFilter.type, orgFilter.ids, startStr, endStr, basis, granularity, costCenterId],
     queryFn: async (): Promise<CashFlowData> => {
-      // Get transactions for the period - join accounts to get account_type
+      // Step 1: Get IDs of allowed accounts (checking, savings, investment, cash only)
+      let accountsQuery = supabase
+        .from("accounts")
+        .select("id")
+        .in("account_type", [...CASHFLOW_ACCOUNT_TYPES]);
+
+      if (orgFilter.type === 'single') {
+        accountsQuery = accountsQuery.eq("organization_id", orgFilter.ids[0]);
+      } else if (orgFilter.type === 'multiple' && orgFilter.ids.length > 0) {
+        accountsQuery = accountsQuery.in("organization_id", orgFilter.ids);
+      }
+
+      const { data: allowedAccounts } = await accountsQuery;
+      const allowedAccountIds = allowedAccounts?.map(a => a.id) || [];
+
+      // If no valid accounts, return empty data
+      if (allowedAccountIds.length === 0) {
+        const openingBalance = await getLegacyInitialBalanceAdjustment({
+          orgFilter: orgFilter as any,
+          beforeDate: startStr,
+        });
+        return {
+          periods: [],
+          totalInflows: 0,
+          totalOutflows: 0,
+          totalInvestments: 0,
+          totalRedemptions: 0,
+          netCashFlow: 0,
+          openingBalance,
+          closingBalance: openingBalance,
+        };
+      }
+
+      // Step 2: Get transactions ONLY from allowed accounts
       let transactionsQuery = supabase
         .from("transactions")
-        .select("id, amount, type, date, accrual_date, accounts(account_type)")
+        .select("id, amount, type, date, accrual_date")
+        .in("account_id", allowedAccountIds)
         .neq("is_ignored", true)
         .order("date", { ascending: true });
 
@@ -67,7 +104,6 @@ export function useCashFlowReport(
         transactionsQuery = transactionsQuery.in("organization_id", orgFilter.ids);
       }
 
-      // Aplicar filtro de centro de custo
       if (costCenterId) {
         transactionsQuery = transactionsQuery.eq("cost_center_id", costCenterId);
       }
@@ -75,10 +111,11 @@ export function useCashFlowReport(
       const { data: transactions, error } = await transactionsQuery;
       if (error) throw error;
 
-      // Get opening balance (sum of transactions before start date)
+      // Step 3: Get opening balance (prior transactions from allowed accounts only)
       let priorQuery = supabase
         .from("transactions")
-        .select("amount, type, accrual_date, accounts(account_type)")
+        .select("amount, type, accrual_date")
+        .in("account_id", allowedAccountIds)
         .neq("is_ignored", true);
 
       if (basis === "cash") {
@@ -95,7 +132,6 @@ export function useCashFlowReport(
         priorQuery = priorQuery.in("organization_id", orgFilter.ids);
       }
 
-      // Aplicar filtro de centro de custo para prior transactions
       if (costCenterId) {
         priorQuery = priorQuery.eq("cost_center_id", costCenterId);
       }
@@ -103,12 +139,7 @@ export function useCashFlowReport(
       const { data: priorTransactions } = await priorQuery;
 
       let openingBalance = 0;
-      const ALLOWED_ACCOUNT_TYPES = ['checking', 'savings', 'investment', 'cash'];
       priorTransactions?.forEach((tx) => {
-        const accountType = (tx.accounts as any)?.account_type;
-        // Only consider checking, savings, investment and cash accounts for cash flow
-        if (!accountType || !ALLOWED_ACCOUNT_TYPES.includes(accountType)) return;
-
         const amount = parseFloat(String(tx.amount));
         if (tx.type === "income" || tx.type === "redemption") {
           openingBalance += amount;
@@ -169,11 +200,6 @@ export function useCashFlowReport(
         let redemptions = 0;
 
         periodTransactions.forEach((tx) => {
-          const accountType = (tx.accounts as any)?.account_type;
-          
-          // Only consider checking, savings, investment and cash accounts for cash flow
-          if (!accountType || !ALLOWED_ACCOUNT_TYPES.includes(accountType)) return;
-
           const amount = Number(tx.amount);
           switch (tx.type) {
             case "income":
@@ -185,7 +211,6 @@ export function useCashFlowReport(
               totalOutflows += amount;
               break;
             case "transfer":
-              // Bill payments (reclassified from expense) are cash outflows
               outflows += amount;
               totalOutflows += amount;
               break;
