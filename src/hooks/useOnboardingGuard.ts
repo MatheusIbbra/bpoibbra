@@ -57,20 +57,35 @@ export function useOnboardingGuard() {
           return;
         }
 
-        // Also verify user has at least one organization
-        const { data: memberships } = await supabase
-          .from("organization_members")
-          .select("id")
+        // Check user role — non-client roles (admin, supervisor, fa, kam, projetista)
+        // don't need org membership since they access orgs via hierarchy
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
           .eq("user_id", user.id)
-          .limit(1);
+          .maybeSingle();
 
         if (cancelled) return;
 
-        if (!memberships || memberships.length === 0) {
-          setCompleted(false);
-          setChecking(false);
-          navigate("/onboarding", { replace: true });
-          return;
+        const role = roleData?.role;
+        const isStaffRole = role && ["admin", "supervisor", "fa", "kam", "projetista"].includes(role);
+
+        // Only require org membership for clients (or users without a role)
+        if (!isStaffRole) {
+          const { data: memberships } = await supabase
+            .from("organization_members")
+            .select("id")
+            .eq("user_id", user.id)
+            .limit(1);
+
+          if (cancelled) return;
+
+          if (!memberships || memberships.length === 0) {
+            setCompleted(false);
+            setChecking(false);
+            navigate("/onboarding", { replace: true });
+            return;
+          }
         }
 
         setCompleted(true);
