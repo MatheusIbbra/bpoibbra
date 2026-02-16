@@ -318,6 +318,7 @@ export type Database = {
         Row: {
           access_token_encrypted: string | null
           created_at: string
+          encryption_version: number | null
           external_account_id: string | null
           external_consent_id: string | null
           id: string
@@ -336,6 +337,7 @@ export type Database = {
         Insert: {
           access_token_encrypted?: string | null
           created_at?: string
+          encryption_version?: number | null
           external_account_id?: string | null
           external_consent_id?: string | null
           id?: string
@@ -354,6 +356,7 @@ export type Database = {
         Update: {
           access_token_encrypted?: string | null
           created_at?: string
+          encryption_version?: number | null
           external_account_id?: string | null
           external_consent_id?: string | null
           id?: string
@@ -1290,6 +1293,8 @@ export type Database = {
           is_active: boolean
           max_ai_requests: number
           max_bank_connections: number
+          max_reports_per_day: number | null
+          max_sync_per_day: number | null
           max_transactions: number
           name: string
           price: number
@@ -1307,6 +1312,8 @@ export type Database = {
           is_active?: boolean
           max_ai_requests?: number
           max_bank_connections?: number
+          max_reports_per_day?: number | null
+          max_sync_per_day?: number | null
           max_transactions?: number
           name: string
           price?: number
@@ -1324,6 +1331,8 @@ export type Database = {
           is_active?: boolean
           max_ai_requests?: number
           max_bank_connections?: number
+          max_reports_per_day?: number | null
+          max_sync_per_day?: number | null
           max_transactions?: number
           name?: string
           price?: number
@@ -1488,6 +1497,50 @@ export type Database = {
           },
           {
             foreignKeyName: "recurring_expenses_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_events: {
+        Row: {
+          created_at: string
+          details: Json | null
+          event_type: string
+          id: string
+          ip_address: unknown
+          organization_id: string | null
+          severity: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: unknown
+          organization_id?: string | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown
+          organization_id?: string | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_events_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1970,6 +2023,15 @@ export type Database = {
       can_view_user_data: {
         Args: { _target_user_id: string; _viewer_id: string }
         Returns: boolean
+      }
+      check_rate_limit: {
+        Args: {
+          p_endpoint: string
+          p_max_requests?: number
+          p_organization_id: string
+          p_window_minutes?: number
+        }
+        Returns: Json
       }
       cleanup_expired_oauth_states: { Args: never; Returns: number }
       convert_currency: {
