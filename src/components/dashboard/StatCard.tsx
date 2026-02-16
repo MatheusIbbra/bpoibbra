@@ -52,7 +52,7 @@ export function StatCard({
       )}
       onClick={onClick}
     >
-      <CardContent className="px-4 py-3 sm:px-5 sm:py-3.5 h-full flex items-center">
+      <CardContent className="px-5 py-4 sm:px-5 sm:py-4 h-full flex items-center">
         <div className="flex items-center justify-between gap-3 w-full">
           <div className="flex-1 min-w-0 space-y-0.5">
             <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium uppercase tracking-[0.08em] leading-none">
