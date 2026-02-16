@@ -12,9 +12,14 @@ import { FinancialHealthCard } from "@/components/dashboard/FinancialHealthCard"
 import { CashflowForecastCard } from "@/components/dashboard/CashflowForecastCard";
 import { RecurringExpensesCard } from "@/components/dashboard/RecurringExpensesCard";
 import { FinancialSimulatorCard } from "@/components/dashboard/FinancialSimulatorCard";
-
 import { ConnectedAccountsSection } from "@/components/dashboard/ConnectedAccountsSection";
 import { MultiCurrencyBalanceSection } from "@/components/dashboard/MultiCurrencyBalanceSection";
+import { CurrencyExposureCard } from "@/components/dashboard/CurrencyExposureCard";
+import { BankConcentrationCard } from "@/components/dashboard/BankConcentrationCard";
+import { StructuredLiquidityCard } from "@/components/dashboard/StructuredLiquidityCard";
+import { PersonalRunwayCard } from "@/components/dashboard/PersonalRunwayCard";
+import { LifestylePatternCard } from "@/components/dashboard/LifestylePatternCard";
+import { PatrimonyEvolutionCard } from "@/components/dashboard/PatrimonyEvolutionCard";
 
 import { StatCard } from "@/components/dashboard/StatCard";
 import { StatCardHoverTransactions } from "@/components/dashboard/StatCardHoverTransactions";
@@ -39,8 +44,8 @@ const Index = () => {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>);
-
+      </div>
+    );
   }
 
   if (!user) return null;
@@ -60,25 +65,22 @@ const Index = () => {
             </Button>
           </div>
         </div>
-      </AppLayout>);
-
+      </AppLayout>
+    );
   }
 
   return (
     <AppLayout title="Consolidação Patrimonial">
       <div className="space-y-6 max-w-[1400px]">
-        {/* Bloco 1: StatCards with colored band on mobile */}
+        {/* 1. Posição Financeira Consolidada */}
         <div className="relative">
-          {/* Colored band behind cards - mobile only, extends from header to bottom of cards */}
           <div className="absolute inset-x-0 -mx-4 bg-[hsl(var(--sidebar-background))] rounded-b-3xl md:hidden" style={{ top: '-4rem', bottom: '-0.75rem' }} />
-          
           <div className="relative grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
             <StatCard
               title="Posição Financeira"
               value={formatCurrency(stats?.totalBalance ?? 0)}
               icon={<Wallet className="h-5 w-5" />}
               variant="default" />
-
             <StatCard
               title="Entradas Financeiras"
               value={formatCurrency(stats?.monthlyIncome ?? 0)}
@@ -86,7 +88,6 @@ const Index = () => {
               variant="success"
               trend={stats?.incomeChange ? { value: stats.incomeChange, isPositive: stats.incomeChange >= 0 } : undefined}
               hoverContent={<StatCardHoverTransactions type="income" />} />
-
             <StatCard
               title="Saídas Financeiras"
               value={formatCurrency(stats?.monthlyExpenses ?? 0)}
@@ -94,31 +95,52 @@ const Index = () => {
               variant="destructive"
               trend={stats?.expenseChange ? { value: stats.expenseChange, isPositive: stats.expenseChange <= 0 } : undefined}
               hoverContent={<StatCardHoverTransactions type="expense" />} />
-
             <StatCard
               title="Evolução Patrimonial"
               value={formatCurrency(stats?.monthlySavings ?? 0)}
               icon={<TrendingUp className="h-5 w-5" />}
               variant={stats?.monthlySavings && stats.monthlySavings >= 0 ? "success" : "warning"} />
-
           </div>
         </div>
-
 
         {/* Posição Multimoeda */}
         <MultiCurrencyBalanceSection />
 
+        {/* 2. Exposição Cambial + Concentração Bancária */}
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+          <CurrencyExposureCard />
+          <BankConcentrationCard />
+        </div>
+
+        {/* 3. Liquidez Estruturada + Runway Pessoal */}
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+          <StructuredLiquidityCard />
+          <PersonalRunwayCard />
+        </div>
+
+        {/* 4. Evolução Patrimonial 12M */}
+        <PatrimonyEvolutionCard />
+
         {/* Alertas de Orçamento */}
         <BudgetAlerts showNotifications={true} />
+
+        {/* 5. Forecast + Score Financeiro */}
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+          <CashflowForecastCard />
+          <FinancialHealthCard />
+        </div>
+
+        {/* 6. Padrão de Vida + Simulador */}
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+          <LifestylePatternCard />
+          <FinancialSimulatorCard />
+        </div>
 
         {/* Distribuição por Categoria + Evolução Financeira */}
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
           <CategoryDonutChart />
           <MonthlyEvolutionChart />
         </div>
-
-        {/* Saúde Financeira */}
-        <FinancialHealthCard />
 
         {/* Orçamento do Mês + Últimas Movimentações */}
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
@@ -129,12 +151,6 @@ const Index = () => {
         {/* Despesas Recorrentes */}
         <RecurringExpensesCard />
 
-        {/* Previsão de Caixa + Simulador Financeiro */}
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <CashflowForecastCard />
-          <FinancialSimulatorCard />
-        </div>
-
         {/* Conciliação */}
         <ReconciliationMetricsCard />
 
@@ -143,8 +159,8 @@ const Index = () => {
       </div>
 
       <AIAssistantChat isPaidUser={false} />
-    </AppLayout>);
-
+    </AppLayout>
+  );
 };
 
 export default Index;

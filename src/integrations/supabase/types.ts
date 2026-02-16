@@ -2094,8 +2094,32 @@ export type Database = {
         Args: { p_organization_id: string; p_period?: string }
         Returns: Json
       }
+      get_bank_concentration: {
+        Args: { p_organization_id: string }
+        Returns: Json
+      }
       get_consolidated_balance: {
         Args: { p_organization_id: string; p_target_currency?: string }
+        Returns: Json
+      }
+      get_currency_exposure: {
+        Args: { p_organization_id: string }
+        Returns: Json
+      }
+      get_lifestyle_pattern: {
+        Args: { p_organization_id: string }
+        Returns: Json
+      }
+      get_patrimony_evolution: {
+        Args: { p_organization_id: string }
+        Returns: Json
+      }
+      get_personal_runway: {
+        Args: { p_organization_id: string }
+        Returns: Json
+      }
+      get_structured_liquidity: {
+        Args: { p_organization_id: string }
         Returns: Json
       }
       get_subordinates: { Args: { _user_id: string }; Returns: string[] }
