@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { InviteUserDialog } from "./InviteUserDialog";
+import { ClientDetailDialog } from "./ClientDetailDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { 
@@ -11,6 +12,7 @@ import {
   Lock,
   Unlock,
   UserCheck,
+  User,
   AlertTriangle,
   CheckCircle,
   Edit,
@@ -575,7 +577,7 @@ export function ClientManagementTab() {
   });
   const [blockReason, setBlockReason] = useState("");
   const [editOrg, setEditOrg] = useState<ClientOrganization | null>(null);
-
+  const [detailOrg, setDetailOrg] = useState<ClientOrganization | null>(null);
   // Fetch client organizations with their details
   const { data: clientOrgs, isLoading } = useQuery({
     queryKey: ["client-organizations-full"],
@@ -803,6 +805,15 @@ export function ClientManagementTab() {
                             <Button
                               variant="ghost"
                               size="sm"
+                              onClick={() => setDetailOrg(org)}
+                              title="Ver detalhes"
+                            >
+                              <User className="mr-1 h-4 w-4" />
+                              Detalhes
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => setEditOrg(org)}
                             >
                               <Edit className="mr-1 h-4 w-4" />
@@ -944,6 +955,19 @@ export function ClientManagementTab() {
         onOpenChange={(open) => !open && setEditOrg(null)}
         organization={editOrg}
         onRefresh={() => queryClient.invalidateQueries({ queryKey: ["client-organizations-full"] })}
+      />
+
+      {/* Client Detail Dialog */}
+      <ClientDetailDialog
+        open={!!detailOrg}
+        onOpenChange={(open) => !open && setDetailOrg(null)}
+        organizationId={detailOrg?.id || null}
+        clientUserId={detailOrg?.client_user_id || null}
+        clientName={detailOrg?.client_name || null}
+        onDeleted={() => {
+          setDetailOrg(null);
+          queryClient.invalidateQueries({ queryKey: ["client-organizations-full"] });
+        }}
       />
 
       {/* Invite User Dialog */}
