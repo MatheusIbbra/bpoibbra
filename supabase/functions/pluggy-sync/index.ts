@@ -331,10 +331,30 @@ Deno.serve(async (req) => {
     }
 
     // ========================================
+    // STEP 0: TRIGGER PLUGGY ITEM UPDATE (force refresh from bank)
+    // ========================================
+    console.log(`[SYNC] Triggering Pluggy item update for ${pluggyItemId}...`);
+    try {
+      const updateResponse = await fetch(`${PLUGGY_API_URL}/items/${pluggyItemId}`, {
+        method: 'PATCH',
+        headers: pluggyHeaders,
+        body: JSON.stringify({ webhookUrl: null }),
+      });
+      if (updateResponse.ok) {
+        console.log(`[SYNC] Item update triggered successfully`);
+      } else {
+        const updateErr = await updateResponse.text();
+        console.warn(`[SYNC] Item update trigger returned ${updateResponse.status}: ${updateErr} — proceeding with poll anyway`);
+      }
+    } catch (triggerErr) {
+      console.warn(`[SYNC] Failed to trigger item update:`, triggerErr, '— proceeding with poll anyway');
+    }
+
+    // ========================================
     // STEP 1: WAIT FOR ITEM TO REACH SUCCESS
     // ========================================
     console.log(`[SYNC] Waiting for item ${pluggyItemId} to finish syncing...`);
-    const { item: itemDetails, success: itemReady, errorReason } = await waitForItemSuccess(pluggyItemId, pluggyHeaders);
+    const { item: itemDetails, success: itemReady, errorReason } = await waitForItemSuccess(pluggyItemId, pluggyHeaders, 20, 5000);
 
     if (!itemReady) {
       console.error(`[SYNC] Item not ready: ${errorReason}`);
