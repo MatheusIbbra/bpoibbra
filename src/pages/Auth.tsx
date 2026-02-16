@@ -228,7 +228,7 @@ export default function Auth() {
                         <FormControl>
                           <div className="relative">
                             <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
-                            <Input placeholder="seu@email.com" className="pl-11 h-12 input-executive text-sm" autoComplete="email" {...field} />
+                            <Input placeholder="seu@email.com" className="pl-11 h-12 input-executive text-sm text-foreground" autoComplete="email" {...field} />
                           </div>
                         </FormControl>
                         <FormMessage />
