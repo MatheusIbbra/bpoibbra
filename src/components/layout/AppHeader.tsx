@@ -82,14 +82,14 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
   const displayName = profile?.full_name || "Usuário";
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 md:h-16 items-center gap-2 md:gap-3 border-b border-sidebar-border/30 bg-[hsl(var(--sidebar-background))] px-3 md:px-6">
+    <header className="sticky top-0 z-40 flex h-14 md:h-[60px] items-center gap-2 md:gap-3 border-b border-sidebar-border/20 bg-[hsl(var(--sidebar-background))] px-3 md:px-6">
       {/* Sidebar toggle */}
-      <SidebarTrigger className="shrink-0 h-8 w-8 md:h-9 md:w-9 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-xl transition-all duration-200" />
+      <SidebarTrigger className="shrink-0 h-8 w-8 md:h-9 md:w-9 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/40 rounded-lg transition-all duration-200" />
       
       <div className="flex flex-1 items-center gap-2 md:gap-4 min-w-0">
         {/* Title */}
         <div className="hidden md:flex flex-col">
-          <h1 className="text-base font-semibold text-sidebar-foreground tracking-tight">
+          <h1 className="text-[15px] font-medium text-sidebar-foreground/90 tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
             {title}
           </h1>
         </div>
@@ -100,13 +100,13 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 md:gap-2">
+      <div className="flex items-center gap-1 md:gap-1.5">
         {/* Eye toggle */}
         <Button
           variant="ghost"
           size="icon"
           onClick={toggleValues}
-          className="h-8 w-8 md:h-9 md:w-9 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-xl transition-all duration-200"
+          className="h-8 w-8 md:h-9 md:w-9 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/40 rounded-lg transition-all duration-200"
           title={showValues ? "Ocultar valores" : "Mostrar valores"}
         >
           {showValues ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
@@ -123,7 +123,7 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
           variant="ghost" 
           size="icon" 
           onClick={toggleTheme} 
-          className="h-8 w-8 md:h-9 md:w-9 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-xl transition-all duration-200"
+          className="h-8 w-8 md:h-9 md:w-9 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/40 rounded-lg transition-all duration-200"
         >
           {theme === "light" ? (
             <Moon className="h-4 w-4" />
@@ -134,14 +134,14 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
         </Button>
 
         {/* Divider */}
-        <div className="hidden lg:block h-6 w-px bg-sidebar-border/60 mx-1" />
+        <div className="hidden lg:block h-5 w-px bg-sidebar-border/40 mx-0.5" />
 
         {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button 
               variant="ghost" 
-              className="relative h-auto gap-2 px-2 py-1 shrink-0 hover:bg-sidebar-accent/50 transition-all duration-200 rounded-xl"
+              className="relative h-auto gap-2 px-2 py-1.5 shrink-0 hover:bg-sidebar-accent/40 transition-all duration-200 rounded-lg"
             >
               {/* User info */}
               <div className="hidden lg:flex flex-col items-end text-right">

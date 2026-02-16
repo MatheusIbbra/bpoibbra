@@ -45,7 +45,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
         <AppSidebar />
         <SidebarInset className="flex flex-1 flex-col min-w-0 relative z-[1]">
           <AppHeader title={title} />
-          <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8 border-primary">
+          <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8 xl:p-10">
             {baseLoading ?
             <div className="flex items-center justify-center py-20">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
