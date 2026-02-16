@@ -149,7 +149,7 @@ export function MonthlyEvolutionChart() {
                 const monthDate = parse(clicked.month, "yyyy-MM", new Date());
                 const start = format(startOfMonth(monthDate), "yyyy-MM-dd");
                 const end = format(endOfMonth(monthDate), "yyyy-MM-dd");
-                navigate(`/movimentacoes?startDate=${start}&endDate=${end}`);
+                navigate(`/extrato?startDate=${start}&endDate=${end}`);
               }
             }}
             style={{ cursor: "pointer" }}
