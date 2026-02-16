@@ -230,32 +230,31 @@ export function BankConnectionsManager() {
     const organizationId = getRequiredOrganizationId();
     if (!organizationId) return;
 
-    const activeConns = connections?.filter(c => c.status === 'active') || [];
+    const allConns = connections?.filter(c => c.external_account_id) || [];
     
-    if (activeConns.length === 0) {
+    if (allConns.length === 0) {
       setSyncingId('all');
-      try {
-        await syncConnection.mutateAsync({ organizationId });
-      } catch (err: any) {
-        console.error("[SyncAll] Org-level sync failed:", err);
-      } finally {
-        setSyncingId(null);
-        refetch();
-      }
+      toast.info("Nenhuma conexão com item Pluggy vinculado. Conecte um banco primeiro.");
+      setSyncingId(null);
       return;
     }
 
     setSyncingId('all');
+    toast.info(`Sincronizando ${allConns.length} conexão(ões)... Isso pode levar alguns minutos.`);
+    
     let totalImported = 0;
+    let totalAccounts = 0;
     let errors = 0;
 
-    for (const conn of activeConns) {
+    for (const conn of allConns) {
       try {
         const result = await syncConnection.mutateAsync({ 
           bankConnectionId: conn.id,
+          organizationId,
           itemId: conn.external_account_id || undefined
         });
         totalImported += result.imported || 0;
+        totalAccounts += result.accounts || 0;
       } catch (err: any) {
         errors++;
         console.error(`[SyncAll] Failed to sync connection ${conn.id}:`, err);
@@ -264,8 +263,10 @@ export function BankConnectionsManager() {
 
     if (errors > 0) {
       toast.warning(`Sincronização concluída com ${errors} erro(s). ${totalImported} transações importadas.`);
+    } else if (totalImported > 0) {
+      toast.success(`Todas as contas sincronizadas: ${totalImported} transações importadas, ${totalAccounts} contas atualizadas.`);
     } else {
-      toast.success(`Todas as contas sincronizadas: ${totalImported} transações importadas.`);
+      toast.info(`Saldos atualizados (${totalAccounts} contas). Nenhuma transação nova.`);
     }
     
     refetch();
@@ -360,7 +361,7 @@ export function BankConnectionsManager() {
               </CardDescription>
             </div>
             <div className="flex gap-2 flex-wrap">
-              {activeConnections.length > 0 && (
+              {connections && connections.some(c => c.external_account_id) && (
                 <Button 
                   variant="outline"
                   size="sm"
