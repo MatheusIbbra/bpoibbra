@@ -278,10 +278,11 @@ export function useSavePluggyItem() {
         throw new Error("Você precisa estar logado");
       }
 
-      // Check if connection already exists for this item
+      // Check if connection already exists for this item (by org + provider + external_account_id)
       const { data: existing } = await supabase
         .from('bank_connections')
         .select('id')
+        .eq('organization_id', organizationId)
         .eq('external_account_id', itemId)
         .eq('provider', 'pluggy')
         .maybeSingle();

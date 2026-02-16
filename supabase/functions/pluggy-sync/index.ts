@@ -513,19 +513,21 @@ Deno.serve(async (req) => {
       const description = tx.description || tx.descriptionRaw || 'Movimentação via Open Finance';
       const dedupKey = generateDedupKey(txDate, rawAmount, description, externalId);
 
-      // DEDUP: external ID
+      // DEDUP: external ID — scoped to ORGANIZATION (not just bank_connection) to prevent cross-connection duplicates
       const { data: dup1 } = await supabaseAdmin.from('transactions').select('id')
-        .eq('external_transaction_id', externalId).eq('bank_connection_id', connectionToSync.id).maybeSingle();
+        .eq('external_transaction_id', externalId).eq('organization_id', connectionToSync.organization_id).maybeSingle();
       if (dup1) { skipped++; duplicatesDetected++; continue; }
 
-      // DEDUP: composite key
+      // DEDUP: composite key — scoped to ORGANIZATION
       const { data: dup2 } = await supabaseAdmin.from('transactions').select('id')
-        .eq('bank_connection_id', connectionToSync.id).eq('sync_dedup_key', dedupKey).maybeSingle();
+        .eq('organization_id', connectionToSync.organization_id).eq('sync_dedup_key', dedupKey).maybeSingle();
       if (dup2) { skipped++; duplicatesDetected++; continue; }
 
-      // DEDUP: fuzzy
+      // DEDUP: fuzzy — scoped to ORGANIZATION + account
+      const resolvedLocalAccount = tx._localAccountId || pluggyAccountToLocal[tx._pluggyAccountId] || pluggyInvToLocal[tx._pluggyAccountId] || fallbackAccountId;
       const { data: fuzzyMatches } = await supabaseAdmin.from('transactions').select('id, description')
-        .eq('bank_connection_id', connectionToSync.id).eq('date', txDate).eq('amount', amount).limit(5);
+        .eq('organization_id', connectionToSync.organization_id).eq('date', txDate).eq('amount', amount)
+        .eq('account_id', resolvedLocalAccount).limit(5);
       if (fuzzyMatches && fuzzyMatches.length > 0) {
         const normNew = normalizeText(description);
         const isDup = fuzzyMatches.some((e: any) => calculateSimilarity(normNew, normalizeText(e.description || '')) >= 0.90);
