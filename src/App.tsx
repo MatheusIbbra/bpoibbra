@@ -9,6 +9,7 @@ import { BaseFilterProvider } from "@/contexts/BaseFilterContext";
 import { ValuesVisibilityProvider } from "@/contexts/ValuesVisibilityContext";
 import { Suspense, lazy } from "react";
 import { Loader2 } from "lucide-react";
+import { IOSInstallPrompt } from "@/components/pwa/IOSInstallPrompt";
 
 // Critical pages - eagerly loaded
 import Index from "./pages/Index";
@@ -61,6 +62,7 @@ const App = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
+            <IOSInstallPrompt />
             <BrowserRouter>
               <Suspense fallback={<PageLoader />}>
                 <Routes>
