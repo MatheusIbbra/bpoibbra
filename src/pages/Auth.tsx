@@ -34,7 +34,27 @@ export default function Auth() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) navigate("/");
+    if (!user) return;
+
+    // Check if user has completed registration before allowing access
+    const checkRegistration = async () => {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("registration_completed")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!profile || !profile.registration_completed) {
+        // User hasn't registered - block access
+        await supabase.auth.signOut();
+        toast.error("Cadastro não encontrado. Por favor, crie sua conta primeiro.");
+        return;
+      }
+
+      navigate("/");
+    };
+
+    checkRegistration();
   }, [user, navigate]);
 
   const loginForm = useForm<LoginFormData>({
