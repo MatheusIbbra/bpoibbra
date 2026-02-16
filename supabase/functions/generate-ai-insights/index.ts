@@ -78,6 +78,34 @@ serve(async (req) => {
       );
     }
 
+    // Rate limiting check
+    const { data: rateLimitData } = await supabase.rpc("check_rate_limit", {
+      p_organization_id: organization_id,
+      p_endpoint: "generate-ai-insights",
+      p_window_minutes: 60,
+      p_max_requests: 20
+    });
+
+    if (rateLimitData && !rateLimitData.allowed) {
+      // Log security event
+      const supabaseAdmin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      await supabaseAdmin.from("security_events").insert({
+        organization_id, user_id: userId,
+        event_type: "rate_limit_exceeded", severity: "warning",
+        details: { endpoint: "generate-ai-insights", ...rateLimitData }
+      });
+      return new Response(
+        JSON.stringify({ error: "Rate limit exceeded. Try again later.", remaining: 0 }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Log API usage
+    const supabaseAdmin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    await supabaseAdmin.from("api_usage_logs").insert({
+      organization_id, endpoint: "generate-ai-insights", tokens_used: 0
+    });
+
     console.log(`Generating insights for org: ${organization_id}, period: ${period}`);
 
     // Verificar se já existe insight para este período (cache)
