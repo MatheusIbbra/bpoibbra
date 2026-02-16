@@ -1658,6 +1658,95 @@ export type Database = {
           },
         ]
       }
+      strategic_history: {
+        Row: {
+          ai_insights: Json | null
+          ai_model: string | null
+          bank_concentration_max_pct: number | null
+          bank_concentration_risk: string | null
+          burn_rate: number | null
+          committed_capital: number | null
+          created_at: string
+          currency_exposure: Json | null
+          financial_health_score: number | null
+          has_foreign_currency: boolean | null
+          id: string
+          lifestyle_avg_monthly: number | null
+          lifestyle_trend: string | null
+          lifestyle_volatility: number | null
+          liquidity_30d: number | null
+          liquidity_90d: number | null
+          liquidity_immediate: number | null
+          organization_id: string
+          runway_months: number | null
+          savings_rate: number | null
+          snapshot_month: string
+          total_balance: number | null
+          total_expenses: number | null
+          total_revenue: number | null
+        }
+        Insert: {
+          ai_insights?: Json | null
+          ai_model?: string | null
+          bank_concentration_max_pct?: number | null
+          bank_concentration_risk?: string | null
+          burn_rate?: number | null
+          committed_capital?: number | null
+          created_at?: string
+          currency_exposure?: Json | null
+          financial_health_score?: number | null
+          has_foreign_currency?: boolean | null
+          id?: string
+          lifestyle_avg_monthly?: number | null
+          lifestyle_trend?: string | null
+          lifestyle_volatility?: number | null
+          liquidity_30d?: number | null
+          liquidity_90d?: number | null
+          liquidity_immediate?: number | null
+          organization_id: string
+          runway_months?: number | null
+          savings_rate?: number | null
+          snapshot_month: string
+          total_balance?: number | null
+          total_expenses?: number | null
+          total_revenue?: number | null
+        }
+        Update: {
+          ai_insights?: Json | null
+          ai_model?: string | null
+          bank_concentration_max_pct?: number | null
+          bank_concentration_risk?: string | null
+          burn_rate?: number | null
+          committed_capital?: number | null
+          created_at?: string
+          currency_exposure?: Json | null
+          financial_health_score?: number | null
+          has_foreign_currency?: boolean | null
+          id?: string
+          lifestyle_avg_monthly?: number | null
+          lifestyle_trend?: string | null
+          lifestyle_volatility?: number | null
+          liquidity_30d?: number | null
+          liquidity_90d?: number | null
+          liquidity_immediate?: number | null
+          organization_id?: string
+          runway_months?: number | null
+          savings_rate?: number | null
+          snapshot_month?: string
+          total_balance?: number | null
+          total_expenses?: number | null
+          total_revenue?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategic_history_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sync_audit_logs: {
         Row: {
           api_balance: number | null
@@ -2251,6 +2340,10 @@ export type Database = {
         Args: { p_organization_id: string; p_period?: string }
         Returns: Json
       }
+      generate_strategic_snapshot: {
+        Args: { p_month?: string; p_organization_id: string }
+        Returns: Json
+      }
       get_bank_concentration: {
         Args: { p_organization_id: string }
         Returns: Json
@@ -2299,6 +2392,17 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      simulate_macro_scenario: {
+        Args: {
+          p_currency_shock_pct?: number
+          p_expense_change_pct?: number
+          p_extraordinary_amount?: number
+          p_income_change_pct?: number
+          p_months_ahead?: number
+          p_organization_id: string
+        }
+        Returns: Json
+      }
       text_similarity: {
         Args: { text1: string; text2: string }
         Returns: number
