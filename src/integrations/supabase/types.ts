@@ -496,12 +496,13 @@ export type Database = {
           expense_classification: string | null
           icon: string | null
           id: string
+          is_system_template: boolean
           name: string
           organization_id: string | null
           parent_id: string | null
           type: Database["public"]["Enums"]["category_type"]
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           color?: string | null
@@ -511,12 +512,13 @@ export type Database = {
           expense_classification?: string | null
           icon?: string | null
           id?: string
+          is_system_template?: boolean
           name: string
           organization_id?: string | null
           parent_id?: string | null
           type: Database["public"]["Enums"]["category_type"]
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           color?: string | null
@@ -526,12 +528,13 @@ export type Database = {
           expense_classification?: string | null
           icon?: string | null
           id?: string
+          is_system_template?: boolean
           name?: string
           organization_id?: string | null
           parent_id?: string | null
           type?: Database["public"]["Enums"]["category_type"]
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -1619,10 +1622,11 @@ export type Database = {
           due_day: number | null
           id: string
           is_active: boolean | null
-          organization_id: string
+          is_system_template: boolean
+          organization_id: string | null
           transaction_type: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           amount: number
@@ -1633,10 +1637,11 @@ export type Database = {
           due_day?: number | null
           id?: string
           is_active?: boolean | null
-          organization_id: string
+          is_system_template?: boolean
+          organization_id?: string | null
           transaction_type?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           amount?: number
@@ -1647,10 +1652,11 @@ export type Database = {
           due_day?: number | null
           id?: string
           is_active?: boolean | null
-          organization_id?: string
+          is_system_template?: boolean
+          organization_id?: string | null
           transaction_type?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -2516,6 +2522,10 @@ export type Database = {
       normalize_transaction_description: {
         Args: { description: string }
         Returns: string
+      }
+      provision_organization_from_template: {
+        Args: { p_org_id: string; p_user_id: string }
+        Returns: Json
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }

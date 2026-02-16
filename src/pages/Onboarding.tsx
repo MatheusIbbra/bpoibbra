@@ -218,6 +218,16 @@ export default function Onboarding() {
           });
       }
 
+      // 5. Provision categories and rules from system templates
+      const { error: provisionError } = await supabase.rpc(
+        "provision_organization_from_template",
+        { p_org_id: newOrg.id, p_user_id: user.id }
+      );
+      if (provisionError) {
+        console.error("Provisioning warning:", provisionError);
+        // Non-blocking: org is created, categories can be seeded later
+      }
+
       // 5. Consent logs
       await supabase.from("consent_logs").insert([
         { user_id: user.id, consent_type: "terms", consent_given: true, user_agent: navigator.userAgent },
