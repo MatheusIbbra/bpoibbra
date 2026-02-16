@@ -4,9 +4,9 @@ import { useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, Receipt, BarChart3, FileText, PieChart, CircleDollarSign, Layers, Tags } from "lucide-react";
+import { Loader2, Receipt, BarChart3, FileText, PieChart, CircleDollarSign, Layers, Tags, Lightbulb } from "lucide-react";
 
-// Inline report components
+// Report components
 import { AnaliseOrcamentoContent } from "@/components/reports/AnaliseOrcamentoContent";
 import { DREContent } from "@/components/reports/DREContent";
 import { DemonstrativoContent } from "@/components/reports/DemonstrativoContent";
@@ -14,6 +14,14 @@ import { FluxoCaixaContent } from "@/components/reports/FluxoCaixaContent";
 import { MovimentacoesReportContent } from "@/components/reports/MovimentacoesReportContent";
 import { FinancialTypeReportContent } from "@/components/reports/FinancialTypeReportContent";
 import { CategoryAnalysisContent } from "@/components/reports/CategoryAnalysisContent";
+
+// Strategic analysis cards (moved from dashboard)
+import { StructuredLiquidityCard } from "@/components/dashboard/StructuredLiquidityCard";
+import { PersonalRunwayCard } from "@/components/dashboard/PersonalRunwayCard";
+import { CashflowForecastCard } from "@/components/dashboard/CashflowForecastCard";
+import { LifestylePatternCard } from "@/components/dashboard/LifestylePatternCard";
+import { FinancialSimulatorCard } from "@/components/dashboard/FinancialSimulatorCard";
+import { StaggerGrid, StaggerItem } from "@/components/ui/motion";
 
 export default function Relatorios() {
   const { user, loading: authLoading } = useAuth();
@@ -69,6 +77,10 @@ export default function Relatorios() {
               <Tags className="h-3.5 w-3.5 shrink-0" />
               Análise Categorias
             </TabsTrigger>
+            <TabsTrigger value="estrategico" className="gap-1.5 data-[state=active]:bg-background text-xs sm:text-sm">
+              <Lightbulb className="h-3.5 w-3.5 shrink-0" />
+              Análises Estratégicas
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="movimentacoes" className="mt-4">
@@ -97,6 +109,28 @@ export default function Relatorios() {
 
           <TabsContent value="categorias" className="mt-4">
             <CategoryAnalysisContent />
+          </TabsContent>
+
+          <TabsContent value="estrategico" className="mt-4">
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-lg font-semibold mb-1" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                  Análises Estratégicas
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Métricas profundas de liquidez, sustentabilidade e projeções financeiras.
+                </p>
+              </div>
+              <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+                <StaggerItem><StructuredLiquidityCard /></StaggerItem>
+                <StaggerItem><PersonalRunwayCard /></StaggerItem>
+              </StaggerGrid>
+              <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+                <StaggerItem><CashflowForecastCard /></StaggerItem>
+                <StaggerItem><LifestylePatternCard /></StaggerItem>
+              </StaggerGrid>
+              <FinancialSimulatorCard />
+            </div>
           </TabsContent>
         </Tabs>
       </div>

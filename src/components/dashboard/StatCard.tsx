@@ -52,20 +52,20 @@ export function StatCard({
       )}
       onClick={onClick}
     >
-      <CardContent className="px-5 py-[18px] sm:px-6 sm:py-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0 space-y-1.5">
-            <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium uppercase tracking-[0.08em]">
+      <CardContent className="px-4 py-3 sm:px-5 sm:py-3.5 h-full flex items-center">
+        <div className="flex items-center justify-between gap-3 w-full">
+          <div className="flex-1 min-w-0 space-y-0.5">
+            <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium uppercase tracking-[0.08em] leading-none">
               {title}
             </p>
             <p
-              className="text-xl sm:text-2xl font-bold tracking-tight truncate"
+              className="text-lg sm:text-xl font-bold tracking-tight truncate leading-tight"
               style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
             >
               <MaskedValue>{value}</MaskedValue>
             </p>
             {trend && (
-              <div className="flex items-center gap-1.5 pt-0.5">
+              <div className="flex items-center gap-1">
                 {trend.isPositive ? (
                   <TrendingUp className="h-3 w-3 text-success" />
                 ) : (
@@ -73,27 +73,19 @@ export function StatCard({
                 )}
                 <span
                   className={cn(
-                    "text-[11px] font-semibold",
+                    "text-[10px] font-semibold",
                     trend.isPositive ? "text-success" : "text-destructive"
                   )}
                 >
                   {trend.isPositive ? "+" : ""}
                   {trend.value.toFixed(1)}%
                 </span>
-                <span className="text-[10px] text-muted-foreground/70">
-                  vs mês anterior
-                </span>
               </div>
-            )}
-            {description && (
-              <p className="text-[11px] text-muted-foreground/70 mt-1">
-                {description}
-              </p>
             )}
           </div>
           <div
             className={cn(
-              "hidden sm:flex h-10 w-10 items-center justify-center rounded-lg shrink-0 transition-transform duration-300 group-hover:scale-105",
+              "hidden sm:flex h-8 w-8 items-center justify-center rounded-lg shrink-0",
               variantAccent[variant]
             )}
           >

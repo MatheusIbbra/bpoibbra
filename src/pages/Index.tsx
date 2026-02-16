@@ -8,17 +8,8 @@ import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
 import { CategoryDonutChart } from "@/components/dashboard/CategoryDonutChart";
 import { BudgetProgress } from "@/components/dashboard/BudgetProgress";
 import { ReconciliationMetricsCard } from "@/components/dashboard/ReconciliationMetricsCard";
-import { FinancialHealthCard } from "@/components/dashboard/FinancialHealthCard";
-import { CashflowForecastCard } from "@/components/dashboard/CashflowForecastCard";
-import { RecurringExpensesCard } from "@/components/dashboard/RecurringExpensesCard";
-import { FinancialSimulatorCard } from "@/components/dashboard/FinancialSimulatorCard";
 import { ConnectedAccountsSection } from "@/components/dashboard/ConnectedAccountsSection";
 import { MultiCurrencyBalanceSection } from "@/components/dashboard/MultiCurrencyBalanceSection";
-import { CurrencyExposureCard } from "@/components/dashboard/CurrencyExposureCard";
-import { BankConcentrationCard } from "@/components/dashboard/BankConcentrationCard";
-import { StructuredLiquidityCard } from "@/components/dashboard/StructuredLiquidityCard";
-import { PersonalRunwayCard } from "@/components/dashboard/PersonalRunwayCard";
-import { LifestylePatternCard } from "@/components/dashboard/LifestylePatternCard";
 import { PatrimonyEvolutionCard } from "@/components/dashboard/PatrimonyEvolutionCard";
 import { AnomalyDetectionCard } from "@/components/dashboard/AnomalyDetectionCard";
 
@@ -75,7 +66,7 @@ const Index = () => {
   return (
     <AppLayout title="Consolidação Patrimonial">
       <div className="space-y-6 max-w-[1400px]">
-        {/* 1. Posição Financeira Consolidada */}
+        {/* 1. Stat Cards — proporção executiva 20:7 */}
         <div className="relative">
           <div className="absolute inset-x-0 -mx-4 bg-[hsl(var(--sidebar-background))] rounded-b-3xl md:hidden" style={{ top: '-4rem', bottom: '-0.75rem' }} />
           <StaggerGrid className="relative grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
@@ -125,21 +116,15 @@ const Index = () => {
           </StaggerGrid>
         </div>
 
-        {/* Posição Multimoeda */}
+        {/* 2. Posição Multimoeda */}
         <AnimatedCard delay={0.15}>
           <MultiCurrencyBalanceSection />
         </AnimatedCard>
 
-        {/* 2. Exposição Cambial + Concentração Bancária */}
+        {/* 3. Distribuição por Categoria + Evolução Financeira */}
         <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <StaggerItem><CurrencyExposureCard /></StaggerItem>
-          <StaggerItem><BankConcentrationCard /></StaggerItem>
-        </StaggerGrid>
-
-        {/* 3. Liquidez Estruturada + Runway Pessoal */}
-        <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <StaggerItem><StructuredLiquidityCard /></StaggerItem>
-          <StaggerItem><PersonalRunwayCard /></StaggerItem>
+          <StaggerItem><CategoryDonutChart /></StaggerItem>
+          <StaggerItem><MonthlyEvolutionChart /></StaggerItem>
         </StaggerGrid>
 
         {/* 4. Evolução Patrimonial 12M */}
@@ -147,51 +132,28 @@ const Index = () => {
           <PatrimonyEvolutionCard />
         </AnimatedCard>
 
-        {/* Detecção de Anomalias */}
-        <AnimatedCard delay={0.1}>
-          <AnomalyDetectionCard />
-        </AnimatedCard>
-
-        {/* Alertas de Orçamento */}
+        {/* 5. Alertas de Orçamento */}
         <AnimatedCard delay={0.1}>
           <BudgetAlerts showNotifications={true} />
         </AnimatedCard>
 
-        {/* 5. Forecast + Score Financeiro */}
-        <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <StaggerItem><CashflowForecastCard /></StaggerItem>
-          <StaggerItem><FinancialHealthCard /></StaggerItem>
-        </StaggerGrid>
-
-        {/* 6. Padrão de Vida + Simulador */}
-        <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <StaggerItem><LifestylePatternCard /></StaggerItem>
-          <StaggerItem><FinancialSimulatorCard /></StaggerItem>
-        </StaggerGrid>
-
-        {/* Distribuição por Categoria + Evolução Financeira */}
-        <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <StaggerItem><CategoryDonutChart /></StaggerItem>
-          <StaggerItem><MonthlyEvolutionChart /></StaggerItem>
-        </StaggerGrid>
-
-        {/* Orçamento do Mês + Últimas Movimentações */}
+        {/* 6. Orçamento do Mês + Últimas Movimentações */}
         <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
           <StaggerItem><BudgetProgress /></StaggerItem>
           <StaggerItem><FintechTransactionsList /></StaggerItem>
         </StaggerGrid>
 
-        {/* Despesas Recorrentes */}
-        <AnimatedCard delay={0.05}>
-          <RecurringExpensesCard />
+        {/* 7. Detecção de Anomalias */}
+        <AnimatedCard delay={0.1}>
+          <AnomalyDetectionCard />
         </AnimatedCard>
 
-        {/* Conciliação */}
+        {/* 8. Conciliação */}
         <AnimatedCard delay={0.05}>
           <ReconciliationMetricsCard />
         </AnimatedCard>
 
-        {/* Contas Conectadas */}
+        {/* 9. Contas Conectadas */}
         <AnimatedCard delay={0.05}>
           <ConnectedAccountsSection />
         </AnimatedCard>
