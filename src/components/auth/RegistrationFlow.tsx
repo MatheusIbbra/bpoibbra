@@ -213,6 +213,15 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
 
       if (error) throw error;
 
+      // Detect fake/repeated signup (Supabase returns user with no identities for existing emails)
+      const isRepeatedSignup = data.user && 
+        (!data.user.identities || data.user.identities.length === 0);
+
+      if (isRepeatedSignup) {
+        toast.error("Este email já está cadastrado. Tente fazer login ou recuperar sua senha.");
+        return;
+      }
+
       // Check if email confirmation is required
       const needsConfirmation = data.user && !data.session;
 
