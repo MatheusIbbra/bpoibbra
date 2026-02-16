@@ -62,45 +62,65 @@ export function useCreditCardAdvancedSummary() {
         return { totalLimit: 0, totalUsed: 0, totalAvailable: 0, cards: [] };
       }
 
-      // 2. Get bank connections metadata for limit info
-      let connectionsQuery = supabase
+      const accountIds = accounts.map((a) => a.id);
+
+      // 2. Get open_finance_accounts linked to these accounts (primary source of truth)
+      const { data: ofAccounts } = await supabase
+        .from("open_finance_accounts")
+        .select("local_account_id, balance, credit_limit, available_credit, due_day, closing_day")
+        .in("local_account_id", accountIds);
+
+      const ofMap = new Map<string, {
+        balance: number | null;
+        creditLimit: number | null;
+        availableCredit: number | null;
+        dueDay: number | null;
+        closingDay: number | null;
+      }>();
+      ofAccounts?.forEach((ofa) => {
+        if (ofa.local_account_id) {
+          ofMap.set(ofa.local_account_id, {
+            balance: ofa.balance != null ? Number(ofa.balance) : null,
+            creditLimit: ofa.credit_limit != null ? Number(ofa.credit_limit) : null,
+            availableCredit: ofa.available_credit != null ? Number(ofa.available_credit) : null,
+            dueDay: ofa.due_day,
+            closingDay: ofa.closing_day,
+          });
+        }
+      });
+
+      // 3. Get bank connections metadata for logos and fallback credit data
+      const { data: connections } = await supabase
         .from("bank_connections")
         .select("metadata")
         .eq("status", "active");
 
-      const { data: connections } = await connectionsQuery;
-
-      // Build map: account name / bank name → credit data from Pluggy metadata
-      const creditDataMap = new Map<string, { availableCredit: number; totalLimit: number }>();
-      connections?.forEach((conn) => {
-        const meta = conn.metadata as any;
-        const pluggyAccounts = meta?.pluggy_accounts || [];
-        pluggyAccounts.forEach((pa: any) => {
-          if (pa.type?.toUpperCase() === "CREDIT" && pa.available_balance != null) {
-            const key = pa.name || meta?.bank_name || "";
-            const balance = Math.abs(pa.balance || 0);
-            const availableCredit = pa.available_balance || 0;
-            creditDataMap.set(key, {
-              availableCredit,
-              totalLimit: balance + availableCredit,
-            });
-          }
-        });
-      });
-
       // Build bank logo map
       const bankLogoMap = new Map<string, string>();
+      const pluggyCreditMap = new Map<string, { availableCredit: number; totalLimit: number }>();
       connections?.forEach((conn) => {
         const meta = conn.metadata as any;
         if (meta?.bank_name && meta?.bank_logo_url) {
           bankLogoMap.set(meta.bank_name, meta.bank_logo_url);
         }
+        // Fallback: extract credit data from Pluggy metadata
+        const pluggyAccounts = meta?.pluggy_accounts || [];
+        pluggyAccounts.forEach((pa: any) => {
+          if (pa.type?.toUpperCase() === "CREDIT") {
+            const key = pa.name || meta?.bank_name || "";
+            const balance = Math.abs(pa.balance || 0);
+            const avail = Math.max(0, pa.available_balance || 0);
+            pluggyCreditMap.set(key, {
+              availableCredit: avail,
+              totalLimit: balance + avail,
+            });
+          }
+        });
       });
 
-      // 3. Get last 6 months of transactions for all credit card accounts
+      // 4. Get last 6 months of transactions for all credit card accounts
       const now = new Date();
       const sixMonthsAgo = subMonths(startOfMonth(now), 5);
-      const accountIds = accounts.map((a) => a.id);
 
       const { data: transactions } = await supabase
         .from("transactions")
@@ -109,43 +129,60 @@ export function useCreditCardAdvancedSummary() {
         .gte("date", format(sixMonthsAgo, "yyyy-MM-dd"))
         .order("date", { ascending: false });
 
-      // 4. Build per-card data
+      // 5. Build per-card data
       const cards: CreditCardAdvanced[] = accounts.map((account) => {
         const debt = Math.abs(Number(account.current_balance) || 0);
         const bankLogo = account.bank_name ? bankLogoMap.get(account.bank_name) || null : null;
+        const ofData = ofMap.get(account.id);
 
-        // Try to find credit data from Pluggy metadata
         let limit = 0;
         let available = 0;
-        let foundCreditData = false;
 
-        // Try matching by account name, then by bank name
-        for (const [key, data] of creditDataMap.entries()) {
-          if (
-            key === account.name ||
-            (account.bank_name && key.includes(account.bank_name))
-          ) {
-            limit = data.totalLimit;
-            available = data.availableCredit;
-            foundCreditData = true;
-            break;
+        if (ofData?.creditLimit != null && ofData.creditLimit > 0) {
+          // Best source: open_finance_accounts credit_limit
+          limit = ofData.creditLimit;
+          available = ofData.availableCredit != null ? Math.max(0, ofData.availableCredit) : Math.max(0, limit - debt);
+        } else if (ofData?.balance != null && ofData.availableCredit != null) {
+          // Derive from OF balance + available_credit
+          const ofDebt = Math.abs(ofData.balance);
+          available = Math.max(0, ofData.availableCredit);
+          limit = ofDebt + available;
+        } else {
+          // Fallback: try Pluggy metadata
+          let foundCreditData = false;
+          for (const [key, data] of pluggyCreditMap.entries()) {
+            if (key === account.name || (account.bank_name && key.includes(account.bank_name))) {
+              limit = data.totalLimit;
+              available = data.availableCredit;
+              foundCreditData = true;
+              break;
+            }
+          }
+          if (!foundCreditData && debt > 0) {
+            limit = debt * 1.5;
+            available = Math.max(0, limit - debt);
           }
         }
 
-        if (!foundCreditData) {
-          // Estimate limit from debt (rough approximation)
-          limit = debt > 0 ? debt * 1.5 : 0;
-          available = Math.max(0, limit - debt);
-        }
+        const used = Math.min(debt, limit > 0 ? limit : debt);
 
-        const used = debt;
+        // Due date from open_finance_accounts
+        let dueDate: string | null = null;
+        let bestPurchaseDay: string | null = null;
+        if (ofData?.dueDay) {
+          dueDate = `Dia ${ofData.dueDay}`;
+        }
+        if (ofData?.closingDay) {
+          // Best purchase day is the day after the closing day
+          const bestDay = ofData.closingDay >= 28 ? 1 : ofData.closingDay + 1;
+          bestPurchaseDay = `Dia ${bestDay}`;
+        }
 
         // Group transactions by month for invoices
         const accountTxs = transactions?.filter((tx) => tx.account_id === account.id) || [];
         const monthMap = new Map<string, { purchases: number; payments: number }>();
 
         accountTxs.forEach((tx) => {
-          // Use accrual_date if available, otherwise date
           const txDateStr = tx.accrual_date || tx.date;
           const txDate = parseISO(txDateStr);
           const key = format(txDate, "yyyy-MM");
@@ -204,8 +241,8 @@ export function useCreditCardAdvancedSummary() {
           used,
           available,
           invoiceAmount,
-          dueDate: null, // Would need due_date from metadata
-          bestPurchaseDay: null,
+          dueDate,
+          bestPurchaseDay,
           invoicesByMonth,
         };
       });

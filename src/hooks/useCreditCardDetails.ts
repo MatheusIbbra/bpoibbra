@@ -54,11 +54,29 @@ export function useCreditCardDetails(accountId: string | undefined) {
 
       if (error || !account) return null;
 
-      // Try to get bank logo from bank_connections metadata
       let bankLogo: string | null = null;
       let availableCredit: number | null = null;
       let totalLimit: number | null = null;
 
+      // Primary source: open_finance_accounts
+      const { data: ofAccount } = await supabase
+        .from("open_finance_accounts")
+        .select("credit_limit, available_credit, balance")
+        .eq("local_account_id", accountId)
+        .maybeSingle();
+
+      const debt = Math.abs(Number(account.current_balance) || 0);
+
+      if (ofAccount?.credit_limit != null && Number(ofAccount.credit_limit) > 0) {
+        totalLimit = Number(ofAccount.credit_limit);
+        availableCredit = ofAccount.available_credit != null ? Math.max(0, Number(ofAccount.available_credit)) : Math.max(0, totalLimit - debt);
+      } else if (ofAccount?.balance != null && ofAccount?.available_credit != null) {
+        const ofDebt = Math.abs(Number(ofAccount.balance));
+        availableCredit = Math.max(0, Number(ofAccount.available_credit));
+        totalLimit = ofDebt + availableCredit;
+      }
+
+      // Get bank logo from connections
       if (account.bank_name) {
         const { data: connections } = await supabase
           .from("bank_connections")
@@ -70,29 +88,24 @@ export function useCreditCardDetails(accountId: string | undefined) {
           if (meta?.bank_name === account.bank_name && meta?.bank_logo_url) {
             bankLogo = meta.bank_logo_url;
           }
-          // Check pluggy_accounts for available credit info
-          const pluggyAccounts = meta?.pluggy_accounts || [];
-          pluggyAccounts.forEach((pa: any) => {
-            if (pa.name === account.name || pa.type?.toUpperCase() === "CREDIT") {
-              if (pa.available_balance != null) {
-                availableCredit = pa.available_balance;
+          // Fallback: if no OF data, try Pluggy metadata
+          if (totalLimit == null) {
+            const pluggyAccounts = meta?.pluggy_accounts || [];
+            pluggyAccounts.forEach((pa: any) => {
+              if ((pa.name === account.name || pa.type?.toUpperCase() === "CREDIT") && pa.available_balance != null) {
+                availableCredit = Math.max(0, pa.available_balance);
+                totalLimit = Math.abs(pa.balance || 0) + availableCredit!;
               }
-            }
-          });
+            });
+          }
         });
-      }
-
-      // CREDIT CARD RULE: current_balance is always treated as debt (absolute negative)
-      const debt = Math.abs(Number(account.current_balance) || 0);
-      if (availableCredit != null) {
-        totalLimit = debt + availableCredit;
       }
 
       return {
         id: account.id,
         name: account.name,
         bankName: account.bank_name,
-        currentBalance: -debt, // Always negative (liability)
+        currentBalance: -debt,
         bankLogo,
         availableCredit,
         totalLimit,
