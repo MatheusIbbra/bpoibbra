@@ -853,6 +853,41 @@ export type Database = {
           },
         ]
       }
+      materialized_metrics: {
+        Row: {
+          computed_at: string
+          data: Json
+          expires_at: string
+          id: string
+          metric_type: string
+          organization_id: string
+        }
+        Insert: {
+          computed_at?: string
+          data?: Json
+          expires_at?: string
+          id?: string
+          metric_type: string
+          organization_id: string
+        }
+        Update: {
+          computed_at?: string
+          data?: Json
+          expires_at?: string
+          id?: string
+          metric_type?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "materialized_metrics_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       open_finance_accounts: {
         Row: {
           account_number: string | null

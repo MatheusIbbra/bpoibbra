@@ -28,9 +28,23 @@ export function useCashflowForecast() {
     queryKey: ["cashflow-forecast", user?.id, orgFilter.type, orgFilter.ids],
     queryFn: async (): Promise<CashflowForecastData | null> => {
       if (orgFilter.type !== "single" || !orgFilter.ids[0]) return null;
+      const orgId = orgFilter.ids[0];
 
+      // Try materialized cache first
+      const { data: cached } = await supabase
+        .from("materialized_metrics")
+        .select("data, computed_at, expires_at")
+        .eq("organization_id", orgId)
+        .eq("metric_type", "cashflow_forecast")
+        .maybeSingle();
+
+      if (cached && new Date(cached.expires_at) > new Date()) {
+        return cached.data as unknown as CashflowForecastData;
+      }
+
+      // Fallback to live RPC
       const { data, error } = await supabase.rpc("generate_cashflow_forecast", {
-        p_organization_id: orgFilter.ids[0],
+        p_organization_id: orgId,
         p_days: 90,
       });
 

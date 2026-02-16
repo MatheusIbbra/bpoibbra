@@ -25,9 +25,23 @@ export function useFinancialHealthScore() {
     queryKey: ["financial-health-score", user?.id, orgFilter.type, orgFilter.ids],
     queryFn: async (): Promise<FinancialHealthData | null> => {
       if (orgFilter.type !== 'single' || !orgFilter.ids[0]) return null;
+      const orgId = orgFilter.ids[0];
 
+      // Try materialized cache first
+      const { data: cached } = await supabase
+        .from("materialized_metrics")
+        .select("data, expires_at")
+        .eq("organization_id", orgId)
+        .eq("metric_type", "financial_health")
+        .maybeSingle();
+
+      if (cached && new Date(cached.expires_at) > new Date()) {
+        return cached.data as unknown as FinancialHealthData;
+      }
+
+      // Fallback to live RPC
       const { data, error } = await supabase.rpc("generate_financial_health_score", {
-        p_organization_id: orgFilter.ids[0],
+        p_organization_id: orgId,
       });
 
       if (error) {
@@ -38,6 +52,6 @@ export function useFinancialHealthScore() {
       return data as unknown as FinancialHealthData;
     },
     enabled: !!user && orgFilter.type === 'single' && !!orgFilter.ids[0],
-    staleTime: 5 * 60 * 1000, // 5 min
+    staleTime: 5 * 60 * 1000,
   });
 }
