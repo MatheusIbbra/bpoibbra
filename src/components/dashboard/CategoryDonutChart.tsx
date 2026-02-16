@@ -146,8 +146,10 @@ function DonutSection({ title, data, type }: { title: string; data: DonutData[];
                   borderRadius: "8px",
                   border: "1px solid hsl(var(--border))",
                   background: "hsl(var(--popover))",
-                  color: "hsl(var(--popover-foreground))",
+                  color: "#ffffff",
                 }}
+                labelStyle={{ color: "#ffffff" }}
+                itemStyle={{ color: "#ffffff" }}
               />
             </PieChart>
           </ResponsiveContainer>
