@@ -38,6 +38,9 @@ export default function Auth() {
 
     // Check if user has completed registration before allowing access
     const checkRegistration = async () => {
+      // First ensure user is provisioned (handles cases where trigger failed)
+      try { await supabase.rpc('ensure_user_provisioned'); } catch { /* ignore */ }
+
       const { data: profile } = await supabase
         .from("profiles")
         .select("registration_completed")
@@ -45,9 +48,8 @@ export default function Auth() {
         .maybeSingle();
 
       if (!profile || !profile.registration_completed) {
-        // User hasn't registered - block access
-        await supabase.auth.signOut();
-        toast.error("Cadastro não encontrado. Por favor, crie sua conta primeiro.");
+        // User hasn't completed onboarding - redirect there
+        navigate("/onboarding", { replace: true });
         return;
       }
 
