@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -56,6 +57,10 @@ import { cn } from "@/lib/utils";
 import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 
 export default function Extrato() {
+  const [searchParams] = useSearchParams();
+  const startDateParam = searchParams.get("startDate") || undefined;
+  const endDateParam = searchParams.get("endDate") || undefined;
+
   const { requiresBaseSelection } = useBaseFilter();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -66,6 +71,8 @@ export default function Extrato() {
   // Fetch all transactions
   const { data: allTransactions, isLoading } = useTransactions({
     search: search || undefined,
+    startDate: startDateParam,
+    endDate: endDateParam,
   });
 
   // Filter by type if selected
