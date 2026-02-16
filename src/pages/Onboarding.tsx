@@ -10,10 +10,14 @@ import {
   UserPlus,
   ShieldCheck,
   AlertCircle,
+  Users,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +30,23 @@ import {
 import ibbraLogoFullWhite from "@/assets/ibbra-logo-full-white.png";
 import ibbraLogoIcon from "@/assets/ibbra-logo-icon.png";
 
-type Step = "client_question" | "cpf_validation" | "profile_form" | "completing";
+type Step = "client_question" | "cpf_validation" | "profile_form" | "family_question" | "family_form" | "completing";
+
+interface FamilyMember {
+  relationship: string;
+  full_name: string;
+  age: string;
+  phone: string;
+  email: string;
+}
+
+const RELATIONSHIP_OPTIONS = [
+  "Cônjuge", "Filho(a)", "Pai/Mãe", "Irmão(ã)", "Avô/Avó", "Neto(a)", "Tio(a)", "Sobrinho(a)", "Outro",
+];
+
+const emptyFamilyMember = (): FamilyMember => ({
+  relationship: "", full_name: "", age: "", phone: "", email: "",
+});
 
 export default function Onboarding() {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -46,11 +66,13 @@ export default function Onboarding() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
 
+  // Family members
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([emptyFamilyMember()]);
+
   // Load existing data from localStorage (Google OAuth) or profile
   useEffect(() => {
     if (!user) return;
 
-    // Try to load registration data from localStorage (Google OAuth flow)
     const regDataStr = localStorage.getItem("ibbra_registration");
     if (regDataStr) {
       try {
@@ -62,6 +84,8 @@ export default function Onboarding() {
         if (regData.validated) {
           setValidationResult({ found: true, full_name: regData.fullName, birth_date: regData.birthDate });
         }
+        // Auto-advance: Google OAuth users already chose client type, go straight to profile form
+        setStep("profile_form");
       } catch {
         localStorage.removeItem("ibbra_registration");
       }
@@ -146,18 +170,35 @@ export default function Onboarding() {
     }
   };
 
-  const handleCompleteOnboarding = async () => {
+  const handleProfileNext = () => {
     if (!fullName.trim()) {
       toast.error("Informe seu nome completo.");
       return;
     }
+    setStep("family_question");
+  };
 
+  const handleFamilyAnswer = (wantsFamily: boolean) => {
+    if (wantsFamily) {
+      setStep("family_form");
+    } else {
+      handleCompleteOnboarding();
+    }
+  };
+
+  // Family member helpers
+  const addFamilyMember = () => setFamilyMembers(prev => [...prev, emptyFamilyMember()]);
+  const removeFamilyMember = (index: number) =>
+    setFamilyMembers(prev => prev.filter((_, i) => i !== index));
+  const updateFamilyMember = (index: number, field: keyof FamilyMember, value: string) =>
+    setFamilyMembers(prev => prev.map((m, i) => (i === index ? { ...m, [field]: value } : m)));
+
+  const handleCompleteOnboarding = async () => {
     setStep("completing");
     setIsLoading(true);
 
     try {
-      // 0. Ensure user provisioning (profile, org, membership) exists
-      // This handles cases where the signup trigger failed
+      // Ensure user provisioning
       const { error: provisionError } = await supabase.rpc('ensure_user_provisioned');
       if (provisionError) {
         console.warn("Provisioning warning:", provisionError.message);
@@ -165,7 +206,7 @@ export default function Onboarding() {
 
       const cleanCpf = cpf.replace(/\D/g, "");
 
-      // 1. Update profile with full data
+      // 1. Update profile
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
@@ -183,30 +224,50 @@ export default function Onboarding() {
 
       if (profileError) throw profileError;
 
-      // 2. Update organization name to match user's full name
+      // 2. Update organization name
       const orgSlug = "base-" + user.id.substring(0, 8);
       await supabase
         .from("organizations")
         .update({ name: fullName.trim() })
         .eq("slug", orgSlug);
 
-      // 3. Get the user's org id for localStorage
+      // 3. Save family members
+      const validMembers = familyMembers.filter(m => m.full_name.trim() && m.relationship);
+      if (validMembers.length > 0) {
+        const { data: orgData } = await supabase
+          .from("organizations")
+          .select("id")
+          .eq("slug", orgSlug)
+          .maybeSingle();
+
+        const rows = validMembers.map(m => ({
+          user_id: user.id,
+          organization_id: orgData?.id || null,
+          relationship: m.relationship,
+          full_name: m.full_name.trim(),
+          age: m.age ? parseInt(m.age) : null,
+          phone: m.phone || null,
+          email: m.email || null,
+        }));
+
+        await supabase.from("family_members").insert(rows);
+      }
+
+      // 4. Get the user's org id for localStorage
       const { data: orgData } = await supabase
         .from("organizations")
         .select("id")
         .eq("slug", orgSlug)
         .maybeSingle();
 
-      // 4. Consent logs
+      // 5. Consent logs
       await supabase.from("consent_logs").insert([
         { user_id: user.id, consent_type: "terms", consent_given: true, user_agent: navigator.userAgent },
         { user_id: user.id, consent_type: "privacy", consent_given: true, user_agent: navigator.userAgent },
-      ]).then(() => {});
+      ]);
 
-      // 5. Clean up localStorage
+      // 6. Clean up
       localStorage.removeItem("ibbra_registration");
-
-      // 6. Set selected org
       if (orgData?.id) {
         localStorage.setItem("selectedOrganizationId", orgData.id);
       }
@@ -228,7 +289,6 @@ export default function Onboarding() {
     exit: { x: -40, opacity: 0 },
   };
 
-  // Branding panel (same as Auth page)
   const BrandingPanel = () => (
     <div className="hidden lg:flex lg:w-[52%] relative overflow-hidden sidebar-premium">
       <div
@@ -268,6 +328,15 @@ export default function Onboarding() {
     </div>
   );
 
+  const stepDescriptions: Record<Step, string> = {
+    client_question: "Responda para personalizarmos seu acesso.",
+    cpf_validation: "Valide seu cadastro como cliente IBBRA.",
+    profile_form: "Preencha seus dados para continuar.",
+    family_question: "Deseja cadastrar membros da família?",
+    family_form: "Adicione os dados dos seus familiares.",
+    completing: "Finalizando seu cadastro...",
+  };
+
   return (
     <div className="min-h-screen flex">
       <BrandingPanel />
@@ -286,10 +355,7 @@ export default function Onboarding() {
                 Complete seu cadastro
               </h1>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                {step === "client_question" && "Responda para personalizarmos seu acesso."}
-                {step === "cpf_validation" && "Valide seu cadastro como cliente IBBRA."}
-                {step === "profile_form" && "Preencha seus dados para continuar."}
-                {step === "completing" && "Finalizando seu cadastro..."}
+                {stepDescriptions[step]}
               </p>
             </div>
 
@@ -485,8 +551,151 @@ export default function Onboarding() {
                     </Button>
                     <Button
                       className="flex-1 h-12 text-sm font-semibold"
+                      onClick={handleProfileNext}
+                      disabled={!fullName.trim()}
+                    >
+                      Continuar
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* STEP: Family Question */}
+              {step === "family_question" && (
+                <motion.div
+                  key="family_question"
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.25 }}
+                  className="space-y-5"
+                >
+                  <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Deseja cadastrar membros da família?
+                  </Label>
+                  <p className="text-xs text-muted-foreground/70">
+                    Isso nos ajuda a oferecer uma visão completa de Wealth Intelligence para sua família.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => handleFamilyAnswer(true)}
+                      className="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/40 transition-all duration-200 hover:shadow-md"
+                    >
+                      <Users className="h-8 w-8 text-primary/70 group-hover:text-primary transition-colors" />
+                      <span className="text-sm font-medium">Sim, cadastrar</span>
+                    </button>
+                    <button
+                      onClick={() => handleFamilyAnswer(false)}
+                      className="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/40 transition-all duration-200 hover:shadow-md"
+                    >
+                      <Check className="h-8 w-8 text-primary/70 group-hover:text-primary transition-colors" />
+                      <span className="text-sm font-medium">Pular e concluir</span>
+                    </button>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    className="w-full h-10 text-sm text-muted-foreground"
+                    onClick={() => setStep("profile_form")}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Voltar
+                  </Button>
+                </motion.div>
+              )}
+
+              {/* STEP: Family Form */}
+              {step === "family_form" && (
+                <motion.div
+                  key="family_form"
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.25 }}
+                  className="space-y-4"
+                >
+                  <div className="max-h-[50vh] overflow-y-auto space-y-4 pr-1">
+                    {familyMembers.map((member, index) => (
+                      <div key={index} className="p-4 rounded-lg border border-border space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Familiar {index + 1}
+                          </span>
+                          {familyMembers.length > 1 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-destructive/60 hover:text-destructive"
+                              onClick={() => removeFamilyMember(index)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                        <Select
+                          value={member.relationship}
+                          onValueChange={(val) => updateFamilyMember(index, "relationship", val)}
+                        >
+                          <SelectTrigger className="h-10 text-sm">
+                            <SelectValue placeholder="Grau de parentesco" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {RELATIONSHIP_OPTIONS.map((r) => (
+                              <SelectItem key={r} value={r}>{r}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          value={member.full_name}
+                          onChange={(e) => updateFamilyMember(index, "full_name", e.target.value)}
+                          placeholder="Nome completo"
+                          className="h-10 text-sm"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input
+                            value={member.age}
+                            onChange={(e) => updateFamilyMember(index, "age", e.target.value)}
+                            placeholder="Idade"
+                            className="h-10 text-sm"
+                            inputMode="numeric"
+                          />
+                          <Input
+                            value={member.phone}
+                            onChange={(e) => updateFamilyMember(index, "phone", e.target.value)}
+                            placeholder="Telefone"
+                            className="h-10 text-sm"
+                          />
+                        </div>
+                        <Input
+                          value={member.email}
+                          onChange={(e) => updateFamilyMember(index, "email", e.target.value)}
+                          placeholder="Email (opcional)"
+                          className="h-10 text-sm"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-10 text-sm"
+                    onClick={addFamilyMember}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar familiar
+                  </Button>
+
+                  <div className="flex gap-3 pt-2">
+                    <Button variant="outline" className="h-12" onClick={() => setStep("family_question")}>
+                      <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      className="flex-1 h-12 text-sm font-semibold"
                       onClick={handleCompleteOnboarding}
-                      disabled={isLoading || !fullName.trim()}
+                      disabled={isLoading}
                     >
                       {isLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
