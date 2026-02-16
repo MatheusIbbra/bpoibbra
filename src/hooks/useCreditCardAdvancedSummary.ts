@@ -67,7 +67,7 @@ export function useCreditCardAdvancedSummary() {
       // 2. Get open_finance_accounts linked to these accounts (primary source of truth)
       const { data: ofAccounts } = await supabase
         .from("open_finance_accounts")
-        .select("local_account_id, balance, credit_limit, available_credit, due_day, closing_day")
+        .select("local_account_id, balance, credit_limit, available_credit, due_day, closing_day, raw_data")
         .in("local_account_id", accountIds);
 
       const ofMap = new Map<string, {
@@ -79,11 +79,32 @@ export function useCreditCardAdvancedSummary() {
       }>();
       ofAccounts?.forEach((ofa) => {
         if (ofa.local_account_id) {
+          // Extract credit data from raw_data.creditData if available
+          const rawCreditData = (ofa.raw_data as any)?.creditData;
+          const rawCreditLimit = rawCreditData?.creditLimit != null ? Number(rawCreditData.creditLimit) : null;
+          const rawAvailableCredit = rawCreditData?.availableCreditLimit != null ? Number(rawCreditData.availableCreditLimit) : null;
+          // Parse due date from raw_data
+          const rawDueDate = rawCreditData?.balanceDueDate;
+          let rawDueDay: number | null = null;
+          if (rawDueDate) {
+            const dayMatch = String(rawDueDate).match(/(\d{4})-(\d{2})-(\d{2})/);
+            if (dayMatch) rawDueDay = parseInt(dayMatch[3]);
+          }
+
+          // Use credit_limit from DB first, then raw_data fallback
+          const creditLimit = (ofa.credit_limit != null && Number(ofa.credit_limit) > 0)
+            ? Number(ofa.credit_limit)
+            : (rawCreditLimit != null && rawCreditLimit > 0 ? rawCreditLimit : null);
+
+          const availableCredit = creditLimit != null
+            ? Math.max(0, creditLimit - Math.abs(Number(ofa.balance) || 0))
+            : (rawAvailableCredit != null ? Math.max(0, rawAvailableCredit) : null);
+
           ofMap.set(ofa.local_account_id, {
             balance: ofa.balance != null ? Number(ofa.balance) : null,
-            creditLimit: ofa.credit_limit != null ? Number(ofa.credit_limit) : null,
-            availableCredit: ofa.available_credit != null ? Number(ofa.available_credit) : null,
-            dueDay: ofa.due_day,
+            creditLimit,
+            availableCredit,
+            dueDay: ofa.due_day || rawDueDay,
             closingDay: ofa.closing_day,
           });
         }

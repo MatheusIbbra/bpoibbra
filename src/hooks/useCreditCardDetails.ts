@@ -61,19 +61,27 @@ export function useCreditCardDetails(accountId: string | undefined) {
       // Primary source: open_finance_accounts
       const { data: ofAccount } = await supabase
         .from("open_finance_accounts")
-        .select("credit_limit, available_credit, balance")
+        .select("credit_limit, available_credit, balance, raw_data")
         .eq("local_account_id", accountId)
         .maybeSingle();
 
       const debt = Math.abs(Number(account.current_balance) || 0);
 
-      if (ofAccount?.credit_limit != null && Number(ofAccount.credit_limit) > 0) {
-        totalLimit = Number(ofAccount.credit_limit);
-        availableCredit = ofAccount.available_credit != null ? Math.max(0, Number(ofAccount.available_credit)) : Math.max(0, totalLimit - debt);
-      } else if (ofAccount?.balance != null && ofAccount?.available_credit != null) {
-        const ofDebt = Math.abs(Number(ofAccount.balance));
-        availableCredit = Math.max(0, Number(ofAccount.available_credit));
-        totalLimit = ofDebt + availableCredit;
+      if (ofAccount) {
+        // Extract from raw_data.creditData as primary source
+        const rawCreditData = (ofAccount.raw_data as any)?.creditData;
+        const rawCreditLimit = rawCreditData?.creditLimit != null ? Number(rawCreditData.creditLimit) : null;
+
+        const dbCreditLimit = ofAccount.credit_limit != null ? Number(ofAccount.credit_limit) : null;
+        const effectiveLimit = (dbCreditLimit != null && dbCreditLimit > 0)
+          ? dbCreditLimit
+          : (rawCreditLimit != null && rawCreditLimit > 0 ? rawCreditLimit : null);
+
+        if (effectiveLimit != null) {
+          totalLimit = effectiveLimit;
+          const ofDebt = Math.abs(Number(ofAccount.balance) || 0);
+          availableCredit = Math.max(0, totalLimit - ofDebt);
+        }
       }
 
       // Get bank logo from connections
