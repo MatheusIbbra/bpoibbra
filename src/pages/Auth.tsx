@@ -227,7 +227,7 @@ export default function Auth() {
                         <FormLabel className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Email</FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
+                            <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50 pointer-events-none" />
                             <Input placeholder="seu@email.com" className="pl-11 h-12 input-executive text-sm text-foreground" autoComplete="email" {...field} />
                           </div>
                         </FormControl>
@@ -286,7 +286,7 @@ export default function Auth() {
                       <FormLabel className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Email</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
+                          <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50 pointer-events-none" />
                           <Input placeholder="seu@email.com" className="pl-11 h-12 input-executive text-sm" autoComplete="email" {...field} />
                         </div>
                       </FormControl>
@@ -308,7 +308,7 @@ export default function Auth() {
                       </div>
                       <FormControl>
                         <div className="relative">
-                          <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
+                          <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50 pointer-events-none" />
                           <Input type="password" placeholder="••••••••" className="pl-11 h-12 input-executive text-sm" autoComplete="current-password" {...field} />
                         </div>
                       </FormControl>
