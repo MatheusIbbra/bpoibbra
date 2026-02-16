@@ -28,12 +28,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { formatCurrency } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
+import { StaggerGrid, StaggerItem, AnimatedCard } from "@/components/ui/motion";
+import { StatCardSkeleton } from "@/components/ui/premium-skeleton";
 import { Loader2, RefreshCw, Wallet, ArrowUpRight, ArrowDownRight, TrendingUp } from "lucide-react";
 
 const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const { data: stats, error } = useDashboardStats();
+  const { data: stats, error, isLoading: statsLoading } = useDashboardStats();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -76,90 +78,123 @@ const Index = () => {
         {/* 1. Posição Financeira Consolidada */}
         <div className="relative">
           <div className="absolute inset-x-0 -mx-4 bg-[hsl(var(--sidebar-background))] rounded-b-3xl md:hidden" style={{ top: '-4rem', bottom: '-0.75rem' }} />
-          <div className="relative grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              title="Posição Financeira"
-              value={formatCurrency(stats?.totalBalance ?? 0)}
-              icon={<Wallet className="h-5 w-5" />}
-              variant="default" />
-            <StatCard
-              title="Entradas Financeiras"
-              value={formatCurrency(stats?.monthlyIncome ?? 0)}
-              icon={<ArrowUpRight className="h-5 w-5" />}
-              variant="success"
-              trend={stats?.incomeChange ? { value: stats.incomeChange, isPositive: stats.incomeChange >= 0 } : undefined}
-              hoverContent={<StatCardHoverTransactions type="income" />} />
-            <StatCard
-              title="Saídas Financeiras"
-              value={formatCurrency(stats?.monthlyExpenses ?? 0)}
-              icon={<ArrowDownRight className="h-5 w-5" />}
-              variant="destructive"
-              trend={stats?.expenseChange ? { value: stats.expenseChange, isPositive: stats.expenseChange <= 0 } : undefined}
-              hoverContent={<StatCardHoverTransactions type="expense" />} />
-            <StatCard
-              title="Evolução Patrimonial"
-              value={formatCurrency(stats?.monthlySavings ?? 0)}
-              icon={<TrendingUp className="h-5 w-5" />}
-              variant={stats?.monthlySavings && stats.monthlySavings >= 0 ? "success" : "warning"} />
-          </div>
+          <StaggerGrid className="relative grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+            {statsLoading ? (
+              <>
+                <StaggerItem><StatCardSkeleton /></StaggerItem>
+                <StaggerItem><StatCardSkeleton /></StaggerItem>
+                <StaggerItem><StatCardSkeleton /></StaggerItem>
+                <StaggerItem><StatCardSkeleton /></StaggerItem>
+              </>
+            ) : (
+              <>
+                <StaggerItem>
+                  <StatCard
+                    title="Posição Financeira"
+                    value={formatCurrency(stats?.totalBalance ?? 0)}
+                    icon={<Wallet className="h-5 w-5" />}
+                    variant="default" />
+                </StaggerItem>
+                <StaggerItem>
+                  <StatCard
+                    title="Entradas Financeiras"
+                    value={formatCurrency(stats?.monthlyIncome ?? 0)}
+                    icon={<ArrowUpRight className="h-5 w-5" />}
+                    variant="success"
+                    trend={stats?.incomeChange ? { value: stats.incomeChange, isPositive: stats.incomeChange >= 0 } : undefined}
+                    hoverContent={<StatCardHoverTransactions type="income" />} />
+                </StaggerItem>
+                <StaggerItem>
+                  <StatCard
+                    title="Saídas Financeiras"
+                    value={formatCurrency(stats?.monthlyExpenses ?? 0)}
+                    icon={<ArrowDownRight className="h-5 w-5" />}
+                    variant="destructive"
+                    trend={stats?.expenseChange ? { value: stats.expenseChange, isPositive: stats.expenseChange <= 0 } : undefined}
+                    hoverContent={<StatCardHoverTransactions type="expense" />} />
+                </StaggerItem>
+                <StaggerItem>
+                  <StatCard
+                    title="Evolução Patrimonial"
+                    value={formatCurrency(stats?.monthlySavings ?? 0)}
+                    icon={<TrendingUp className="h-5 w-5" />}
+                    variant={stats?.monthlySavings && stats.monthlySavings >= 0 ? "success" : "warning"} />
+                </StaggerItem>
+              </>
+            )}
+          </StaggerGrid>
         </div>
 
         {/* Posição Multimoeda */}
-        <MultiCurrencyBalanceSection />
+        <AnimatedCard delay={0.15}>
+          <MultiCurrencyBalanceSection />
+        </AnimatedCard>
 
         {/* 2. Exposição Cambial + Concentração Bancária */}
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <CurrencyExposureCard />
-          <BankConcentrationCard />
-        </div>
+        <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+          <StaggerItem><CurrencyExposureCard /></StaggerItem>
+          <StaggerItem><BankConcentrationCard /></StaggerItem>
+        </StaggerGrid>
 
         {/* 3. Liquidez Estruturada + Runway Pessoal */}
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <StructuredLiquidityCard />
-          <PersonalRunwayCard />
-        </div>
+        <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+          <StaggerItem><StructuredLiquidityCard /></StaggerItem>
+          <StaggerItem><PersonalRunwayCard /></StaggerItem>
+        </StaggerGrid>
 
         {/* 4. Evolução Patrimonial 12M */}
-        <PatrimonyEvolutionCard />
+        <AnimatedCard delay={0.1}>
+          <PatrimonyEvolutionCard />
+        </AnimatedCard>
 
         {/* Detecção de Anomalias */}
-        <AnomalyDetectionCard />
+        <AnimatedCard delay={0.1}>
+          <AnomalyDetectionCard />
+        </AnimatedCard>
 
         {/* Alertas de Orçamento */}
-        <BudgetAlerts showNotifications={true} />
+        <AnimatedCard delay={0.1}>
+          <BudgetAlerts showNotifications={true} />
+        </AnimatedCard>
 
         {/* 5. Forecast + Score Financeiro */}
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <CashflowForecastCard />
-          <FinancialHealthCard />
-        </div>
+        <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+          <StaggerItem><CashflowForecastCard /></StaggerItem>
+          <StaggerItem><FinancialHealthCard /></StaggerItem>
+        </StaggerGrid>
 
         {/* 6. Padrão de Vida + Simulador */}
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <LifestylePatternCard />
-          <FinancialSimulatorCard />
-        </div>
+        <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+          <StaggerItem><LifestylePatternCard /></StaggerItem>
+          <StaggerItem><FinancialSimulatorCard /></StaggerItem>
+        </StaggerGrid>
 
         {/* Distribuição por Categoria + Evolução Financeira */}
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <CategoryDonutChart />
-          <MonthlyEvolutionChart />
-        </div>
+        <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+          <StaggerItem><CategoryDonutChart /></StaggerItem>
+          <StaggerItem><MonthlyEvolutionChart /></StaggerItem>
+        </StaggerGrid>
 
         {/* Orçamento do Mês + Últimas Movimentações */}
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <BudgetProgress />
-          <FintechTransactionsList />
-        </div>
+        <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+          <StaggerItem><BudgetProgress /></StaggerItem>
+          <StaggerItem><FintechTransactionsList /></StaggerItem>
+        </StaggerGrid>
 
         {/* Despesas Recorrentes */}
-        <RecurringExpensesCard />
+        <AnimatedCard delay={0.05}>
+          <RecurringExpensesCard />
+        </AnimatedCard>
 
         {/* Conciliação */}
-        <ReconciliationMetricsCard />
+        <AnimatedCard delay={0.05}>
+          <ReconciliationMetricsCard />
+        </AnimatedCard>
 
         {/* Contas Conectadas */}
-        <ConnectedAccountsSection />
+        <AnimatedCard delay={0.05}>
+          <ConnectedAccountsSection />
+        </AnimatedCard>
       </div>
 
       <AIAssistantChat isPaidUser={false} />

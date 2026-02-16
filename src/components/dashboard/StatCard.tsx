@@ -46,7 +46,7 @@ export function StatCard({
   const cardContent = (
     <Card
       className={cn(
-        "relative transition-all duration-300 hover:shadow-executive-lg hover:-translate-y-px group border-border/30 overflow-hidden",
+        "relative transition-all duration-300 hover:shadow-executive-lg hover:-translate-y-0.5 group border-border/30 overflow-hidden card-glow",
         variantIndicator[variant],
         onClick && "cursor-pointer"
       )}
