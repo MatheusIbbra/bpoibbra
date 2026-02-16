@@ -18,18 +18,14 @@ const loginSchema = z.object({
   email: z.string().email("Email inválido"),
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
 });
-const resetPasswordSchema = z.object({
-  email: z.string().email("Email inválido"),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
-type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
 type AuthView = "login" | "reset_password" | "register";
+type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [view, setView] = useState<AuthView>("login");
+  const [resetEmail, setResetEmail] = useState("");
   const { user, signIn } = useAuth();
   const navigate = useNavigate();
 
@@ -64,11 +60,6 @@ export default function Auth() {
     defaultValues: { email: "", password: "" },
   });
 
-  const resetPasswordForm = useForm<ResetPasswordFormData>({
-    resolver: zodResolver(resetPasswordSchema),
-    defaultValues: { email: "" },
-  });
-
   const handleLogin = async (data: LoginFormData) => {
     setIsLoading(true);
     const { error } = await signIn(data.email, data.password);
@@ -82,20 +73,6 @@ export default function Auth() {
     } else {
       toast.success("Login realizado com sucesso!");
       navigate("/");
-    }
-  };
-
-  const handleResetPassword = async (data: ResetPasswordFormData) => {
-    setIsLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-      redirectTo: `${window.location.origin}/auth`,
-    });
-    setIsLoading(false);
-    if (error) {
-      toast.error("Erro ao enviar email: " + error.message);
-    } else {
-      toast.success("Email de recuperação enviado! Verifique sua caixa de entrada.");
-      setView("login");
     }
   };
 
@@ -198,6 +175,31 @@ export default function Auth() {
 
   // ── Reset Password View ──
   if (view === "reset_password") {
+    const handleResetSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const emailValue = resetEmail.trim();
+      if (!emailValue) {
+        toast.error("Informe seu email");
+        return;
+      }
+      // Basic email validation
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
+        toast.error("Email inválido");
+        return;
+      }
+      setIsLoading(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(emailValue, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+      setIsLoading(false);
+      if (error) {
+        toast.error("Erro ao enviar email: " + error.message);
+      } else {
+        toast.success("Email de recuperação enviado! Verifique sua caixa de entrada.");
+        setView("login");
+      }
+    };
+
     return (
       <div className="min-h-screen flex">
         <BrandingPanel />
@@ -217,33 +219,32 @@ export default function Auth() {
                 </p>
               </div>
 
-              <Form {...resetPasswordForm}>
-                <form onSubmit={resetPasswordForm.handleSubmit(handleResetPassword)} className="space-y-5">
-                  <FormField
-                    control={resetPasswordForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Email</FormLabel>
-                        <div className="relative">
-                          <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50 pointer-events-none" />
-                          <FormControl>
-                            <Input placeholder="seu@email.com" className="pl-11 h-12 input-executive text-sm text-foreground" autoComplete="email" {...field} />
-                          </FormControl>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" className="w-full h-12 font-semibold text-sm tracking-wide" disabled={isLoading}>
-                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar link de recuperação"}
-                  </Button>
-                  <Button type="button" variant="ghost" className="w-full h-10 text-muted-foreground hover:text-foreground text-sm" onClick={() => setView("login")}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Voltar ao acesso
-                  </Button>
-                </form>
-              </Form>
+              <form onSubmit={handleResetSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <label htmlFor="reset-email" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Email
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50 pointer-events-none" />
+                    <input
+                      id="reset-email"
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      placeholder="seu@email.com"
+                      autoComplete="email"
+                      className="flex h-12 w-full rounded-xl border border-input bg-background pl-11 pr-4 py-2.5 text-sm text-foreground ring-offset-background placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 focus-visible:ring-offset-0 focus-visible:border-accent/40 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200 input-executive"
+                    />
+                  </div>
+                </div>
+                <Button type="submit" className="w-full h-12 font-semibold text-sm tracking-wide" disabled={isLoading}>
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar link de recuperação"}
+                </Button>
+                <Button type="button" variant="ghost" className="w-full h-10 text-muted-foreground hover:text-foreground text-sm" onClick={() => setView("login")}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Voltar ao acesso
+                </Button>
+              </form>
             </div>
 
             <p className="text-center text-[11px] text-muted-foreground/50 mt-12 lg:hidden">
