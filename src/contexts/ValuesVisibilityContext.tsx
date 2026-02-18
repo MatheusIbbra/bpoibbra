@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, ReactNode } from "react";
 
 interface ValuesVisibilityContextType {
   showValues: boolean;
@@ -30,8 +30,13 @@ export function ValuesVisibilityProvider({ children }: { children: ReactNode }) 
     });
   }, []);
 
+  const contextValue = useMemo(
+    () => ({ showValues, toggleValues }),
+    [showValues, toggleValues]
+  );
+
   return (
-    <ValuesVisibilityContext.Provider value={{ showValues, toggleValues }}>
+    <ValuesVisibilityContext.Provider value={contextValue}>
       {children}
     </ValuesVisibilityContext.Provider>
   );

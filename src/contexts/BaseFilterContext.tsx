@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, ReactNode, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -12,23 +12,31 @@ export interface Organization {
 
 type AppRole = "admin" | "supervisor" | "fa" | "kam" | "cliente";
 
-interface BaseFilterContextType {
+// ── State context (re-renders when data changes) ──
+interface BaseFilterStateContextType {
   selectedOrganizationId: string | null;
-  setSelectedOrganizationId: (id: string | null) => void;
   availableOrganizations: Organization[];
   viewableOrganizationIds: string[];
   isLoading: boolean;
   canFilterByBase: boolean;
   selectedOrganization: Organization | null;
   userRole: AppRole | null;
-  getOrganizationFilter: () => { type: 'single' | 'multiple' | 'none'; ids: string[] };
-  // Security: require base selection for creation operations
   requiresBaseSelection: boolean;
+}
+
+// ── Actions context (stable references, never triggers re-render) ──
+interface BaseFilterActionsContextType {
+  setSelectedOrganizationId: (id: string | null) => void;
+  getOrganizationFilter: () => { type: 'single' | 'multiple' | 'none'; ids: string[] };
   getRequiredOrganizationId: () => string | null;
   refreshOrganizations: () => void;
 }
 
-const BaseFilterContext = createContext<BaseFilterContextType | undefined>(undefined);
+// Combined type for backward compatibility
+interface BaseFilterContextType extends BaseFilterStateContextType, BaseFilterActionsContextType {}
+
+const BaseFilterStateContext = createContext<BaseFilterStateContextType | undefined>(undefined);
+const BaseFilterActionsContext = createContext<BaseFilterActionsContextType | undefined>(undefined);
 
 export function BaseFilterProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth();
@@ -43,12 +51,10 @@ export function BaseFilterProvider({ children }: { children: ReactNode }) {
     setRefreshKey(k => k + 1);
   }, []);
 
-  // Perfis que podem filtrar por base
   const canFilterByBase = userRole === "admin" || userRole === "supervisor" || userRole === "fa" || userRole === "kam";
 
   useEffect(() => {
     async function loadData() {
-      // Se auth ainda carregando ou não tem usuário, finaliza loading
       if (authLoading) return;
       
       if (!user) {
@@ -62,7 +68,6 @@ export function BaseFilterProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       
       try {
-        // 1. Buscar role do usuário
         const { data: roleData, error: roleError } = await supabase
           .from("user_roles")
           .select("role")
@@ -76,7 +81,6 @@ export function BaseFilterProvider({ children }: { children: ReactNode }) {
         const role = (roleData?.role as AppRole) || null;
         setUserRole(role);
 
-        // 2. Buscar organizações visualizáveis
         const { data: viewableIds, error: viewableError } = await supabase.rpc(
           "get_viewable_organizations",
           { _user_id: user.id }
@@ -99,7 +103,6 @@ export function BaseFilterProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // 3. Buscar detalhes das organizações
         const { data: orgsData, error: orgsError } = await supabase
           .from("organizations")
           .select("id, name, slug, kam_id, logo_url")
@@ -112,7 +115,6 @@ export function BaseFilterProvider({ children }: { children: ReactNode }) {
         } else {
           setAvailableOrganizations(orgsData || []);
           
-          // Se só tem uma organização, seleciona automaticamente
           if (orgsData && orgsData.length === 1) {
             setSelectedOrganizationId(orgsData[0].id);
           }
@@ -127,69 +129,92 @@ export function BaseFilterProvider({ children }: { children: ReactNode }) {
     loadData();
   }, [user, authLoading, refreshKey]);
 
-  const selectedOrganization = availableOrganizations.find(
-    org => org.id === selectedOrganizationId
-  ) || null;
+  const selectedOrganization = useMemo(
+    () => availableOrganizations.find(org => org.id === selectedOrganizationId) || null,
+    [availableOrganizations, selectedOrganizationId]
+  );
 
-  // Helper para construir filtro de organização nas queries
-  const getOrganizationFilter = (): { type: 'single' | 'multiple' | 'none'; ids: string[] } => {
+  const requiresBaseSelection = canFilterByBase && availableOrganizations.length > 1 && !selectedOrganizationId;
+
+  // ── Memoized state value ──
+  const stateValue = useMemo<BaseFilterStateContextType>(() => ({
+    selectedOrganizationId,
+    availableOrganizations,
+    viewableOrganizationIds,
+    isLoading: authLoading || isLoading,
+    canFilterByBase,
+    selectedOrganization,
+    userRole,
+    requiresBaseSelection,
+  }), [
+    selectedOrganizationId,
+    availableOrganizations,
+    viewableOrganizationIds,
+    authLoading,
+    isLoading,
+    canFilterByBase,
+    selectedOrganization,
+    userRole,
+    requiresBaseSelection,
+  ]);
+
+  // ── Stable actions (useCallback ensures referential stability) ──
+  const getOrganizationFilter = useCallback((): { type: 'single' | 'multiple' | 'none'; ids: string[] } => {
     if (selectedOrganizationId) {
       return { type: 'single', ids: [selectedOrganizationId] };
     }
-    
     if (viewableOrganizationIds.length > 0) {
       return { type: 'multiple', ids: viewableOrganizationIds };
     }
-    
     return { type: 'none', ids: [] };
-  };
+  }, [selectedOrganizationId, viewableOrganizationIds]);
 
-  // Security: users who can filter need to select a base to create items
-  // Clients only have one org, so they don't need to select
-  const requiresBaseSelection = canFilterByBase && availableOrganizations.length > 1 && !selectedOrganizationId;
-  
-  // Get required organization ID for creation - returns null if base selection is required but not selected
-  const getRequiredOrganizationId = (): string | null => {
-    // If user has selected a specific organization, use it
-    if (selectedOrganizationId) {
-      return selectedOrganizationId;
-    }
-    
-    // If user only has one organization available (typical for clients), use it
-    if (availableOrganizations.length === 1) {
-      return availableOrganizations[0].id;
-    }
-    
-    // Multiple organizations available but none selected - return null (creation not allowed)
+  const getRequiredOrganizationId = useCallback((): string | null => {
+    if (selectedOrganizationId) return selectedOrganizationId;
+    if (availableOrganizations.length === 1) return availableOrganizations[0].id;
     return null;
-  };
+  }, [selectedOrganizationId, availableOrganizations]);
+
+  const actionsValue = useMemo<BaseFilterActionsContextType>(() => ({
+    setSelectedOrganizationId,
+    getOrganizationFilter,
+    getRequiredOrganizationId,
+    refreshOrganizations,
+  }), [getOrganizationFilter, getRequiredOrganizationId, refreshOrganizations]);
 
   return (
-    <BaseFilterContext.Provider
-      value={{
-        selectedOrganizationId,
-        setSelectedOrganizationId,
-        availableOrganizations,
-        viewableOrganizationIds,
-        isLoading: authLoading || isLoading,
-        canFilterByBase,
-        selectedOrganization,
-        userRole,
-        getOrganizationFilter,
-        requiresBaseSelection,
-        getRequiredOrganizationId,
-        refreshOrganizations,
-      }}
-    >
-      {children}
-    </BaseFilterContext.Provider>
+    <BaseFilterStateContext.Provider value={stateValue}>
+      <BaseFilterActionsContext.Provider value={actionsValue}>
+        {children}
+      </BaseFilterActionsContext.Provider>
+    </BaseFilterStateContext.Provider>
   );
 }
 
-export function useBaseFilter() {
-  const context = useContext(BaseFilterContext);
+/** Read only state values — re-renders when filter state changes */
+export function useBaseFilterState() {
+  const context = useContext(BaseFilterStateContext);
   if (context === undefined) {
-    throw new Error("useBaseFilter must be used within a BaseFilterProvider");
+    throw new Error("useBaseFilterState must be used within a BaseFilterProvider");
   }
   return context;
+}
+
+/** Read only actions — stable references, won't cause re-renders */
+export function useBaseFilterActions() {
+  const context = useContext(BaseFilterActionsContext);
+  if (context === undefined) {
+    throw new Error("useBaseFilterActions must be used within a BaseFilterProvider");
+  }
+  return context;
+}
+
+/**
+ * Backward-compatible hook — returns both state and actions.
+ * Prefer useBaseFilterState or useBaseFilterActions for better performance.
+ */
+export function useBaseFilter(): BaseFilterContextType {
+  const state = useBaseFilterState();
+  const actions = useBaseFilterActions();
+  return { ...state, ...actions };
 }
