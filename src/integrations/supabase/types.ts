@@ -2534,7 +2534,6 @@ export type Database = {
     Views: {
       bank_connections_safe: {
         Row: {
-          access_token_encrypted: string | null
           created_at: string | null
           external_account_id: string | null
           external_consent_id: string | null
@@ -2544,7 +2543,6 @@ export type Database = {
           organization_id: string | null
           provider: string | null
           provider_name: string | null
-          refresh_token_encrypted: string | null
           status: string | null
           sync_error: string | null
           token_expires_at: string | null
@@ -2552,7 +2550,6 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          access_token_encrypted?: never
           created_at?: string | null
           external_account_id?: string | null
           external_consent_id?: string | null
@@ -2562,7 +2559,6 @@ export type Database = {
           organization_id?: string | null
           provider?: string | null
           provider_name?: string | null
-          refresh_token_encrypted?: never
           status?: string | null
           sync_error?: string | null
           token_expires_at?: string | null
@@ -2570,7 +2566,6 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          access_token_encrypted?: never
           created_at?: string | null
           external_account_id?: string | null
           external_consent_id?: string | null
@@ -2580,7 +2575,6 @@ export type Database = {
           organization_id?: string | null
           provider?: string | null
           provider_name?: string | null
-          refresh_token_encrypted?: never
           status?: string | null
           sync_error?: string | null
           token_expires_at?: string | null

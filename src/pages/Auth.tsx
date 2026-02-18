@@ -143,7 +143,7 @@ export default function Auth() {
         </div>
 
         <div className="flex items-center justify-between text-[11px] text-white/25 tracking-wide">
-          <span>© {new Date().getFullYear()} IBBRA Family Office</span>
+          <span>© {new Date().getFullYear()} IBBRA Consultoria Financeira & Patrimonial 360°</span>
           <span className="uppercase tracking-widest">Wealth Strategy</span>
         </div>
       </div>
@@ -165,7 +165,7 @@ export default function Auth() {
               onGoogleSignUp={handleGoogleSignIn}
             />
             <p className="text-center text-[11px] text-muted-foreground/50 mt-8 lg:hidden">
-              © {new Date().getFullYear()} IBBRA Family Office
+              © {new Date().getFullYear()} IBBRA Consultoria Financeira & Patrimonial 360°
             </p>
           </div>
         </div>
@@ -248,7 +248,7 @@ export default function Auth() {
             </div>
 
             <p className="text-center text-[11px] text-muted-foreground/50 mt-12 lg:hidden">
-              © {new Date().getFullYear()} IBBRA Family Office
+              © {new Date().getFullYear()} IBBRA Consultoria Financeira & Patrimonial 360°
             </p>
           </div>
         </div>
@@ -362,7 +362,7 @@ export default function Auth() {
           </div>
 
           <p className="text-center text-[11px] text-muted-foreground/50 mt-12 lg:hidden">
-            © {new Date().getFullYear()} IBBRA Family Office
+            © {new Date().getFullYear()} IBBRA Consultoria Financeira & Patrimonial 360°
           </p>
         </div>
       </div>
