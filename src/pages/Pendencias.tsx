@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -92,6 +93,7 @@ export default function Pendencias() {
   const aiClassification = useAIClassification();
   const toggleIgnore = useToggleIgnoreTransaction();
   const autoIgnoreTransfers = useAutoIgnoreTransfers();
+  const [ignoreTargetId, setIgnoreTargetId] = useState<string | null>(null);
   
   // Filter transactions pending validation with all filters applied
   const pendingTransactions = useMemo(() => {
@@ -512,7 +514,7 @@ export default function Pendencias() {
                 organizationName={getOrganizationName(transaction.organization_id)}
                 onValidate={handleValidate}
                 onReject={handleReject}
-                onIgnore={(id) => toggleIgnore.mutate({ id, is_ignored: true })}
+                onIgnore={(id) => setIgnoreTargetId(id)}
                 onClassifyWithAI={handleClassifyWithAI}
                 isClassifying={classifyingId === transaction.id}
               />
@@ -552,6 +554,21 @@ export default function Pendencias() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!ignoreTargetId}
+        onOpenChange={() => setIgnoreTargetId(null)}
+        title="Ignorar transação?"
+        description="Esta transação não será mais considerada nos relatórios e dashboards. Deseja continuar?"
+        confirmLabel="Ignorar"
+        variant="warning"
+        onConfirm={() => {
+          if (ignoreTargetId) {
+            toggleIgnore.mutate({ id: ignoreTargetId, is_ignored: true });
+            setIgnoreTargetId(null);
+          }
+        }}
+      />
     </AppLayout>
   );
 }

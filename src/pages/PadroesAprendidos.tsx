@@ -27,16 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import {
   Select,
   SelectContent,
@@ -398,26 +389,16 @@ export default function PadroesAprendidos() {
       </div>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Padrão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir este padrão? Esta ação não pode ser desfeita.
-              O sistema poderá reaprender este padrão com novas validações.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={!!deleteConfirm}
+        onOpenChange={() => setDeleteConfirm(null)}
+        title="Excluir Padrão Aprendido"
+        description="Tem certeza que deseja excluir este padrão? Esta ação não pode ser desfeita. O sistema poderá reaprender este padrão com novas validações."
+        confirmLabel="Excluir Padrão"
+        typeToConfirm="CONFIRMAR"
+        typeToConfirmHint='Digite "CONFIRMAR" para excluir este padrão'
+        onConfirm={() => deleteConfirm && handleDelete(deleteConfirm)}
+      />
     </AppLayout>
   );
 }

@@ -41,6 +41,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { TransactionDialog } from "@/components/transactions/TransactionDialog";
 import { useTransactions, useDeleteTransaction, Transaction } from "@/hooks/useTransactions";
 import { useToggleIgnoreTransaction } from "@/hooks/useToggleIgnore";
@@ -99,6 +100,7 @@ export default function Movimentacoes() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [ignoreTarget, setIgnoreTarget] = useState<{ id: string; is_ignored: boolean } | null>(null);
   const [defaultType, setDefaultType] = useState<"transfer" | "income" | "expense">("transfer");
 
   const { data: allTransactions, isLoading } = useTransactions({
@@ -375,12 +377,14 @@ export default function Movimentacoes() {
                                     Editar
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    onClick={() =>
-                                      toggleIgnore.mutate({
-                                        id: transaction.id,
-                                        is_ignored: !transaction.is_ignored,
-                                      })
-                                    }
+                                    onClick={() => {
+                                      if (transaction.is_ignored) {
+                                        // Reactivate doesn't need confirmation
+                                        toggleIgnore.mutate({ id: transaction.id, is_ignored: false });
+                                      } else {
+                                        setIgnoreTarget({ id: transaction.id, is_ignored: true });
+                                      }
+                                    }}
                                   >
                                     {transaction.is_ignored ? (
                                       <>
@@ -439,6 +443,21 @@ export default function Movimentacoes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ConfirmDialog
+        open={!!ignoreTarget}
+        onOpenChange={() => setIgnoreTarget(null)}
+        title="Ignorar movimentação?"
+        description="Esta transação não será mais considerada nos relatórios e dashboards. Você poderá reativá-la a qualquer momento."
+        confirmLabel="Ignorar"
+        variant="warning"
+        onConfirm={() => {
+          if (ignoreTarget) {
+            toggleIgnore.mutate(ignoreTarget);
+            setIgnoreTarget(null);
+          }
+        }}
+      />
     </AppLayout>
   );
 }
