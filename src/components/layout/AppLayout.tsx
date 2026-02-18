@@ -8,6 +8,7 @@ import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, Loader2 } from "lucide-react";
+import { useOpenFinanceLoginToast } from "@/hooks/useOpenFinanceStatus";
 
 const SIDEBAR_STORAGE_KEY = "sidebar-mode";
 
@@ -20,6 +21,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const { availableOrganizations, isLoading: baseLoading } = useBaseFilter();
+  useOpenFinanceLoginToast();
 
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try {

@@ -1,4 +1,4 @@
-import { Moon, Sun, LogOut, User, Settings, Eye, EyeOff, TrendingUp } from "lucide-react";
+import { Moon, Sun, LogOut, User, Settings, Eye, EyeOff, TrendingUp, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,8 @@ import { BaseSelectorEnhanced } from "./BaseSelectorEnhanced";
 import { InsightsHeaderButton } from "./InsightsHeaderButton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useOpenFinanceStatus } from "@/hooks/useOpenFinanceStatus";
+import { useNavigate } from "react-router-dom";
 
 interface AppHeaderProps {
   title?: string;
@@ -34,10 +36,29 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
   const { usage } = usePlanLimits();
   const { openUpgradeModal } = useUpgradeModal();
 
+  const navigate = useNavigate();
+  const { overallStatus, hasItems, errorCount, staleCount } = useOpenFinanceStatus();
+
   const mainUsagePercent = usage
     ? Math.max(usage.transactionsPercent, usage.aiRequestsPercent, usage.bankConnectionsPercent)
     : 0;
   const usageColor = mainUsagePercent >= 90 ? "bg-destructive" : mainUsagePercent >= 70 ? "bg-warning" : "bg-[hsl(var(--brand-highlight))]";
+
+  const ofStatusColor = overallStatus === "ok"
+    ? "text-green-500"
+    : overallStatus === "warning"
+    ? "text-yellow-500"
+    : overallStatus === "error"
+    ? "text-destructive"
+    : "text-muted-foreground/40";
+
+  const ofStatusLabel = overallStatus === "ok"
+    ? "Open Finance: Tudo OK"
+    : overallStatus === "warning"
+    ? `Open Finance: ${staleCount} item(ns) desatualizado(s)`
+    : overallStatus === "error"
+    ? `Open Finance: ${errorCount} conexão(ões) com erro`
+    : "Open Finance: Sem conexões";
 
   const { data: profile } = useQuery({
     queryKey: ["user-profile", user?.id],
@@ -112,6 +133,28 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center gap-1 md:gap-1.5">
+        {/* Open Finance status indicator */}
+        {hasItems && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate("/open-finance-monitor")}
+                className="h-8 w-8 md:h-9 md:w-9 hover:bg-sidebar-accent/40 rounded-lg transition-all duration-200 relative"
+              >
+                <Radio className={`h-4 w-4 ${ofStatusColor}`} />
+                {overallStatus === "error" && (
+                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive animate-pulse" />
+                )}
+                <span className="sr-only">Open Finance Status</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              {ofStatusLabel}
+            </TooltipContent>
+          </Tooltip>
+        )}
         {/* Eye toggle */}
         <Button
           variant="ghost"
