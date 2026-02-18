@@ -121,6 +121,7 @@ export function usePlanLimits() {
    * UX-only hint: indicates if the user is likely over the limit.
    * NOT a security gate — backend triggers and edge functions enforce actual limits.
    * Use this to disable buttons / show warnings in the UI.
+   * When over limit, opens the upgrade modal automatically.
    */
   const canPerformAction = (action: "transaction" | "ai" | "connection") => {
     if (!usageQuery.data) return true; // Allow by default while loading
@@ -134,10 +135,25 @@ export function usePlanLimits() {
     }
   };
 
+  /**
+   * Same check as canPerformAction but opens the upgrade modal when blocked.
+   * Use this on button clicks that should trigger the modal.
+   */
+  const canPerformOrUpgrade = (action: "transaction" | "ai" | "connection", openModal?: (trigger: string) => void) => {
+    const can = canPerformAction(action);
+    if (!can && openModal) {
+      const triggerMap = { transaction: "transactions", ai: "ai", connection: "connections" } as const;
+      openModal(triggerMap[action]);
+    }
+    return can;
+  };
+
   return {
     usage: usageQuery.data,
     isLoading: usageQuery.isLoading,
     /** UX hint only — backend is the source of truth for enforcement */
     canPerformAction,
+    /** Same as canPerformAction but opens upgrade modal when blocked */
+    canPerformOrUpgrade,
   };
 }
