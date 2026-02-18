@@ -8,8 +8,8 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { BaseFilterProvider } from "@/contexts/BaseFilterContext";
 import { ValuesVisibilityProvider } from "@/contexts/ValuesVisibilityContext";
 import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
-import { Suspense, lazy } from "react";
-import { Loader2 } from "lucide-react";
+import { Suspense, lazy, Component, ErrorInfo, ReactNode } from "react";
+import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { IOSInstallPrompt } from "@/components/pwa/IOSInstallPrompt";
 
 // Critical pages - eagerly loaded
@@ -51,7 +51,64 @@ const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
 const Lgpd = lazy(() => import("./pages/Lgpd"));
 const ConsentReaccept = lazy(() => import("./pages/ConsentReaccept"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 2 * 60 * 1000,
+      retry: (failureCount, error: any) => {
+        if (error?.status >= 400 && error?.status < 500) return false;
+        return failureCount < 2;
+      },
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      retry: false,
+      onError: (error: any) => {
+        console.error("[Mutation Error]", error);
+      },
+    },
+  },
+});
+
+class GlobalErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("[GlobalErrorBoundary]", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-6 text-center">
+          <AlertTriangle className="h-12 w-12 text-destructive" />
+          <h1 className="text-xl font-semibold text-foreground">Algo deu errado</h1>
+          <p className="max-w-md text-sm text-muted-foreground">
+            Ocorreu um erro inesperado. Tente recarregar a página.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Recarregar página
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const PageLoader = () => (
   <div className="flex min-h-screen items-center justify-center">
@@ -60,6 +117,7 @@ const PageLoader = () => (
 );
 
 const App = () => (
+  <GlobalErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <AuthProvider>
@@ -73,40 +131,7 @@ const App = () => (
               <Suspense fallback={<PageLoader />}>
                 <OnboardingGuard>
                   <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/onboarding" element={<Onboarding />} />
-                    <Route path="/admin" element={<Admin />} />
-                    <Route path="/extrato" element={<Extrato />} />
-                    <Route path="/transacoes" element={<Transacoes />} />
-                    <Route path="/receitas" element={<Receitas />} />
-                    <Route path="/despesas" element={<Despesas />} />
-                    <Route path="/movimentacoes" element={<Movimentacoes />} />
-                    <Route path="/cadastros" element={<Cadastros />} />
-                    <Route path="/contas" element={<Contas />} />
-                    <Route path="/categorias" element={<Categorias />} />
-                    <Route path="/centros-custo" element={<CentrosCusto />} />
-                    <Route path="/regras-conciliacao" element={<RegrasConciliacao />} />
-                    <Route path="/orcamentos" element={<Orcamentos />} />
-                    <Route path="/pendencias" element={<Pendencias />} />
-                    <Route path="/analise-orcamento" element={<AnaliseOrcamento />} />
-                    <Route path="/relatorios" element={<Relatorios />} />
-                    <Route path="/dre" element={<RelatorioDRE />} />
-                    <Route path="/demonstrativo-financeiro" element={<DemonstrativoFinanceiro />} />
-                    <Route path="/fluxo-caixa" element={<RelatorioFluxoCaixa />} />
-                    <Route path="/importacoes" element={<Importacoes />} />
-                    <Route path="/perfil" element={<Perfil />} />
-                    <Route path="/padroes-aprendidos" element={<PadroesAprendidos />} />
-                    <Route path="/documentacao" element={<Documentacao />} />
-                    <Route path="/open-finance" element={<OpenFinance />} />
-                    <Route path="/callback-klavi" element={<CallbackKlavi />} />
-                    <Route path="/cartoes" element={<CartoesCredito />} />
-                    <Route path="/cartao/:accountId" element={<CartaoCredito />} />
-                    <Route path="/open-finance-monitor" element={<OpenFinanceMonitor />} />
-                    <Route path="/termos-de-uso" element={<TermosDeUso />} />
-                    <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
-                    <Route path="/lgpd" element={<Lgpd />} />
-                    <Route path="/consent-reaccept" element={<ConsentReaccept />} />
+...
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </OnboardingGuard>
@@ -118,6 +143,7 @@ const App = () => (
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
+  </GlobalErrorBoundary>
 );
 
 export default App;
