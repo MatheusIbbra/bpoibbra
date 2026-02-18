@@ -12,6 +12,7 @@ interface AnalysisRequest {
   system_instruction?: string;
   temperature?: number;
   max_tokens?: number;
+  organization_id?: string;
 }
 
 Deno.serve(async (req) => {
@@ -30,6 +31,8 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -59,6 +62,7 @@ Deno.serve(async (req) => {
       system_instruction,
       temperature = 0.3,
       max_tokens = 1024,
+      organization_id,
     } = body;
 
     if (!prompt) {
@@ -66,6 +70,57 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: "prompt is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // ── Backend enforcement: check AI request limits ──
+    if (organization_id) {
+      const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+      // Get plan limit
+      const { data: sub } = await adminClient
+        .from("organization_subscriptions")
+        .select("plan_id, plans!inner(max_ai_requests)")
+        .eq("organization_id", organization_id)
+        .eq("status", "active")
+        .maybeSingle();
+
+      const maxAI = (sub?.plans as any)?.max_ai_requests ?? 50;
+
+      // Count AI requests this month
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { count: aiCount } = await adminClient
+        .from("api_usage_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", organization_id)
+        .eq("endpoint", "ai")
+        .gte("created_at", startOfMonth.toISOString());
+
+      const currentAI = aiCount || 0;
+
+      if (currentAI >= maxAI) {
+        console.log(`[generate-ai-analysis] AI limit reached for org ${organization_id}: ${currentAI}/${maxAI}`);
+
+        // Log the blocked request
+        await adminClient.from("api_usage_logs").insert({
+          organization_id,
+          endpoint: "ai",
+          tokens_used: 0,
+          request_metadata: { blocked: true, reason: "plan_limit_exceeded" },
+        });
+
+        return new Response(
+          JSON.stringify({
+            error: "Limite de requisições de IA atingido",
+            reason: `Limite mensal atingido (${currentAI}/${maxAI}). Faça upgrade do plano para continuar.`,
+            current: currentAI,
+            limit: maxAI,
+          }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     const messages: Array<{ role: string; content: string }> = [];
@@ -121,6 +176,17 @@ Deno.serve(async (req) => {
     const aiData = await aiResponse.json();
     const textContent = aiData.choices?.[0]?.message?.content || "";
     const tokenUsage = aiData.usage?.total_tokens || 0;
+
+    // Log successful AI usage
+    if (organization_id) {
+      const adminClient = createClient(supabaseUrl, serviceRoleKey);
+      await adminClient.from("api_usage_logs").insert({
+        organization_id,
+        endpoint: "ai",
+        tokens_used: tokenUsage,
+        request_metadata: { model: aiData.model || "google/gemini-3-flash-preview" },
+      });
+    }
 
     console.log(`[generate-ai-analysis] Response received (${tokenUsage} tokens)`);
 
