@@ -67,12 +67,17 @@ export default function OpenFinanceMonitor() {
   const triggerSync = async (itemId: string) => {
     setSyncingItemId(itemId);
     try {
+      const item = items?.find(i => i.id === itemId);
+      if (!item) throw new Error('Item não encontrado');
       const { error } = await supabase.functions.invoke('pluggy-sync', {
-        body: { item_id: itemId, sync_type: 'full' }
+        body: { 
+          organization_id: item.organization_id, 
+          item_id: item.pluggy_item_id 
+        }
       });
       if (error) throw error;
       toast.success('Sincronização iniciada com sucesso!');
-      refetchItems();
+      await Promise.all([refetchItems(), refetchLogs()]);
     } catch (error: any) {
       toast.error('Erro ao sincronizar: ' + error.message);
     } finally {
