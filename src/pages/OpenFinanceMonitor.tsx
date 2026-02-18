@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
 import { 
-  Activity, CheckCircle2, XCircle, Clock, RefreshCw, AlertTriangle, Building2, X
+  Activity, CheckCircle2, XCircle, Clock, RefreshCw, AlertTriangle, Building2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,9 +11,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { toast } from 'sonner';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
+const HOURS_24 = 24 * 60 * 60 * 1000;
 
 export default function OpenFinanceMonitor() {
-  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [syncingItemId, setSyncingItemId] = useState<string | null>(null);
 
   const { data: items, refetch: refetchItems } = useQuery({
     queryKey: ['open-finance-items'],
@@ -32,9 +38,9 @@ export default function OpenFinanceMonitor() {
     queryFn: async () => {
       const { data } = await supabase
         .from('open_finance_sync_logs')
-        .select('*')
+        .select('*, open_finance_items!open_finance_sync_logs_item_id_fkey(institution_name)')
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(100);
       return data || [];
     },
     refetchInterval: 10000
@@ -51,15 +57,25 @@ export default function OpenFinanceMonitor() {
     ? ((metrics.connected / metrics.total) * 100).toFixed(1)
     : '0';
 
+  // Items not synced in 24h+
+  const staleItems = items?.filter(i => {
+    if (!i.last_sync_at) return true;
+    return Date.now() - new Date(i.last_sync_at).getTime() > HOURS_24;
+  }) || [];
+
   const triggerSync = async (itemId: string) => {
+    setSyncingItemId(itemId);
     try {
       const { error } = await supabase.functions.invoke('pluggy-sync', {
         body: { item_id: itemId, sync_type: 'full' }
       });
       if (error) throw error;
       toast.success('Sincronização iniciada com sucesso!');
+      refetchItems();
     } catch (error: any) {
       toast.error('Erro ao sincronizar: ' + error.message);
+    } finally {
+      setSyncingItemId(null);
     }
   };
 
@@ -70,6 +86,26 @@ export default function OpenFinanceMonitor() {
     error: { label: 'Erro', variant: 'destructive' },
     disconnected: { label: 'Desconectado', variant: 'outline' },
   };
+
+  const getElapsedText = (dateStr: string | null) => {
+    if (!dateStr) return 'Nunca sincronizado';
+    return formatDistanceToNow(new Date(dateStr), { addSuffix: true, locale: ptBR });
+  };
+
+  const isStale = (lastSyncAt: string | null) => {
+    if (!lastSyncAt) return true;
+    return Date.now() - new Date(lastSyncAt).getTime() > HOURS_24;
+  };
+
+  // Get logs for a specific item
+  const getItemLogs = (itemId: string) => {
+    return (syncLogs || [])
+      .filter((log: any) => log.item_id === itemId)
+      .slice(0, 10);
+  };
+
+  const selectedItem = items?.find(i => i.id === selectedItemId);
+  const selectedItemLogs = selectedItemId ? getItemLogs(selectedItemId) : [];
 
   return (
     <AppLayout>
@@ -85,6 +121,18 @@ export default function OpenFinanceMonitor() {
             Atualizar
           </Button>
         </div>
+
+        {/* Stale alert */}
+        {staleItems.length > 0 && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Conexões desatualizadas</AlertTitle>
+            <AlertDescription>
+              {staleItems.length} conexão(ões) não sincroniza(m) há mais de 24 horas:{' '}
+              <strong>{staleItems.map(i => i.institution_name).join(', ')}</strong>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Metrics */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -154,7 +202,7 @@ export default function OpenFinanceMonitor() {
                 <TableRow>
                   <TableHead>Instituição</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Último Sync</TableHead>
+                  <TableHead>Última Sincronização</TableHead>
                   <TableHead>Produtos</TableHead>
                   <TableHead>Falhas</TableHead>
                   <TableHead>Ações</TableHead>
@@ -163,8 +211,9 @@ export default function OpenFinanceMonitor() {
               <TableBody>
                 {items?.map(item => {
                   const sc = statusConfig[item.status] || statusConfig.pending;
+                  const stale = isStale(item.last_sync_at);
                   return (
-                    <TableRow key={item.id}>
+                    <TableRow key={item.id} className={stale && item.status !== 'error' ? 'bg-yellow-500/5' : ''}>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -177,10 +226,23 @@ export default function OpenFinanceMonitor() {
                       <TableCell>
                         <Badge variant={sc.variant}>{sc.label}</Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {item.last_sync_at
-                          ? new Date(item.last_sync_at).toLocaleString('pt-BR')
-                          : 'Nunca'}
+                      <TableCell>
+                        <div>
+                          <p className={`text-sm ${stale ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                            {getElapsedText(item.last_sync_at)}
+                          </p>
+                          {item.last_sync_at && (
+                            <p className="text-[10px] text-muted-foreground">
+                              {new Date(item.last_sync_at).toLocaleString('pt-BR')}
+                            </p>
+                          )}
+                          {stale && (
+                            <Badge variant="outline" className="mt-1 text-[10px] border-yellow-500 text-yellow-600">
+                              <AlertTriangle className="h-2.5 w-2.5 mr-1" />
+                              +24h sem sync
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
@@ -199,10 +261,20 @@ export default function OpenFinanceMonitor() {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button size="sm" variant="default" onClick={() => triggerSync(item.id)}>
-                            Sincronizar
+                          <Button 
+                            size="sm" 
+                            variant="default" 
+                            onClick={() => triggerSync(item.id)}
+                            disabled={syncingItemId === item.id}
+                          >
+                            {syncingItemId === item.id ? (
+                              <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-3 w-3 mr-1" />
+                            )}
+                            Forçar Sync
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => setSelectedItem(item)}>
+                          <Button size="sm" variant="outline" onClick={() => setSelectedItemId(item.id)}>
                             Detalhes
                           </Button>
                         </div>
@@ -222,13 +294,13 @@ export default function OpenFinanceMonitor() {
           </CardContent>
         </Card>
 
-        {/* Sync Logs */}
+        {/* Global Sync Logs */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Histórico de Sincronizações</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {syncLogs?.map(log => (
+          <CardContent className="space-y-2 max-h-[400px] overflow-y-auto">
+            {syncLogs?.slice(0, 30).map((log: any) => (
               <div key={log.id} className="flex items-center justify-between p-3 rounded-lg border">
                 <div className="flex items-center gap-3">
                   {log.status === 'success' && <CheckCircle2 className="h-4 w-4 text-green-500" />}
@@ -236,10 +308,10 @@ export default function OpenFinanceMonitor() {
                   {log.status !== 'success' && log.status !== 'failed' && <Clock className="h-4 w-4 text-yellow-500" />}
                   <div>
                     <p className="text-sm font-medium">
-                      {log.sync_type?.toUpperCase()} — {log.status}
+                      {log.open_finance_items?.institution_name || log.sync_type?.toUpperCase()} — {log.status}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(log.started_at).toLocaleString('pt-BR')}
+                      {getElapsedText(log.started_at)} · {new Date(log.started_at).toLocaleString('pt-BR')}
                     </p>
                   </div>
                 </div>
@@ -255,11 +327,11 @@ export default function OpenFinanceMonitor() {
           </CardContent>
         </Card>
 
-        {/* Details Dialog */}
-        <Dialog open={!!selectedItem} onOpenChange={() => setSelectedItem(null)}>
-          <DialogContent>
+        {/* Details Dialog with per-item logs */}
+        <Dialog open={!!selectedItem} onOpenChange={() => setSelectedItemId(null)}>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Detalhes da Conexão</DialogTitle>
+              <DialogTitle>Detalhes — {selectedItem?.institution_name}</DialogTitle>
             </DialogHeader>
             {selectedItem && (
               <div className="space-y-4">
@@ -277,8 +349,8 @@ export default function OpenFinanceMonitor() {
                     <p className="font-medium">{selectedItem.execution_status || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Frequência</p>
-                    <p className="font-medium">{selectedItem.sync_frequency || 'daily'}</p>
+                    <p className="text-muted-foreground">Última Sync</p>
+                    <p className="font-medium">{getElapsedText(selectedItem.last_sync_at)}</p>
                   </div>
                   {selectedItem.error_message && (
                     <div className="col-span-2">
@@ -286,19 +358,43 @@ export default function OpenFinanceMonitor() {
                       <p className="text-destructive text-sm">{selectedItem.error_message}</p>
                     </div>
                   )}
-                  <div>
-                    <p className="text-muted-foreground">Criado em</p>
-                    <p className="text-sm">{new Date(selectedItem.created_at).toLocaleString('pt-BR')}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Atualizado em</p>
-                    <p className="text-sm">{new Date(selectedItem.updated_at).toLocaleString('pt-BR')}</p>
+                </div>
+
+                {/* Per-item sync logs */}
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Últimos 10 eventos de sync</h4>
+                  <div className="space-y-1.5 max-h-[250px] overflow-y-auto">
+                    {selectedItemLogs.length > 0 ? selectedItemLogs.map((log: any) => (
+                      <div key={log.id} className="flex items-center justify-between p-2 rounded border text-xs">
+                        <div className="flex items-center gap-2">
+                          {log.status === 'success' ? (
+                            <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
+                          ) : log.status === 'failed' ? (
+                            <XCircle className="h-3 w-3 text-destructive shrink-0" />
+                          ) : (
+                            <Clock className="h-3 w-3 text-yellow-500 shrink-0" />
+                          )}
+                          <span>{log.sync_type} — {log.status}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-muted-foreground">
+                          <span>{log.records_imported}/{log.records_fetched}</span>
+                          <span>{getElapsedText(log.started_at)}</span>
+                        </div>
+                      </div>
+                    )) : (
+                      <p className="text-muted-foreground text-xs py-2">Nenhum log para esta conexão</p>
+                    )}
                   </div>
                 </div>
+
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setSelectedItem(null)}>Fechar</Button>
-                  <Button onClick={() => { triggerSync(selectedItem.id); setSelectedItem(null); }}>
-                    Sincronizar Agora
+                  <Button variant="outline" onClick={() => setSelectedItemId(null)}>Fechar</Button>
+                  <Button 
+                    onClick={() => { triggerSync(selectedItem.id); setSelectedItemId(null); }}
+                    disabled={syncingItemId === selectedItem.id}
+                  >
+                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                    Forçar Sincronização
                   </Button>
                 </div>
               </div>
