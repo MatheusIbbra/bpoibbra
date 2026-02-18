@@ -341,7 +341,8 @@ export function BankConnectionsManager() {
   }
 
   const activeConnections = connections?.filter(c => c.status === 'active') || [];
-  const inactiveConnections = connections?.filter(c => c.status !== 'active') || [];
+  // Hide disconnected accounts - only show non-active that are not disconnected
+  const inactiveConnections = connections?.filter(c => c.status !== 'active' && c.status !== 'disconnected') || [];
 
   return (
     <>

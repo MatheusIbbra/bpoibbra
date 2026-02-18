@@ -5,17 +5,36 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// Simple XOR encryption for tokens (in production, use a proper encryption library)
-function encryptToken(token: string, key: string): string {
-  const keyBytes = new TextEncoder().encode(key);
-  const tokenBytes = new TextEncoder().encode(token);
-  const encrypted = new Uint8Array(tokenBytes.length);
+// AES-256-GCM authenticated encryption
+async function encryptToken(token: string, keyMaterial: string): Promise<string> {
+  const encoder = new TextEncoder();
   
-  for (let i = 0; i < tokenBytes.length; i++) {
-    encrypted[i] = tokenBytes[i] ^ keyBytes[i % keyBytes.length];
-  }
+  // Derive a proper AES-256 key from the secret using SHA-256
+  const rawKey = await crypto.subtle.digest('SHA-256', encoder.encode(keyMaterial));
+  const key = await crypto.subtle.importKey(
+    'raw',
+    rawKey,
+    { name: 'AES-GCM' },
+    false,
+    ['encrypt']
+  );
   
-  return btoa(String.fromCharCode(...encrypted));
+  // Generate random 12-byte IV
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  
+  // Encrypt with AES-GCM (includes authentication tag)
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    encoder.encode(token)
+  );
+  
+  // Combine IV + ciphertext and base64 encode
+  const combined = new Uint8Array(iv.length + encrypted.byteLength);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(encrypted), iv.length);
+  
+  return btoa(String.fromCharCode(...combined));
 }
 
 Deno.serve(async (req) => {
@@ -112,17 +131,17 @@ Deno.serve(async (req) => {
     const tokenData = await tokenResponse.json();
     console.log('Token exchange successful');
 
-    // Encrypt tokens before storage
+    // Encrypt tokens with AES-256-GCM before storage
     const encryptionKey = KLAVI_CLIENT_SECRET; // Use a dedicated key in production
-    const accessTokenEncrypted = encryptToken(tokenData.access_token, encryptionKey);
+    const accessTokenEncrypted = await encryptToken(tokenData.access_token, encryptionKey);
     const refreshTokenEncrypted = tokenData.refresh_token 
-      ? encryptToken(tokenData.refresh_token, encryptionKey)
+      ? await encryptToken(tokenData.refresh_token, encryptionKey)
       : null;
 
     // Calculate token expiration
     const expiresAt = new Date(Date.now() + (tokenData.expires_in || 3600) * 1000);
 
-    // Create bank connection
+    // Create bank connection (encryption_version=2 for AES-GCM)
     const { data: connection, error: connectionError } = await supabaseAdmin
       .from('bank_connections')
       .insert({
@@ -135,6 +154,7 @@ Deno.serve(async (req) => {
         access_token_encrypted: accessTokenEncrypted,
         refresh_token_encrypted: refreshTokenEncrypted,
         token_expires_at: expiresAt.toISOString(),
+        encryption_version: 2,
         status: 'active',
         metadata: {
           scope: tokenData.scope,
