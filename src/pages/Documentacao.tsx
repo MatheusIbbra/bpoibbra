@@ -53,7 +53,7 @@ export default function Documentacao() {
               <p className="text-lg text-muted-foreground">Sistema de Gestão Financeira Multi-Tenant</p>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground">Documentação Técnica v5.0 • Fevereiro 2026</p>
+          <p className="text-sm text-muted-foreground">Documentação Técnica v9.0 • Fevereiro 2026</p>
         </div>
 
         <Separator />
@@ -285,11 +285,11 @@ export default function Documentacao() {
         <div className="text-center py-8 text-sm text-muted-foreground">
           <Separator className="mb-4" />
           <p>IBBRA - Sistema de Gestão Financeira Multi-Tenant</p>
-          <p>Documentação gerada automaticamente • v5.0</p>
+          <p>Documentação gerada automaticamente • v9.0</p>
           <div className="flex justify-center gap-3 mt-3">
-            <a href="/docs/IBBRA-SYSTEM-DOCUMENTATION-V5.md" target="_blank" className="text-xs text-accent underline hover:no-underline">Documentação Completa (Markdown)</a>
+            <a href="/docs/IBBRA-SYSTEM-DOCUMENTATION-V9.md" target="_blank" className="text-xs text-accent underline hover:no-underline">Documentação Completa (Markdown)</a>
             <span className="text-xs text-muted-foreground">•</span>
-            <a href="/docs/IBBRA-RECREATION-PROMPT-V4.md" target="_blank" className="text-xs text-accent underline hover:no-underline">Prompt de Recriação</a>
+            <a href="/docs/IBBRA-RECREATION-PROMPT-V8.md" target="_blank" className="text-xs text-accent underline hover:no-underline">Prompt de Recriação</a>
           </div>
         </div>
       </div>
