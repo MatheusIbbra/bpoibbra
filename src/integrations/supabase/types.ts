@@ -1555,6 +1555,51 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_registrations: {
+        Row: {
+          address: string | null
+          birth_date: string | null
+          cpf: string | null
+          created_at: string
+          expires_at: string
+          family_members: Json | null
+          full_name: string | null
+          id: string
+          is_ibbra_client: boolean | null
+          phone: string | null
+          session_token: string
+          validated: boolean | null
+        }
+        Insert: {
+          address?: string | null
+          birth_date?: string | null
+          cpf?: string | null
+          created_at?: string
+          expires_at?: string
+          family_members?: Json | null
+          full_name?: string | null
+          id?: string
+          is_ibbra_client?: boolean | null
+          phone?: string | null
+          session_token?: string
+          validated?: boolean | null
+        }
+        Update: {
+          address?: string | null
+          birth_date?: string | null
+          cpf?: string | null
+          created_at?: string
+          expires_at?: string
+          family_members?: Json | null
+          full_name?: string | null
+          id?: string
+          is_ibbra_client?: boolean | null
+          phone?: string | null
+          session_token?: string
+          validated?: boolean | null
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           allow_anomaly_detection: boolean
@@ -2596,6 +2641,7 @@ export type Database = {
         Returns: boolean
       }
       cleanup_expired_oauth_states: { Args: never; Returns: number }
+      cleanup_expired_pending_registrations: { Args: never; Returns: undefined }
       complete_onboarding: {
         Args: {
           p_address?: string
