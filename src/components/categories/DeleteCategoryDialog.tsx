@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Category } from "@/hooks/useCategories";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { logAudit } from "@/lib/audit";
 
 interface DeleteCategoryDialogProps {
   category: Category | null;
@@ -137,6 +138,7 @@ export function DeleteCategoryDialog({
       queryClient.invalidateQueries({ queryKey: ["categories-hierarchy"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
 
+      await logAudit("delete", "categories", category.id, { name: category.name, type: category.type }, null, category.organization_id || undefined);
       toast.success("Categoria excluída com sucesso!");
       onDeleted();
       onOpenChange(false);

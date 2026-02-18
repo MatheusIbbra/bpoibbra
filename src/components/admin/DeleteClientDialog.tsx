@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/audit";
 import { useQueryClient } from "@tanstack/react-query";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { toast } from "sonner";
@@ -81,6 +82,7 @@ export function DeleteClientDialog({
       // Refresh the base selector in the header
       refreshOrganizations();
 
+      await logAudit("delete_client", "organizations", organizationId!, { name: clientName }, null, organizationId!);
       toast.success("Cliente excluído permanentemente.");
       setConfirmedName("");
       onDeleted?.();

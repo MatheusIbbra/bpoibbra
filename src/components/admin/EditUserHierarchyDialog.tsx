@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/audit";
 import { toast } from "sonner";
 import { AppRole, ROLE_LABELS } from "@/hooks/useUserRoles";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -132,6 +133,7 @@ export function EditUserHierarchyDialog({ open, onOpenChange, user }: EditUserHi
       queryClient.invalidateQueries({ queryKey: ["viewable-organizations"] });
       queryClient.invalidateQueries({ queryKey: ["all-users-with-roles"] });
 
+      await logAudit("update_hierarchy", "user_hierarchy", user.id, { supervisor_id: user.supervisor_id }, { supervisor_id: selectedSupervisorId || null });
       toast.success("Hierarquia atualizada! Os acessos foram recalculados automaticamente.");
       onOpenChange(false);
     } catch (error: any) {

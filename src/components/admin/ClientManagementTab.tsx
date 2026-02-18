@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/audit";
 import { InviteUserDialog } from "./InviteUserDialog";
 import { ClientDetailDialog } from "./ClientDetailDialog";
 import { useAuth } from "@/contexts/AuthContext";
@@ -671,6 +672,14 @@ export function ClientManagementTab() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["client-organizations-full"] });
       queryClient.invalidateQueries({ queryKey: ["organizations"] });
+      logAudit(
+        variables.block ? "block_organization" : "unblock_organization",
+        "organizations",
+        variables.orgId,
+        { is_blocked: !variables.block },
+        { is_blocked: variables.block, blocked_reason: variables.reason || null },
+        variables.orgId
+      );
       toast.success(variables.block ? "Base bloqueada! Acesso suspenso." : "Base desbloqueada! Acesso restaurado.");
       setBlockDialog({ open: false, org: null, action: "block" });
       setBlockReason("");

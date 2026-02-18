@@ -875,33 +875,51 @@ export default function Admin() {
 
 // Audit Log Component
 function AuditLogTab({ logs, loading }: { logs: AuditLogEntry[]; loading: boolean }) {
+  const [actionFilter, setActionFilter] = useState("");
+  const [userFilter, setUserFilter] = useState("");
+  const [tableFilter, setTableFilter] = useState("");
+
   const getActionIcon = (action: string) => {
     switch (action.toLowerCase()) {
       case "create":
       case "insert":
+      case "import_complete":
         return <Plus className="h-4 w-4 text-primary" />;
       case "update":
       case "edit":
+      case "update_hierarchy":
+      case "change_role":
         return <Edit className="h-4 w-4 text-blue-500" />;
       case "delete":
       case "remove":
+      case "delete_client":
+      case "delete_import_batch":
         return <Trash2 className="h-4 w-4 text-destructive" />;
+      case "block_user":
+      case "block_organization":
+        return <Lock className="h-4 w-4 text-destructive" />;
+      case "unblock_user":
+      case "unblock_organization":
+        return <Unlock className="h-4 w-4 text-green-600" />;
       default:
         return <FileText className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
   const getActionColor = (action: string) => {
+    if (action.includes("block") && !action.includes("unblock")) return "bg-destructive/10 text-destructive border-destructive/20";
+    if (action.includes("unblock")) return "bg-green-500/10 text-green-600 border-green-200";
+    if (action.includes("delete")) return "bg-destructive/10 text-destructive border-destructive/20";
     switch (action.toLowerCase()) {
       case "create":
       case "insert":
+      case "import_complete":
         return "bg-primary/10 text-primary border-primary/20";
       case "update":
       case "edit":
+      case "update_hierarchy":
+      case "change_role":
         return "bg-blue-500/10 text-blue-600 border-blue-200";
-      case "delete":
-      case "remove":
-        return "bg-destructive/10 text-destructive border-destructive/20";
       default:
         return "bg-muted text-muted-foreground";
     }
@@ -919,9 +937,23 @@ function AuditLogTab({ logs, loading }: { logs: AuditLogEntry[]; loading: boolea
       user_roles: "Permissões",
       profiles: "Perfis",
       import_batches: "Importações",
+      user_hierarchy: "Hierarquia",
+      reconciliation_rules: "Regras Conciliação",
     };
     return translations[name] || name;
   };
+
+  // Get unique values for filters
+  const uniqueActions = [...new Set(logs.map(l => l.action))].sort();
+  const uniqueTables = [...new Set(logs.map(l => l.table_name))].sort();
+  const uniqueUsers = [...new Set(logs.map(l => l.user_name).filter(Boolean))].sort();
+
+  const filteredLogs = logs.filter(log => {
+    if (actionFilter && log.action !== actionFilter) return false;
+    if (tableFilter && log.table_name !== tableFilter) return false;
+    if (userFilter && log.user_name !== userFilter) return false;
+    return true;
+  });
 
   if (loading) {
     return (
@@ -936,30 +968,78 @@ function AuditLogTab({ logs, loading }: { logs: AuditLogEntry[]; loading: boolea
   return (
     <Card>
       <CardHeader className="border-b bg-muted/30">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <History className="h-5 w-5" />
-              Log de Auditoria
-            </CardTitle>
-            <CardDescription>
-              Histórico de ações realizadas no sistema
-            </CardDescription>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <History className="h-5 w-5" />
+                Log de Auditoria
+              </CardTitle>
+              <CardDescription>
+                {filteredLogs.length} de {logs.length} eventos
+              </CardDescription>
+            </div>
+          </div>
+          {/* Filters */}
+          <div className="flex flex-wrap gap-2">
+            <Select value={actionFilter} onValueChange={setActionFilter}>
+              <SelectTrigger className="w-[160px] h-8 text-xs">
+                <SelectValue placeholder="Ação" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Todas ações</SelectItem>
+                {uniqueActions.map(a => (
+                  <SelectItem key={a} value={a} className="text-xs">{a}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={tableFilter} onValueChange={setTableFilter}>
+              <SelectTrigger className="w-[160px] h-8 text-xs">
+                <SelectValue placeholder="Tabela" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Todas tabelas</SelectItem>
+                {uniqueTables.map(t => (
+                  <SelectItem key={t} value={t} className="text-xs">{formatTableName(t)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={userFilter} onValueChange={setUserFilter}>
+              <SelectTrigger className="w-[160px] h-8 text-xs">
+                <SelectValue placeholder="Usuário" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Todos usuários</SelectItem>
+                {uniqueUsers.map(u => (
+                  <SelectItem key={u!} value={u!} className="text-xs">{u}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {(actionFilter || tableFilter || userFilter) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() => { setActionFilter(""); setTableFilter(""); setUserFilter(""); }}
+              >
+                Limpar filtros
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        {logs.length === 0 ? (
+        {filteredLogs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <History className="h-12 w-12 text-muted-foreground/50 mb-4" />
             <p className="font-medium">Nenhuma atividade registrada</p>
             <p className="text-sm text-muted-foreground">
-              Ações dos usuários aparecerão aqui
+              {logs.length > 0 ? "Tente ajustar os filtros" : "Ações dos usuários aparecerão aqui"}
             </p>
           </div>
         ) : (
           <div className="divide-y">
-            {logs.map((log) => (
+            {filteredLogs.map((log) => (
               <div key={log.id} className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-muted/30 transition-colors">
                 <div className={`mt-1 h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${getActionColor(log.action)}`}>
                   {getActionIcon(log.action)}
