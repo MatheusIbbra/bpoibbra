@@ -79,45 +79,69 @@ export default function Onboarding() {
 
   const allConsentsAccepted = acceptTerms && acceptPrivacy && acceptLgpd;
 
-  // Load existing data from localStorage (Google OAuth or manual registration) or profile
+  // Load existing data from pending_registrations table (replaces localStorage for security)
   useEffect(() => {
     if (!user) return;
 
-    const regDataStr = localStorage.getItem("ibbra_registration");
-    if (regDataStr) {
-      try {
-        const regData = JSON.parse(regDataStr);
-        if (regData.isIbbraClient !== undefined) setIsIbbraClient(regData.isIbbraClient);
-        if (regData.cpf) setCpf(formatCPF(regData.cpf));
-        if (regData.fullName) setFullName(regData.fullName);
-        if (regData.birthDate) setBirthDate(regData.birthDate);
-        if (regData.phone) setPhone(regData.phone);
-        if (regData.address) setAddress(regData.address);
-        if (regData.validated) {
-          setValidationResult({ found: true, full_name: regData.fullName, birth_date: regData.birthDate });
-        }
-        // Load family members if saved from registration
-        if (regData.familyMembers && Array.isArray(regData.familyMembers) && regData.familyMembers.length > 0) {
-          setFamilyMembers(regData.familyMembers.map((m: any) => ({
-            relationship: m.relationship || "",
-            full_name: m.full_name || "",
-            age: m.age?.toString() || "",
-            phone: m.phone || "",
-            email: m.email || "",
-          })));
-        }
-        setStep("profile_form");
-      } catch {
-        localStorage.removeItem("ibbra_registration");
-      }
-    }
+    const loadPendingRegistration = async () => {
+      const token = localStorage.getItem("ibbra_reg_token");
+      if (token) {
+        try {
+          const { data: regData, error } = await (supabase as any)
+            .from("pending_registrations")
+            .select("*")
+            .eq("session_token", token)
+            .maybeSingle();
 
-    if (!fullName && user.user_metadata?.full_name) {
-      setFullName(user.user_metadata.full_name);
-    }
-    if (!fullName && user.user_metadata?.name) {
-      setFullName(user.user_metadata.name);
-    }
+          if (!error && regData && new Date(regData.expires_at) > new Date()) {
+            if (regData.is_ibbra_client !== undefined) setIsIbbraClient(regData.is_ibbra_client);
+            if (regData.cpf) setCpf(formatCPF(regData.cpf));
+            if (regData.full_name) setFullName(regData.full_name);
+            if (regData.birth_date) setBirthDate(regData.birth_date);
+            if (regData.phone) setPhone(regData.phone);
+            if (regData.address) setAddress(regData.address);
+            if (regData.validated) {
+              setValidationResult({ found: true, full_name: regData.full_name || "", birth_date: regData.birth_date || "" });
+            }
+            // Load family members if saved
+            const fm = regData.family_members as any[];
+            if (fm && Array.isArray(fm) && fm.length > 0) {
+              setFamilyMembers(fm.map((m: any) => ({
+                relationship: m.relationship || "",
+                full_name: m.full_name || "",
+                age: m.age?.toString() || "",
+                phone: m.phone || "",
+                email: m.email || "",
+              })));
+            }
+            setStep("profile_form");
+
+            // Delete the pending registration after consuming it
+            await (supabase as any)
+              .from("pending_registrations")
+              .delete()
+              .eq("session_token", token);
+          }
+
+          // Always clean up the token from localStorage
+          localStorage.removeItem("ibbra_reg_token");
+        } catch {
+          localStorage.removeItem("ibbra_reg_token");
+        }
+      }
+
+      // Fallback: also clean up legacy localStorage key if present
+      localStorage.removeItem("ibbra_registration");
+
+      if (!fullName && user.user_metadata?.full_name) {
+        setFullName(user.user_metadata.full_name);
+      }
+      if (!fullName && user.user_metadata?.name) {
+        setFullName(user.user_metadata.name);
+      }
+    };
+
+    loadPendingRegistration();
   }, [user]);
 
   // Redirect if not logged in
@@ -290,7 +314,8 @@ export default function Onboarding() {
         })
         .eq("user_id", user.id);
 
-      // Clean up localStorage
+      // Clean up localStorage (both new token and legacy key)
+      localStorage.removeItem("ibbra_reg_token");
       localStorage.removeItem("ibbra_registration");
 
       const orgId = (result as any)?.organization_id;

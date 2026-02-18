@@ -148,16 +148,30 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
     }
   };
 
-  const handleChooseGoogle = () => {
-    // Store IBBRA client info in localStorage so AuthContext can use it after OAuth redirect
-    localStorage.setItem("ibbra_registration", JSON.stringify({
-      isIbbraClient,
-      cpf: cpf.replace(/\D/g, ""),
-      fullName: validationResult?.found ? fullName : undefined,
-      birthDate: validationResult?.found ? birthDate : undefined,
-      validated: validationResult?.found || false,
-    }));
-    onGoogleSignUp?.();
+  const handleChooseGoogle = async () => {
+    try {
+      // Store registration data server-side instead of localStorage
+      const { data, error } = await (supabase as any)
+        .from("pending_registrations")
+        .insert({
+          is_ibbra_client: isIbbraClient || false,
+          cpf: cpf.replace(/\D/g, "") || null,
+          full_name: validationResult?.found ? fullName : null,
+          birth_date: validationResult?.found ? birthDate : null,
+          validated: validationResult?.found || false,
+        })
+        .select("session_token")
+        .single();
+
+      if (error) throw error;
+
+      // Only store the opaque token, not sensitive data
+      localStorage.setItem("ibbra_reg_token", data.session_token);
+      onGoogleSignUp?.();
+    } catch (err) {
+      console.error("Error saving pending registration:", err);
+      toast.error("Erro ao preparar cadastro. Tente novamente.");
+    }
   };
 
   const handleChooseManual = () => {
@@ -189,18 +203,27 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
     setIsLoading(true);
 
     try {
-      // Save registration data to localStorage so Onboarding can use it
+      // Save registration data server-side instead of localStorage
       const validMembers = familyMembers.filter(m => m.full_name.trim() && m.relationship);
-      localStorage.setItem("ibbra_registration", JSON.stringify({
-        isIbbraClient,
-        cpf: cpf.replace(/\D/g, ""),
-        fullName,
-        birthDate,
-        phone,
-        address,
-        validated: validationResult?.found || false,
-        familyMembers: validMembers.length > 0 ? validMembers : undefined,
-      }));
+      const { data: pendingReg, error: pendingError } = await (supabase as any)
+        .from("pending_registrations")
+        .insert({
+          is_ibbra_client: isIbbraClient || false,
+          cpf: cpf.replace(/\D/g, "") || null,
+          full_name: fullName || null,
+          birth_date: birthDate || null,
+          phone: phone || null,
+          address: address || null,
+          validated: validationResult?.found || false,
+          family_members: validMembers.length > 0 ? validMembers : null,
+        })
+        .select("session_token")
+        .single();
+
+      if (pendingError) throw pendingError;
+
+      // Only store the opaque token
+      localStorage.setItem("ibbra_reg_token", pendingReg.session_token);
 
       const { data, error } = await supabase.auth.signUp({
         email,
