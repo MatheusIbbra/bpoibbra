@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, PieChart as PieChartIcon, ChevronDown, ChevronUp } from "lucide-react";
+import { PieChart as PieChartIcon, ChevronDown, ChevronUp } from "lucide-react";
+import { SkeletonCard } from "@/components/common/SkeletonCard";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Sector } from "recharts";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
@@ -87,9 +88,7 @@ export function CategoryDonutChart() {
       </CardHeader>
       <CardContent className="px-4 pb-3">
         {isLoading ? (
-          <div className="flex items-center justify-center h-[200px]">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
+          <DonutSkeletonInline />
         ) : (
           <div className="space-y-4">
             <DonutSection title="Receitas" data={incomeData} type="income" />
@@ -98,6 +97,33 @@ export function CategoryDonutChart() {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function DonutSkeletonInline() {
+  return (
+    <div className="space-y-4">
+      {["Receitas", "Despesas"].map((label) => (
+        <div key={label}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="h-3 w-16 rounded-md bg-gradient-to-r from-muted/60 via-muted/30 to-muted/60 bg-[length:200%_100%] animate-[shimmer_1.8s_ease-in-out_infinite]" />
+            <div className="h-3 w-24 rounded-md bg-gradient-to-r from-muted/60 via-muted/30 to-muted/60 bg-[length:200%_100%] animate-[shimmer_1.8s_ease-in-out_infinite]" />
+          </div>
+          <div className="flex items-start gap-4">
+            <div className="h-[100px] w-[100px] rounded-full shrink-0 bg-gradient-to-r from-muted/60 via-muted/30 to-muted/60 bg-[length:200%_100%] animate-[shimmer_1.8s_ease-in-out_infinite]" />
+            <div className="space-y-1.5 flex-1 pt-1">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="h-2.5 w-2.5 rounded-full shrink-0 bg-gradient-to-r from-muted/60 via-muted/30 to-muted/60 bg-[length:200%_100%] animate-[shimmer_1.8s_ease-in-out_infinite]" />
+                  <div className="h-2.5 flex-1 rounded-md bg-gradient-to-r from-muted/60 via-muted/30 to-muted/60 bg-[length:200%_100%] animate-[shimmer_1.8s_ease-in-out_infinite]" />
+                  <div className="h-2.5 w-16 shrink-0 rounded-md bg-gradient-to-r from-muted/60 via-muted/30 to-muted/60 bg-[length:200%_100%] animate-[shimmer_1.8s_ease-in-out_infinite]" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 

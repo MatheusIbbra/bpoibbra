@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonCard } from "@/components/common/SkeletonCard";
 import { Badge } from "@/components/ui/badge";
 import { useCashflowForecast } from "@/hooks/useCashflowForecast";
 import { formatCurrency } from "@/lib/formatters";
@@ -13,17 +13,7 @@ export function CashflowForecastCard() {
   const { data: forecast, isLoading } = useCashflowForecast();
 
   if (isLoading) {
-    return (
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-center gap-2">
-            <CalendarClock className="h-4 w-4 text-primary" />
-            <CardTitle className="text-sm font-semibold">Previsão de Caixa</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent><Skeleton className="h-48 w-full" /></CardContent>
-      </Card>
-    );
+    return <SkeletonCard variant="chart" />;
   }
 
   if (!forecast || !forecast.forecast.length) return null;
