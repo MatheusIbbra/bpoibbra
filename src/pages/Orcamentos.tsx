@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,6 +35,8 @@ import { useCategories } from "@/hooks/useCategories";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
+import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const budgetSchema = z.object({
@@ -149,6 +152,12 @@ export default function Orcamentos() {
                 <p className="text-xs text-muted-foreground">Orçamento Total</p>
                 <p className="text-lg font-bold">{formatCurrency(totalBudget)}</p>
               </div>
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">Disponível</p>
+                <p className={cn("text-lg font-bold", (totalBudget - totalSpent) >= 0 ? "text-success" : "text-destructive")}>
+                  {formatCurrency(totalBudget - totalSpent)}
+                </p>
+              </div>
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">Gasto</p>
                 <p className={cn("text-lg font-bold", totalSpent > totalBudget && "text-destructive")}>
@@ -160,8 +169,21 @@ export default function Orcamentos() {
               value={totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0}
               className={cn("h-2", totalSpent > totalBudget && "[&>div]:bg-destructive")}
             />
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-[11px] text-muted-foreground">
+                {totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(0) : 0}% utilizado
+              </p>
+              <Link to="/analise-orcamento">
+                <Badge variant="outline" className="cursor-pointer hover:bg-secondary text-[10px]">
+                  Ver análise completa
+                </Badge>
+              </Link>
+            </div>
           </CardContent>
         </Card>
+
+        {/* Budget Alerts */}
+        <BudgetAlerts showNotifications={false} compact />
 
         {/* Header */}
         <div className="flex items-center justify-between">

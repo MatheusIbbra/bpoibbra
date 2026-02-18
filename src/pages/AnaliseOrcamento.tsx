@@ -203,8 +203,8 @@ export default function AnaliseOrcamento() {
               </Card>
             </div>
 
-            {/* Budget Alerts */}
-            <BudgetAlerts showNotifications={false} />
+            {/* Budget Alerts — minimalista */}
+            <BudgetAlerts showNotifications={false} compact />
 
             {/* Chart */}
             <BudgetVsActualChart month={month} year={year} />

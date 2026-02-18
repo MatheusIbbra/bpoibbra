@@ -19,6 +19,31 @@ import { useBankConnections, useSyncBankConnection, BankConnection } from "@/hoo
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
+// Fallback logo URLs for common Brazilian banks (Pluggy CDN)
+const BANK_LOGO_FALLBACKS: Record<string, string> = {
+  "itaú": "https://cdn.pluggy.ai/assets/connector-icons/201.svg",
+  "itau": "https://cdn.pluggy.ai/assets/connector-icons/201.svg",
+  "bradesco": "https://cdn.pluggy.ai/assets/connector-icons/202.svg",
+  "banco do brasil": "https://cdn.pluggy.ai/assets/connector-icons/001.svg",
+  "caixa": "https://cdn.pluggy.ai/assets/connector-icons/104.svg",
+  "santander": "https://cdn.pluggy.ai/assets/connector-icons/033.svg",
+  "nubank": "https://cdn.pluggy.ai/assets/connector-icons/260.svg",
+  "inter": "https://cdn.pluggy.ai/assets/connector-icons/077.svg",
+  "c6": "https://cdn.pluggy.ai/assets/connector-icons/336.svg",
+  "btg": "https://cdn.pluggy.ai/assets/connector-icons/208.svg",
+  "safra": "https://cdn.pluggy.ai/assets/connector-icons/422.svg",
+  "xp": "https://cdn.pluggy.ai/assets/connector-icons/102.svg",
+};
+
+function getBankLogoUrl(bankName: string, metaLogoUrl?: string | null): string | null {
+  if (metaLogoUrl) return metaLogoUrl;
+  const normalized = bankName.toLowerCase().trim();
+  for (const [key, url] of Object.entries(BANK_LOGO_FALLBACKS)) {
+    if (normalized.includes(key)) return url;
+  }
+  return null;
+}
+
 interface PluggyAccountMeta {
   id: string;
   type: string;
@@ -156,7 +181,7 @@ export function ConnectedAccountsSection({ compact = false }: { compact?: boolea
           const isSyncing = syncingId === connection.id;
           const pluggyAccounts = meta?.pluggy_accounts || [];
           const bankName = meta?.bank_name || connection.provider_name || "Banco";
-          const bankLogo = meta?.bank_logo_url;
+          const bankLogo = getBankLogoUrl(bankName, meta?.bank_logo_url);
 
           const bankAccounts = pluggyAccounts.filter(a => !isCreditCardType(a.type));
           const creditCards = pluggyAccounts.filter(a => isCreditCardType(a.type));
