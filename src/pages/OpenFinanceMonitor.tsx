@@ -40,10 +40,13 @@ export default function OpenFinanceMonitor() {
     queryFn: async () => {
       const { data } = await supabase
         .from('open_finance_sync_logs')
-        .select('*, open_finance_items!open_finance_sync_logs_item_id_fkey(institution_name)')
+        .select('*, open_finance_items!open_finance_sync_logs_item_id_fkey(institution_name, status)')
         .order('created_at', { ascending: false })
         .limit(100);
-      return data || [];
+      // Filter out logs from disconnected items
+      return (data || []).filter((log: any) => 
+        !log.open_finance_items || log.open_finance_items.status !== 'disconnected'
+      );
     },
     refetchInterval: 10000
   });
