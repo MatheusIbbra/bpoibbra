@@ -50,6 +50,7 @@ import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency, parseLocalDate } from "@/lib/formatters";
+import { SkeletonCard } from "@/components/common/SkeletonCard";
 
 export default function Transacoes() {
   const { requiresBaseSelection } = useBaseFilter();
@@ -205,9 +206,7 @@ export default function Transacoes() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
+              <SkeletonCard variant="table" rows={10} />
             ) : transactions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />

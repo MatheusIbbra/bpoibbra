@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import { SkeletonCard } from "@/components/common/SkeletonCard";
 import { useBudgets } from "@/hooks/useBudgets";
 import { useTransactions } from "@/hooks/useTransactions";
 import { startOfMonth, endOfMonth, format } from "date-fns";
@@ -76,8 +76,19 @@ export function BudgetProgress() {
       </CardHeader>
       <CardContent className="space-y-6">
         {isLoading ? (
-          <div className="flex h-40 items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <div className="space-y-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-gradient-to-r from-muted/60 via-muted/30 to-muted/60 bg-[length:200%_100%] animate-[shimmer_1.8s_ease-in-out_infinite]" />
+                    <div className="h-3.5 w-24 rounded-md bg-gradient-to-r from-muted/60 via-muted/30 to-muted/60 bg-[length:200%_100%] animate-[shimmer_1.8s_ease-in-out_infinite]" />
+                  </div>
+                  <div className="h-3.5 w-32 rounded-md bg-gradient-to-r from-muted/60 via-muted/30 to-muted/60 bg-[length:200%_100%] animate-[shimmer_1.8s_ease-in-out_infinite]" />
+                </div>
+                <div className="h-2 w-full rounded-full bg-gradient-to-r from-muted/60 via-muted/30 to-muted/60 bg-[length:200%_100%] animate-[shimmer_1.8s_ease-in-out_infinite]" />
+              </div>
+            ))}
           </div>
         ) : !currentMonthBudgets || currentMonthBudgets.length === 0 ? (
           <div className="flex h-40 items-center justify-center text-muted-foreground">

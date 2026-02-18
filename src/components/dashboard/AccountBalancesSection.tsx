@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonCard } from "@/components/common/SkeletonCard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Wallet,
@@ -14,14 +14,7 @@ export function AccountBalancesSection() {
   const { data: accounts, isLoading } = useAccounts();
 
   if (isLoading) {
-    return (
-      <div className="space-y-3">
-        <Skeleton className="h-6 w-32" />
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-[120px] rounded-xl" />)}
-        </div>
-      </div>
-    );
+    return <SkeletonCard variant="account-balances" />;
   }
 
   // Separate by type, exclude credit cards
