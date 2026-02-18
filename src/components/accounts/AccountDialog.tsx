@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { z } from "zod";
+import { handleSupabaseError } from "@/lib/error-handler";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarIcon, Loader2 } from "lucide-react";
@@ -105,24 +106,33 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
   }, [account, form]);
 
   const onSubmit = async (data: FormData) => {
-    const payload = {
-      name: data.name,
-      bank_name: data.bank_name,
-      account_type: data.account_type as AccountType,
-      currency_code: data.currency_code,
-      initial_balance: data.initial_balance,
-      start_date: data.start_date ? format(data.start_date, "yyyy-MM-dd") : undefined,
-      status: data.status as AccountStatus,
-      color: data.color || "#3b82f6",
-    };
-    
-    if (account) {
-      await updateAccount.mutateAsync({ id: account.id, ...payload });
-    } else {
-      await createAccount.mutateAsync(payload);
+    try {
+      const payload = {
+        name: data.name,
+        bank_name: data.bank_name,
+        account_type: data.account_type as AccountType,
+        currency_code: data.currency_code,
+        initial_balance: data.initial_balance,
+        start_date: data.start_date ? format(data.start_date, "yyyy-MM-dd") : undefined,
+        status: data.status as AccountStatus,
+        color: data.color || "#3b82f6",
+      };
+      
+      if (account) {
+        await updateAccount.mutateAsync({ id: account.id, ...payload });
+      } else {
+        await createAccount.mutateAsync(payload);
+      }
+      onOpenChange(false);
+      form.reset();
+    } catch (error: any) {
+      // Handle unique constraint specifically for duplicate account name
+      if (error?.code === "23505") {
+        handleSupabaseError({ ...error, message: "Já existe uma conta com este nome nesta base." }, "salvar conta");
+      } else {
+        handleSupabaseError(error, "salvar conta");
+      }
     }
-    onOpenChange(false);
-    form.reset();
   };
 
   const isLoading = createAccount.isPending || updateAccount.isPending;

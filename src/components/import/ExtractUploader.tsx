@@ -11,6 +11,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { useCreateImportBatch, useProcessImport } from "@/hooks/useImportBatches";
 import { supabase } from "@/integrations/supabase/client";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
+import { handleSupabaseError } from "@/lib/error-handler";
 
 interface ExtractUploaderProps {
   onSuccess?: () => void;
@@ -172,7 +173,8 @@ export function ExtractUploader({ onSuccess }: ExtractUploaderProps) {
       
       onSuccess?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao processar importação");
+      const msg = handleSupabaseError(err, "processar importação");
+      setError(msg);
     } finally {
       setUploading(false);
       setProgress(0);

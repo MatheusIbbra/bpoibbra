@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { z } from "zod";
+import { handleSupabaseError } from "@/lib/error-handler";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarIcon, Loader2, Link2, EyeOff } from "lucide-react";
@@ -184,39 +185,43 @@ export function TransactionDialog({
   }, [transaction, defaultType, form]);
 
   const onSubmit = async (data: FormData) => {
-    const payload = {
-      description: data.description,
-      amount: data.amount,
-      paid_amount: data.paid_amount || null,
-      type: data.type as TransactionType,
-      category_id: isTransferType ? null : (data.category_id || null),
-      account_id: data.account_id,
-      destination_account_id: data.destination_account_id,
-      cost_center_id: isTransferType ? null : (data.cost_center_id || null),
-      financial_type: isTransferType ? null : (categories?.find(c => c.id === data.category_id)?.expense_classification || null),
-      date: format(data.date, "yyyy-MM-dd"),
-      accrual_date: data.accrual_date ? format(data.accrual_date, "yyyy-MM-dd") : format(data.date, "yyyy-MM-dd"),
-      due_date: data.due_date ? format(data.due_date, "yyyy-MM-dd") : null,
-      payment_date: data.payment_date ? format(data.payment_date, "yyyy-MM-dd") : null,
-      payment_method: data.payment_method || null,
-      notes: data.notes || null,
-      status: data.status || "completed",
-      is_ignored: data.is_ignored || false,
-      linked_existing_id: data.linked_existing_id,
-    };
-    
-    if (transaction) {
-      await updateTransaction.mutateAsync({ id: transaction.id, ...payload });
-    } else {
-      await createTransaction.mutateAsync(payload);
-    }
-    
-    onOpenChange(false);
-    form.reset();
-    
-    // Notify parent about the saved type for redirection
-    if (onSaved) {
-      onSaved(data.type);
+    try {
+      const payload = {
+        description: data.description,
+        amount: data.amount,
+        paid_amount: data.paid_amount || null,
+        type: data.type as TransactionType,
+        category_id: isTransferType ? null : (data.category_id || null),
+        account_id: data.account_id,
+        destination_account_id: data.destination_account_id,
+        cost_center_id: isTransferType ? null : (data.cost_center_id || null),
+        financial_type: isTransferType ? null : (categories?.find(c => c.id === data.category_id)?.expense_classification || null),
+        date: format(data.date, "yyyy-MM-dd"),
+        accrual_date: data.accrual_date ? format(data.accrual_date, "yyyy-MM-dd") : format(data.date, "yyyy-MM-dd"),
+        due_date: data.due_date ? format(data.due_date, "yyyy-MM-dd") : null,
+        payment_date: data.payment_date ? format(data.payment_date, "yyyy-MM-dd") : null,
+        payment_method: data.payment_method || null,
+        notes: data.notes || null,
+        status: data.status || "completed",
+        is_ignored: data.is_ignored || false,
+        linked_existing_id: data.linked_existing_id,
+      };
+      
+      if (transaction) {
+        await updateTransaction.mutateAsync({ id: transaction.id, ...payload });
+      } else {
+        await createTransaction.mutateAsync(payload);
+      }
+      
+      onOpenChange(false);
+      form.reset();
+      
+      // Notify parent about the saved type for redirection
+      if (onSaved) {
+        onSaved(data.type);
+      }
+    } catch (error: any) {
+      handleSupabaseError(error, "salvar transação");
     }
   };
 

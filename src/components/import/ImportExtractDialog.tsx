@@ -26,6 +26,7 @@ import { useCreateFileImport } from "@/hooks/useFileImports";
 import { Upload, FileText, Loader2, Check, AlertCircle, X } from "lucide-react";
 import Papa from "papaparse";
 import { toast } from "sonner";
+import { handleSupabaseError } from "@/lib/error-handler";
 
 interface ParsedTransaction {
   date: string;
@@ -254,7 +255,7 @@ export function ImportExtractDialog({ open: externalOpen, onOpenChange: external
       setOpen(false);
       resetState();
     } catch (error) {
-      toast.error("Erro ao importar transações");
+      handleSupabaseError(error, "importar transações");
     } finally {
       setIsImporting(false);
     }
