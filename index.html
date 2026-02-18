@@ -31,6 +31,12 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="/icons/icon-512.png" />
 
+    <!-- Security Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in; connect-src 'self' https://*.supabase.co https://*.supabase.in https://accounts.google.com https://api.pluggy.ai https://*.klavi.ai wss://*.supabase.co; frame-src 'self' https://accounts.google.com https://api.pluggy.ai https://*.klavi.ai; object-src 'none'; base-uri 'self'; form-action 'self';" />
+
     <link rel="icon" href="/icons/icon-192.png" type="image/png" />
   </head>
 
