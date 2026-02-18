@@ -20,6 +20,7 @@ const HOURS_24 = 24 * 60 * 60 * 1000;
 export default function OpenFinanceMonitor() {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [syncingItemId, setSyncingItemId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: items, refetch: refetchItems } = useQuery({
     queryKey: ['open-finance-items'],
@@ -33,7 +34,7 @@ export default function OpenFinanceMonitor() {
     refetchInterval: 30000
   });
 
-  const { data: syncLogs } = useQuery({
+  const { data: syncLogs, refetch: refetchLogs } = useQuery({
     queryKey: ['of-sync-logs'],
     queryFn: async () => {
       const { data } = await supabase
@@ -116,8 +117,23 @@ export default function OpenFinanceMonitor() {
             <h1 className="text-2xl font-bold text-foreground">Open Finance Monitor</h1>
             <p className="text-sm text-muted-foreground">Monitoramento em tempo real das conexões</p>
           </div>
-          <Button onClick={() => refetchItems()} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
+          <Button 
+            onClick={async () => {
+              setIsRefreshing(true);
+              try {
+                await Promise.all([refetchItems(), refetchLogs()]);
+                toast.success('Dados atualizados!');
+              } catch {
+                toast.error('Erro ao atualizar dados');
+              } finally {
+                setIsRefreshing(false);
+              }
+            }} 
+            variant="outline" 
+            size="sm"
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
         </div>
