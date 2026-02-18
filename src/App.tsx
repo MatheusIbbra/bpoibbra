@@ -7,7 +7,9 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { BaseFilterProvider } from "@/contexts/BaseFilterContext";
 import { ValuesVisibilityProvider } from "@/contexts/ValuesVisibilityContext";
+import { UpgradeModalProvider } from "@/contexts/UpgradeModalContext";
 import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
+import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 import { Suspense, lazy, Component, ErrorInfo, ReactNode } from "react";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { IOSInstallPrompt } from "@/components/pwa/IOSInstallPrompt";
@@ -123,10 +125,12 @@ const App = () => (
       <AuthProvider>
         <BaseFilterProvider>
           <ValuesVisibilityProvider>
+          <UpgradeModalProvider>
           <TooltipProvider>
             <Toaster />
             <Sonner />
             <IOSInstallPrompt />
+            <UpgradeModal />
             <BrowserRouter>
               <Suspense fallback={<PageLoader />}>
                 <OnboardingGuard>
@@ -138,6 +142,7 @@ const App = () => (
               </Suspense>
             </BrowserRouter>
           </TooltipProvider>
+          </UpgradeModalProvider>
           </ValuesVisibilityProvider>
         </BaseFilterProvider>
       </AuthProvider>
