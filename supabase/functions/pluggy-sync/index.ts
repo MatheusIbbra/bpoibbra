@@ -282,20 +282,30 @@ Deno.serve(async (req) => {
   try {
     // Auth
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return new Response(JSON.stringify({ error: 'Authorization required' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!authHeader?.startsWith('Bearer ')) return new Response(JSON.stringify({ error: 'Authorization required' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     const token = authHeader.replace('Bearer ', '');
     const supabaseUser = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authHeader } } });
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser(token);
-    if (userError || !user) return new Response(JSON.stringify({ error: 'Token inválido' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      console.error('[AUTH] getClaims failed, falling back to getUser:', claimsError?.message);
+      // Fallback to getUser for compatibility
+      const { data: { user: fallbackUser }, error: userError } = await supabaseAdmin.auth.getUser(token);
+      if (userError || !fallbackUser) return new Response(JSON.stringify({ error: 'Token inválido' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      var user = fallbackUser;
+    } else {
+      // Build a minimal user object from claims
+      var user = { id: claimsData.claims.sub } as any;
+    }
 
     const { organization_id, bank_connection_id, item_id, from_date, to_date } = await req.json();
     if (!organization_id && !bank_connection_id) {
       return new Response(JSON.stringify({ error: 'organization_id or bank_connection_id is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Access check
-    const { data: viewableOrgs } = await supabaseUser.rpc('get_viewable_organizations', { _user_id: user.id });
+    // Access check (use admin client since get_viewable_organizations is SECURITY DEFINER)
+    const supabaseUserClient = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authHeader } } });
+    const { data: viewableOrgs } = await supabaseUserClient.rpc('get_viewable_organizations', { _user_id: user.id });
     const orgIdToCheck = organization_id || (bank_connection_id ? (await supabaseAdmin.from('bank_connections').select('organization_id').eq('id', bank_connection_id).single()).data?.organization_id : null);
     if (!viewableOrgs?.includes(orgIdToCheck)) {
       return new Response(JSON.stringify({ error: 'Acesso negado' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
