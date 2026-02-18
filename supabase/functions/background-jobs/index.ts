@@ -14,6 +14,43 @@ Deno.serve(async (req) => {
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  // Helper to send push notifications via edge function
+  async function sendPushNotification(
+    client: any,
+    baseUrl: string,
+    serviceKey: string,
+    orgId: string,
+    notification: { title: string; body: string; url?: string }
+  ) {
+    // Get all users in the organization
+    const { data: members } = await client
+      .from('organization_members')
+      .select('user_id')
+      .eq('organization_id', orgId);
+
+    if (!members || members.length === 0) return;
+
+    for (const member of members) {
+      try {
+        await fetch(`${baseUrl}/functions/v1/send-push-notification`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${serviceKey}`,
+          },
+          body: JSON.stringify({
+            user_id: member.user_id,
+            title: notification.title,
+            body: notification.body,
+            url: notification.url || '/',
+          }),
+        });
+      } catch (e) {
+        console.error(`[JOBS] Push send error for user ${member.user_id}:`, e);
+      }
+    }
+  }
+
   // Auth: only service_role or valid JWT
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
@@ -101,6 +138,19 @@ Deno.serve(async (req) => {
               expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
             }, { onConflict: 'organization_id,metric_type' });
             results.health++;
+
+            // Check for anomalies and notify
+            if (data && typeof data === 'object' && 'score' in data && (data as any).score < 30) {
+              try {
+                await sendPushNotification(supabaseAdmin, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, org.id, {
+                  title: '⚠️ Alerta de Saúde Financeira',
+                  body: `Score financeiro caiu para ${(data as any).score}. Verifique sua situação.`,
+                  url: '/',
+                });
+              } catch (e) {
+                console.error(`[JOBS] Push notification error for health alert:`, e);
+              }
+            }
           }
         } catch (e) {
           console.error(`[JOBS] Health error for ${org.id}:`, e);

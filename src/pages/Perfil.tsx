@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PrivacySection } from "@/components/profile/PrivacySection";
+import { PushNotificationSettings } from "@/components/profile/PushNotificationSettings";
 
 export default function Perfil() {
   const { user } = useAuth();
@@ -221,6 +222,7 @@ export default function Perfil() {
         </Card>
 
         <PrivacySection />
+        <PushNotificationSettings />
       </div>
     </AppLayout>
   );

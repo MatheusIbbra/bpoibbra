@@ -12,6 +12,7 @@ import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
 import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 import { Suspense, lazy, Component, ErrorInfo, ReactNode } from "react";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
+import { Sentry } from "@/lib/sentry";
 import { IOSInstallPrompt } from "@/components/pwa/IOSInstallPrompt";
 
 // Critical pages - eagerly loaded
@@ -87,6 +88,7 @@ class GlobalErrorBoundary extends Component<
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("[GlobalErrorBoundary]", error, errorInfo);
+    Sentry.captureException(error, { extra: { componentStack: errorInfo.componentStack } });
   }
 
   render() {

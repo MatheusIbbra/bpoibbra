@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run test
+      - run: npm run build
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+
+  migration-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check migration rollback comments
+        run: |
+          CHANGED_MIGRATIONS=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- 'supabase/migrations/*.sql' | grep -v '_template.sql' || true)
+          if [ -n "$CHANGED_MIGRATIONS" ]; then
+            for file in $CHANGED_MIGRATIONS; do
+              if ! grep -q "-- ROLLBACK:" "$file"; then
+                echo "❌ Migration $file is missing a -- ROLLBACK: comment"
+                exit 1
+              fi
+            done
+            echo "✅ All migrations have rollback comments"
+          else
+            echo "No migration files changed"
+          fi
