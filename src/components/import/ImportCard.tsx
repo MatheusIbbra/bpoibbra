@@ -18,6 +18,7 @@ import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { Upload, FileSpreadsheet, Loader2, CheckCircle, AlertCircle, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { handleSupabaseError } from "@/lib/error-handler";
 import Papa from "papaparse";
 
 interface ImportCardProps {
@@ -171,7 +172,7 @@ export function ImportCard({ className }: ImportCardProps) {
           });
           success++;
         } catch (error) {
-          console.error("Failed to import transaction:", error);
+          handleSupabaseError(error, "importar transação");
           failed++;
         }
 
@@ -185,8 +186,7 @@ export function ImportCard({ className }: ImportCardProps) {
         toast.warning(`${failed} transações falharam ao importar`);
       }
     } catch (error) {
-      console.error("Import error:", error);
-      toast.error("Erro ao importar arquivo");
+      handleSupabaseError(error, "importar arquivo");
     } finally {
       setIsImporting(false);
       if (fileInputRef.current) {
