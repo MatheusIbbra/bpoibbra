@@ -1,9 +1,11 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { FintechTransactionsList } from "@/components/dashboard/FintechTransactionsList";
 import { MonthlyEvolutionChart } from "@/components/dashboard/MonthlyEvolutionChart";
 import { AIAssistantChat } from "@/components/ai/AIAssistantChat";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
 import { CategoryDonutChart } from "@/components/dashboard/CategoryDonutChart";
 import { BudgetProgress } from "@/components/dashboard/BudgetProgress";
@@ -114,36 +116,63 @@ const Index = () => {
           </StaggerGrid>
         </div>
 
-        {/* 2. Posição Multimoeda */}
+
+        {/* 2. Orçamentos & Alertas — mobile: logo após stats, desktop: à direita */}
+        <div className="block lg:hidden">
+          <AnimatedCard delay={0.1}>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-base font-semibold">Orçamentos & Alertas</CardTitle>
+                <Link to="/orcamentos">
+                  <Badge variant="outline" className="cursor-pointer hover:bg-secondary text-xs">Ver todos</Badge>
+                </Link>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <BudgetProgress inline />
+                <BudgetAlerts showNotifications={true} compact />
+              </CardContent>
+            </Card>
+          </AnimatedCard>
+        </div>
+
+        {/* 3. Posição Multimoeda */}
         <AnimatedCard delay={0.15}>
           <MultiCurrencyBalanceSection />
         </AnimatedCard>
 
-        {/* 3. Distribuição por Categoria + Evolução Financeira */}
+        {/* 4. Distribuição por Categoria + Evolução Financeira */}
         <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
           <StaggerItem><CategoryDonutChart /></StaggerItem>
           <StaggerItem><MonthlyEvolutionChart /></StaggerItem>
         </StaggerGrid>
 
-        {/* 4. Alertas de Orçamento */}
-        <AnimatedCard delay={0.1}>
-          <BudgetAlerts showNotifications={true} />
-        </AnimatedCard>
-
-        {/* 5. Orçamento do Mês + Últimas Movimentações */}
+        {/* 5. Últimas Movimentações + Orçamentos (desktop: sidebar direita) */}
         <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <StaggerItem><BudgetProgress /></StaggerItem>
           <StaggerItem><FintechTransactionsList /></StaggerItem>
+          <StaggerItem className="hidden lg:block">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-base font-semibold">Orçamentos & Alertas</CardTitle>
+                <Link to="/orcamentos">
+                  <Badge variant="outline" className="cursor-pointer hover:bg-secondary text-xs">Ver todos</Badge>
+                </Link>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <BudgetProgress inline />
+                <BudgetAlerts showNotifications={false} compact />
+              </CardContent>
+            </Card>
+          </StaggerItem>
         </StaggerGrid>
 
-        {/* 8. Conciliação */}
+        {/* 6. Conciliação */}
         <AnimatedCard delay={0.05}>
           <ReconciliationMetricsCard />
         </AnimatedCard>
 
-        {/* 9. Contas Conectadas */}
+        {/* 7. Contas Conectadas — compacto */}
         <AnimatedCard delay={0.05}>
-          <ConnectedAccountsSection />
+          <ConnectedAccountsSection compact />
         </AnimatedCard>
       </div>
 
