@@ -117,6 +117,11 @@ export function usePlanLimits() {
     staleTime: 5 * 60 * 1000,
   });
 
+  /**
+   * UX-only hint: indicates if the user is likely over the limit.
+   * NOT a security gate — backend triggers and edge functions enforce actual limits.
+   * Use this to disable buttons / show warnings in the UI.
+   */
   const canPerformAction = (action: "transaction" | "ai" | "connection") => {
     if (!usageQuery.data) return true; // Allow by default while loading
     switch (action) {
@@ -132,6 +137,7 @@ export function usePlanLimits() {
   return {
     usage: usageQuery.data,
     isLoading: usageQuery.isLoading,
+    /** UX hint only — backend is the source of truth for enforcement */
     canPerformAction,
   };
 }
