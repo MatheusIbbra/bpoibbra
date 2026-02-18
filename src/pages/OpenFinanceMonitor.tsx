@@ -28,6 +28,7 @@ export default function OpenFinanceMonitor() {
       const { data } = await supabase
         .from('open_finance_items')
         .select('*')
+        .neq('status', 'disconnected')
         .order('created_at', { ascending: false });
       return data || [];
     },
