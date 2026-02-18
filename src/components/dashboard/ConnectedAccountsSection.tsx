@@ -96,7 +96,7 @@ function getStatusDot(status: string) {
   }
 }
 
-export function ConnectedAccountsSection() {
+export function ConnectedAccountsSection({ compact = false }: { compact?: boolean }) {
   const { data: connections, isLoading } = useBankConnections();
   const syncConnection = useSyncBankConnection();
   const [syncingId, setSyncingId] = useState<string | null>(null);
@@ -147,7 +147,10 @@ export function ConnectedAccountsSection() {
           Contas Conectadas
         </h3>
       </div>
-      <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      <div className={cn(
+        "grid gap-3 grid-cols-1",
+        compact ? "md:grid-cols-3 lg:grid-cols-4" : "md:grid-cols-2 lg:grid-cols-3"
+      )}>
         {activeConnections.map((connection) => {
           const meta = (connection as any).metadata as ConnectionMetadata | null;
           const isSyncing = syncingId === connection.id;
@@ -155,99 +158,67 @@ export function ConnectedAccountsSection() {
           const bankName = meta?.bank_name || connection.provider_name || "Banco";
           const bankLogo = meta?.bank_logo_url;
 
-          // Separate bank accounts from credit card accounts
           const bankAccounts = pluggyAccounts.filter(a => !isCreditCardType(a.type));
           const creditCards = pluggyAccounts.filter(a => isCreditCardType(a.type));
-          
-          // Total balance excludes credit cards (they are liabilities)
           const totalBalance = bankAccounts.reduce((sum, a) => sum + (a.balance ?? 0), 0);
-          const totalCreditDebt = creditCards.reduce((sum, a) => sum + Math.abs(a.balance ?? 0), 0);
 
           return (
-            <Card
-              key={connection.id}
-              className="card-executive-hover overflow-hidden"
-            >
-              <CardContent className="p-4">
-                {/* Header: bank logo/name + status */}
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2.5">
+            <Card key={connection.id} className="card-executive-hover overflow-hidden">
+              <CardContent className={compact ? "p-3" : "p-4"}>
+                {/* Header */}
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2">
                     {bankLogo ? (
-                      <img
-                        src={bankLogo}
-                        alt={bankName}
-                        className="h-8 w-8 rounded-lg object-contain bg-muted p-0.5"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = "none";
-                        }}
-                      />
+                      <img src={bankLogo} alt={bankName} className={cn("rounded-lg object-contain bg-muted p-0.5", compact ? "h-6 w-6" : "h-8 w-8")} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                     ) : (
-                      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Building2 className="h-4 w-4 text-primary" />
+                      <div className={cn("rounded-lg bg-primary/10 flex items-center justify-center", compact ? "h-6 w-6" : "h-8 w-8")}>
+                        <Building2 className={compact ? "h-3 w-3 text-primary" : "h-4 w-4 text-primary"} />
                       </div>
                     )}
                     <div>
-                      <p className="text-sm font-semibold leading-tight">{bankName}</p>
-                      {bankAccounts.length > 0 && (
+                      <p className={cn("font-semibold leading-tight", compact ? "text-xs" : "text-sm")}>{bankName}</p>
+                      {!compact && bankAccounts.length > 0 && (
                         <p className="text-[11px] text-muted-foreground">
-                          {bankAccounts[0].agency && `Ag. ${bankAccounts[0].agency} · `}
-                          {maskAccountNumber(bankAccounts[0].number)}
+                          {bankAccounts[0].agency && `Ag. ${bankAccounts[0].agency} · `}{maskAccountNumber(bankAccounts[0].number)}
                         </p>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1">
                     <div className={cn("h-2 w-2 rounded-full", getStatusDot(connection.status))} />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => handleSync(connection)}
-                      disabled={isSyncing}
-                    >
-                      {isSyncing ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <RefreshCw className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
+                    {!compact && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleSync(connection)} disabled={isSyncing}>
+                        {isSyncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                      </Button>
+                    )}
                   </div>
                 </div>
 
-                {/* Balance — only non-credit-card accounts */}
+                {/* Balance */}
                 {bankAccounts.length > 0 && (
-                  <div className="mb-2">
+                  <div className={compact ? "mb-1" : "mb-2"}>
                     <p className="text-[11px] text-muted-foreground">Saldo</p>
-                    <p className="text-xl font-bold tracking-tight">
-                      {formatCurrency(totalBalance)}
-                    </p>
+                    <p className={cn("font-bold tracking-tight", compact ? "text-base" : "text-xl")}>{formatCurrency(totalBalance)}</p>
                   </div>
                 )}
 
-                {/* Sub-accounts list (non-credit-card) */}
-                {bankAccounts.length > 1 && (
+                {/* Sub-accounts — hide in compact */}
+                {!compact && bankAccounts.length > 1 && (
                   <div className="space-y-1 mb-2">
                     {bankAccounts.map((acc) => (
-                      <div
-                        key={acc.id}
-                        className="flex items-center justify-between text-xs"
-                      >
+                      <div key={acc.id} className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-1.5 text-muted-foreground">
                           {getAccountTypeIcon(acc.type)}
                           <span>{getAccountTypeLabel(acc.type)}</span>
                         </div>
-                        <span className="font-medium">
-                          {acc.balance !== null && acc.balance !== undefined
-                            ? formatCurrency(acc.balance)
-                            : "—"}
-                        </span>
+                        <span className="font-medium">{acc.balance != null ? formatCurrency(acc.balance) : "—"}</span>
                       </div>
                     ))}
                   </div>
                 )}
 
-                {/* Credit card debt — shown as liability */}
-                {creditCards.length > 0 && (
+                {/* Credit cards — hide in compact */}
+                {!compact && creditCards.length > 0 && (
                   <div className="space-y-1 mb-2 pt-2 border-t border-border/50">
                     {creditCards.map((acc) => {
                       const debt = Math.abs(acc.balance ?? 0);
@@ -260,9 +231,7 @@ export function ConnectedAccountsSection() {
                               <span>{acc.name || "Cartão"}</span>
                             </div>
                             <div className="text-right">
-                              <span className="font-medium text-destructive">
-                                {formatCurrency(debt)}
-                              </span>
+                              <span className="font-medium text-destructive">{formatCurrency(debt)}</span>
                               <span className="text-[10px] text-muted-foreground ml-1">fatura</span>
                             </div>
                           </div>
@@ -278,16 +247,13 @@ export function ConnectedAccountsSection() {
                 )}
 
                 {/* Last sync */}
-                <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-auto pt-1 border-t border-border/50">
+                <div className={cn("flex items-center gap-1 text-[10px] text-muted-foreground mt-auto pt-1 border-t border-border/50", compact && "pt-0.5")}>
                   {connection.last_sync_at ? (
                     <>
                       <CheckCircle2 className="h-3 w-3 text-success" />
                       <span>
-                        Atualizado{" "}
-                        {formatDistanceToNow(new Date(connection.last_sync_at), {
-                          addSuffix: true,
-                          locale: ptBR,
-                        })}
+                        {compact ? "Sync " : "Atualizado "}
+                        {formatDistanceToNow(new Date(connection.last_sync_at), { addSuffix: true, locale: ptBR })}
                       </span>
                     </>
                   ) : (

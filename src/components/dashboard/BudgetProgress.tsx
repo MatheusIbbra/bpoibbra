@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
 
-export function BudgetProgress() {
+export function BudgetProgress({ inline = false }: { inline?: boolean }) {
   const { requiresBaseSelection } = useBaseFilter();
 
   if (requiresBaseSelection) {
@@ -63,6 +63,61 @@ export function BudgetProgress() {
       spent: spentByCategory.get(budget.category_id) || 0,
     }))
     .slice(0, 5);
+
+  if (inline) {
+    if (requiresBaseSelection) {
+      return <BaseRequiredAlert action="visualizar orçamentos" />;
+    }
+
+    return (
+      <div className="space-y-4">
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="h-3.5 w-24 rounded-md bg-muted animate-pulse" />
+                  <div className="h-3.5 w-32 rounded-md bg-muted animate-pulse" />
+                </div>
+                <div className="h-2 w-full rounded-full bg-muted animate-pulse" />
+              </div>
+            ))}
+          </div>
+        ) : !currentMonthBudgets || currentMonthBudgets.length === 0 ? (
+          <div className="flex h-20 items-center justify-center text-muted-foreground text-sm">
+            Nenhum orçamento definido
+          </div>
+        ) : (
+          currentMonthBudgets.map((budget) => {
+            const percentage = Math.min((budget.spent / budget.amount) * 100, 100);
+            const isOverBudget = budget.spent > budget.amount;
+            return (
+              <div key={budget.id} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="flex h-7 w-7 items-center justify-center rounded-lg text-primary-foreground text-[10px] font-bold"
+                      style={{ backgroundColor: budget.categories?.color || "#6366f1" }}
+                    >
+                      {budget.categories?.name?.charAt(0) || "?"}
+                    </div>
+                    <span className="text-sm font-medium">{budget.categories?.name || "Categoria"}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className={cn("text-sm font-semibold", isOverBudget && "text-destructive")}>
+                      {formatCurrency(budget.spent)}
+                    </span>
+                    <span className="text-sm text-muted-foreground"> / {formatCurrency(budget.amount)}</span>
+                  </div>
+                </div>
+                <Progress value={percentage} className={cn("h-2", isOverBudget && "[&>div]:bg-destructive")} />
+              </div>
+            );
+          })
+        )}
+      </div>
+    );
+  }
 
   return (
     <Card>
