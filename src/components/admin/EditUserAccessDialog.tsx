@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/audit";
 import { AppRole, ROLE_LABELS } from "@/hooks/useUserRoles";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -294,6 +295,13 @@ export function EditUserAccessDialog({
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Failed to toggle block status');
       setIsBlocked(newBlockedState);
+      await logAudit(
+        newBlockedState ? "block_user" : "unblock_user",
+        "profiles",
+        user.id,
+        { is_blocked: !newBlockedState },
+        { is_blocked: newBlockedState, blocked_reason: newBlockedState ? blockedReason : null }
+      );
       toast.success(newBlockedState ? "Usuário bloqueado!" : "Usuário desbloqueado!");
       onSuccess();
       onOpenChange(false);
@@ -343,6 +351,7 @@ export function EditUserAccessDialog({
           if (error) throw error;
         }
       }
+      await logAudit("change_role", "user_roles", user.id, { role: user.role }, { role: selectedRole });
       toast.success("Perfil atualizado com sucesso!");
       onSuccess();
     } catch (error: any) {

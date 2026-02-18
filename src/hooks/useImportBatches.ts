@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { toast } from "sonner";
+import { logAudit } from "@/lib/audit";
 
 export interface ImportBatch {
   id: string;
@@ -130,7 +131,7 @@ export function useProcessImport() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["import-batches"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      
+      logAudit("import_complete", "import_batches", undefined, null, { imported: result.imported, duplicates: result.duplicates });
       toast.success(
         `Importação concluída: ${result.imported} transações importadas, ${result.duplicates} duplicatas ignoradas`
       );
@@ -284,6 +285,7 @@ export function useDeleteImportBatch() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["import-batches"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      logAudit("delete_import_batch", "import_batches");
       toast.success("Lote de importação excluído com todas as transações");
     },
     onError: (error) => {
