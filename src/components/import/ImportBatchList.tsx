@@ -17,17 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { useImportBatches, useDeleteImportBatch, useClassifyTransactions, ImportBatch } from "@/hooks/useImportBatches";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -42,6 +32,9 @@ const statusConfig: Record<string, { label: string; icon: React.ReactNode; varia
 
 export function ImportBatchList() {
   const [expandedBatch, setExpandedBatch] = useState<string | null>(null);
+  const [deleteBatchId, setDeleteBatchId] = useState<string | null>(null);
+  const [deleteBatchName, setDeleteBatchName] = useState("");
+  const [deleteBatchCount, setDeleteBatchCount] = useState(0);
   
   const { data: batches, isLoading } = useImportBatches();
   const deleteBatch = useDeleteImportBatch();
@@ -180,32 +173,18 @@ export function ImportBatchList() {
                       </Button>
                     )}
                     
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button size="sm" variant="destructive">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir Lote
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Excluir lote de importação?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Isso excluirá permanentemente o lote e todas as {batch.imported_count} transações importadas. 
-                            Esta ação não pode ser desfeita.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteBatch.mutate(batch.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Excluir
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => {
+                        setDeleteBatchId(batch.id);
+                        setDeleteBatchName(batch.file_name);
+                        setDeleteBatchCount(batch.imported_count || 0);
+                      }}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Excluir Lote
+                    </Button>
                   </div>
                 </CollapsibleContent>
               </div>
@@ -213,6 +192,24 @@ export function ImportBatchList() {
           );
         })}
       </CardContent>
+      <ConfirmDialog
+        open={!!deleteBatchId}
+        onOpenChange={() => setDeleteBatchId(null)}
+        title="Excluir lote de importação?"
+        description={
+          <>
+            Isso excluirá permanentemente o lote <strong>{deleteBatchName}</strong> e todas as{" "}
+            <strong>{deleteBatchCount}</strong> transações importadas. Esta ação não pode ser desfeita.
+          </>
+        }
+        confirmLabel="Excluir Lote"
+        onConfirm={() => {
+          if (deleteBatchId) {
+            deleteBatch.mutate(deleteBatchId);
+            setDeleteBatchId(null);
+          }
+        }}
+      />
     </Card>
   );
 }
