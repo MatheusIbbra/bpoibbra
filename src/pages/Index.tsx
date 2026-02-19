@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
 import { CategoryDonutChart } from "@/components/dashboard/CategoryDonutChart";
 import { MultiCurrencyBalanceSection } from "@/components/dashboard/MultiCurrencyBalanceSection";
-import { ReconciliationMetricsCard } from "@/components/dashboard/ReconciliationMetricsCard";
 
 import { StatCard } from "@/components/dashboard/StatCard";
 import { StatCardHoverTransactions } from "@/components/dashboard/StatCardHoverTransactions";
@@ -221,10 +220,6 @@ const Index = () => {
               <StaggerItem><MonthlyEvolutionChart /></StaggerItem>
             </StaggerGrid>
 
-            {/* Conciliação */}
-            <AnimatedCard delay={0.05}>
-              <ReconciliationMetricsCard />
-            </AnimatedCard>
           </div>
 
           {/* Right: Budget sidebar (desktop only) - single interactive card */}
