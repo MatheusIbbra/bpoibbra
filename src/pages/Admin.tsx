@@ -23,7 +23,9 @@ import {
   Pencil,
   Mail,
   Lock,
-  Unlock
+  Unlock,
+  CreditCard,
+  BarChart3
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +39,8 @@ import { ClientManagementTab } from "@/components/admin/ClientManagementTab";
 import { EditUserHierarchyDialog } from "@/components/admin/EditUserHierarchyDialog";
 import { DeleteUserDialog } from "@/components/admin/DeleteUserDialog";
 import { EditUserAccessDialog } from "@/components/admin/EditUserAccessDialog";
+import { AdminPlansTab } from "@/components/admin/AdminPlansTab";
+import { AdminBITab } from "@/components/admin/AdminBITab";
 import {
   Table,
   TableBody,
@@ -584,6 +588,16 @@ export default function Admin() {
               <span className="hidden sm:inline">Auditoria</span>
               <span className="sm:hidden">Aud</span>
             </TabsTrigger>
+            <TabsTrigger value="plans" className="gap-1.5 text-xs sm:text-sm">
+              <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Planos</span>
+              <span className="sm:hidden">Plan</span>
+            </TabsTrigger>
+            <TabsTrigger value="bi" className="gap-1.5 text-xs sm:text-sm">
+              <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">BI Estratégico</span>
+              <span className="sm:hidden">BI</span>
+            </TabsTrigger>
           </TabsList>
 
           {/* Client Tab - Special management */}
@@ -866,6 +880,16 @@ export default function Admin() {
           {/* Audit Log Tab */}
           <TabsContent value="audit">
             <AuditLogTab logs={auditLogs || []} loading={loadingAudit} />
+          </TabsContent>
+
+          {/* Plans Tab */}
+          <TabsContent value="plans">
+            <AdminPlansTab />
+          </TabsContent>
+
+          {/* BI Tab */}
+          <TabsContent value="bi">
+            <AdminBITab />
           </TabsContent>
         </Tabs>
       </div>
