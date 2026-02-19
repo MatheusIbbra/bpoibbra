@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ReconciliationMetricsCard } from "@/components/dashboard/ReconciliationMetricsCard";
 import { useIsAdmin } from "@/hooks/useUserRoles";
 import { useAllTransactionPatterns, useDeleteTransactionPattern } from "@/hooks/useTransactionPatternsAdmin";
 import { format } from "date-fns";
@@ -174,6 +175,9 @@ export default function PadroesAprendidos() {
             </p>
           </div>
         </div>
+
+        {/* Motor de Conciliação */}
+        <ReconciliationMetricsCard />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
