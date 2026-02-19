@@ -278,8 +278,8 @@ export function useSavePluggyItem() {
         throw new Error("Você precisa estar logado");
       }
 
-      // Check if connection already exists for this item (by org + provider + external_account_id)
-      const { data: existing } = await supabase
+      // Check if connection already exists for this item OR for this org+provider with same connector
+      const { data: existingByItem } = await supabase
         .from('bank_connections')
         .select('id')
         .eq('organization_id', organizationId)
@@ -287,7 +287,7 @@ export function useSavePluggyItem() {
         .eq('provider', 'pluggy')
         .maybeSingle();
 
-      if (existing) {
+      if (existingByItem) {
         // Update existing
         const { error } = await supabase
           .from('bank_connections')
@@ -296,10 +296,37 @@ export function useSavePluggyItem() {
             sync_error: null,
             updated_at: new Date().toISOString()
           })
-          .eq('id', existing.id);
+          .eq('id', existingByItem.id);
 
         if (error) throw error;
-        return { connection_id: existing.id };
+        return { connection_id: existingByItem.id };
+      }
+
+      // Also check for orphan connections (same org, same provider name, no item or different item)
+      // This prevents duplicate entries when reconnecting
+      if (connectorName) {
+        const { data: existingByName } = await supabase
+          .from('bank_connections')
+          .select('id')
+          .eq('organization_id', organizationId)
+          .eq('provider', 'pluggy')
+          .eq('provider_name', connectorName)
+          .maybeSingle();
+
+        if (existingByName) {
+          const { error } = await supabase
+            .from('bank_connections')
+            .update({
+              external_account_id: itemId,
+              status: 'active',
+              sync_error: null,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingByName.id);
+
+          if (error) throw error;
+          return { connection_id: existingByName.id };
+        }
       }
 
       // Create new connection

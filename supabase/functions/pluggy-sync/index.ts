@@ -193,7 +193,42 @@ async function classifyTransaction(supabaseAdmin: any, txId: string, description
       return;
     }
   }
-  console.log(`[CLASSIFY] TX ${txId}: no match, pending manual classification`);
+  console.log(`[CLASSIFY] TX ${txId}: no rule/pattern match, calling AI...`);
+  
+  // STEP 3: AI Classification (Gemini fallback) - call classify-transaction edge function
+  try {
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const aiResponse = await fetch(`${SUPABASE_URL}/functions/v1/classify-transaction`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({
+        transaction_id: txId,
+        description,
+        amount,
+        type,
+        organization_id: organizationId,
+      }),
+    });
+    
+    if (aiResponse.ok) {
+      const aiResult = await aiResponse.json();
+      if (aiResult.category_id) {
+        console.log(`[CLASSIFY] TX ${txId}: AI classified → ${aiResult.category_name} (conf=${aiResult.confidence})`);
+        // AI classification applied by the edge function itself via transaction_id
+        return;
+      }
+    } else {
+      console.warn(`[CLASSIFY] AI call failed for TX ${txId}: ${aiResponse.status}`);
+    }
+  } catch (aiErr) {
+    console.warn(`[CLASSIFY] AI error for TX ${txId}:`, aiErr);
+  }
+  
+  console.log(`[CLASSIFY] TX ${txId}: no classification found, pending manual`);
 }
 
 // ========================================
@@ -253,7 +288,16 @@ async function waitForItemSuccess(pluggyItemId: string, headers: Record<string, 
 // ========================================
 // ACCOUNT TYPE MAPPING
 // ========================================
-function mapPluggyAccountType(pluggyType: string): string {
+function mapPluggyAccountType(pluggyType: string, pluggySubtype?: string): string {
+  // Check subtype first for more specific mapping
+  if (pluggySubtype) {
+    const subtypeMap: Record<string, string> = {
+      'CHECKING_ACCOUNT': 'checking', 'SAVINGS_ACCOUNT': 'savings',
+      'CREDIT_CARD': 'credit_card',
+    };
+    const subResult = subtypeMap[pluggySubtype.toUpperCase()];
+    if (subResult) return subResult;
+  }
   const typeMap: Record<string, string> = {
     'BANK': 'checking', 'CHECKING': 'checking', 'SAVINGS': 'savings',
     'CREDIT': 'credit_card', 'INVESTMENT': 'investment',
@@ -435,13 +479,16 @@ Deno.serve(async (req) => {
     // ========================================
     const pluggyAccountToLocal: Record<string, string> = {};
     for (const acc of accounts) {
-      const accountType = mapPluggyAccountType(acc.type || acc.subtype || 'BANK');
-      const accountName = acc.name || `${connectorName} - ${acc.type || 'Conta'}`;
+      const accountType = mapPluggyAccountType(acc.type || 'BANK', acc.subtype);
+      // Create distinct name including subtype to avoid collisions (e.g. "Itaú - Conta Corrente" vs "Itaú - Poupança")
+      const subtypeLabel = acc.subtype === 'SAVINGS_ACCOUNT' ? 'Poupança' : acc.subtype === 'CHECKING_ACCOUNT' ? 'Conta Corrente' : acc.subtype === 'CREDIT_CARD' ? 'Cartão' : null;
+      const accountName = subtypeLabel ? `${acc.name || connectorName} - ${subtypeLabel}` : (acc.name || `${connectorName} - ${acc.type || 'Conta'}`);
       const apiBalance = acc.balance ?? 0;
       const now = new Date().toISOString();
 
+      // Search by org + bank_name + account_type + pluggy subtype for accurate matching
       const { data: existing } = await supabaseAdmin.from('accounts').select('id')
-        .eq('organization_id', connectionToSync.organization_id).eq('bank_name', connectorName).eq('name', accountName).maybeSingle();
+        .eq('organization_id', connectionToSync.organization_id).eq('bank_name', connectorName).eq('account_type', accountType).eq('name', accountName).maybeSingle();
 
       if (existing) {
         await supabaseAdmin.from('accounts').update({ official_balance: apiBalance, last_official_balance_at: now, current_balance: apiBalance, updated_at: now }).eq('id', existing.id);
@@ -494,7 +541,7 @@ Deno.serve(async (req) => {
         if (to_date) baseUrl += `&to=${to_date}`;
         console.log(`[TX] Fetching for account ${account.id} (${account.type}: ${account.name})...`);
         const txs = await fetchAllPages(baseUrl, pluggyHeaders, `TX-${account.type}`);
-        allTransactions.push(...txs.map((tx: any) => ({ ...tx, _pluggyAccountId: account.id, _pluggyAccountType: account.type })));
+        allTransactions.push(...txs.map((tx: any) => ({ ...tx, _pluggyAccountId: account.id, _pluggyAccountType: account.type, _pluggyAccountSubtype: account.subtype })));
       } catch (e) { console.warn(`[TX] Error for account ${account.id}:`, e); }
     }
 
@@ -576,7 +623,7 @@ Deno.serve(async (req) => {
       // CLASSIFY TRANSACTION TYPE
       // Uses: creditDebitType, type, description — NOT just the sign
       // ========================================
-      const pluggyAccType = mapPluggyAccountType(tx._pluggyAccountType || 'BANK');
+      const pluggyAccType = mapPluggyAccountType(tx._pluggyAccountType || 'BANK', tx._pluggyAccountSubtype);
       const creditDebitType = (tx.creditDebitType || tx.type || '').toUpperCase(); // DEBIT or CREDIT from Pluggy
       let isCcPayment = false;
       let txType: string;
