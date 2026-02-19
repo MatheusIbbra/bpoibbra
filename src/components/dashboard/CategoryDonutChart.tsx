@@ -50,12 +50,12 @@ export function CategoryDonutChart() {
 
     transactions.forEach((tx) => {
       txById.set(tx.id, tx);
-      if (!tx.category_id) return;
+      const catKey = tx.category_id || "__sem_categoria__";
       const map = tx.type === "income" ? incomeMap : expenseMap;
-      const existing = map.get(tx.category_id) || { total: 0, txs: [] };
+      const existing = map.get(catKey) || { total: 0, txs: [] };
       existing.total += Number(tx.amount);
       existing.txs.push({ id: tx.id, description: tx.description || "—", amount: Number(tx.amount), date: tx.date });
-      map.set(tx.category_id, existing);
+      map.set(catKey, existing);
     });
 
     const buildData = (map: Map<string, { total: number; txs: { id: string; description: string; amount: number; date: string }[] }>): DonutData[] => {
