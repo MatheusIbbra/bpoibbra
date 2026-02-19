@@ -86,7 +86,7 @@ const Index = () => {
   }
 
   // Filter accounts for "Posição Financeira" - exclude credit cards and investments
-  const financialAccounts = accounts?.filter(a => a.account_type !== 'credit_card' && a.account_type !== 'investment') || [];
+  const financialAccounts = accounts?.filter(a => a.account_type !== 'credit_card' && a.account_type !== 'investment' && a.status === 'active') || [];
 
   return (
     <AppLayout title="Consolidação Patrimonial">

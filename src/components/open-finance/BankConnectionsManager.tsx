@@ -473,6 +473,41 @@ interface ConnectionCardProps {
   isDisconnecting: boolean;
 }
 
+const BANK_LOGO_FALLBACKS: Record<string, string> = {
+  "itaú": "https://cdn.pluggy.ai/assets/connector-icons/201.svg",
+  "itau": "https://cdn.pluggy.ai/assets/connector-icons/201.svg",
+  "bradesco": "https://cdn.pluggy.ai/assets/connector-icons/202.svg",
+  "banco do brasil": "https://cdn.pluggy.ai/assets/connector-icons/001.svg",
+  "caixa": "https://cdn.pluggy.ai/assets/connector-icons/104.svg",
+  "santander": "https://cdn.pluggy.ai/assets/connector-icons/033.svg",
+  "nubank": "https://cdn.pluggy.ai/assets/connector-icons/260.svg",
+  "inter": "https://cdn.pluggy.ai/assets/connector-icons/077.svg",
+  "c6": "https://cdn.pluggy.ai/assets/connector-icons/336.svg",
+  "btg": "https://cdn.pluggy.ai/assets/connector-icons/208.svg",
+  "safra": "https://cdn.pluggy.ai/assets/connector-icons/422.svg",
+  "xp": "https://cdn.pluggy.ai/assets/connector-icons/102.svg",
+  "sicoob": "https://cdn.pluggy.ai/assets/connector-icons/756.svg",
+  "sicredi": "https://cdn.pluggy.ai/assets/connector-icons/748.svg",
+  "original": "https://cdn.pluggy.ai/assets/connector-icons/212.svg",
+  "modal": "https://cdn.pluggy.ai/assets/connector-icons/746.svg",
+  "daycoval": "https://cdn.pluggy.ai/assets/connector-icons/707.svg",
+  "pagbank": "https://cdn.pluggy.ai/assets/connector-icons/290.svg",
+  "mercado pago": "https://cdn.pluggy.ai/assets/connector-icons/323.svg",
+  "picpay": "https://cdn.pluggy.ai/assets/connector-icons/380.svg",
+  "neon": "https://cdn.pluggy.ai/assets/connector-icons/735.svg",
+  "rico": "https://cdn.pluggy.ai/assets/connector-icons/735.svg",
+  "clear": "https://cdn.pluggy.ai/assets/connector-icons/735.svg",
+};
+
+function getBankLogoUrl(bankName: string, metaLogoUrl?: string | null): string | null {
+  if (metaLogoUrl) return metaLogoUrl;
+  const normalized = bankName.toLowerCase().trim();
+  for (const [key, url] of Object.entries(BANK_LOGO_FALLBACKS)) {
+    if (normalized.includes(key)) return url;
+  }
+  return null;
+}
+
 function ConnectionCard({ connection, onSync, onDisconnect, onReconnect, isSyncing, isDisconnecting }: ConnectionCardProps) {
   const status = statusConfig[connection.status] || statusConfig.error;
   const StatusIcon = status.icon;
@@ -495,7 +530,7 @@ function ConnectionCard({ connection, onSync, onDisconnect, onReconnect, isSynci
 
   const meta = (connection as any).metadata as ConnectionMeta | null;
   const bankName = meta?.bank_name || connection.provider_name || 'Banco via Open Finance';
-  const bankLogo = meta?.bank_logo_url;
+  const bankLogo = getBankLogoUrl(bankName, meta?.bank_logo_url);
   const pluggyAccounts = meta?.pluggy_accounts || [];
   const totalBalance = meta?.last_balance ?? null;
   const itemStatus = meta?.item_status;

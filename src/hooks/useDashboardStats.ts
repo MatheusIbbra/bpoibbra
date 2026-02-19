@@ -60,7 +60,8 @@ export function useDashboardStats() {
       // Get local accounts with snapshot balances (no full-scan RPC)
       let accountsQuery = supabase
         .from("accounts")
-        .select("id, initial_balance, current_balance, account_type, official_balance, last_official_balance_at");
+        .select("id, initial_balance, current_balance, account_type, official_balance, last_official_balance_at")
+        .eq("status", "active");
       
       if (orgFilter.type === 'single') {
         accountsQuery = accountsQuery.eq("organization_id", orgFilter.ids[0]);
