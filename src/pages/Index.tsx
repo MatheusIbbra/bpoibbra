@@ -128,10 +128,10 @@ const Index = () => {
                 <StaggerItem>
                   <StatCard
                     title="Saídas Financeiras"
-                    value={formatCurrency(stats?.monthlyExpenses ?? 0)}
+                    value={"− " + formatCurrency(stats?.monthlyExpenses ?? 0)}
                     icon={<ArrowDownRight className="h-5 w-5" />}
                     variant="destructive"
-                    trend={stats?.expenseChange ? { value: stats.expenseChange, isPositive: stats.expenseChange <= 0 } : undefined}
+                    trend={stats?.expenseChange ? { value: Math.abs(stats.expenseChange), isPositive: stats.expenseChange <= 0 } : undefined}
                     onClick={() => setShowExpenseDialog(true)}
                     hoverContent={<StatCardHoverTransactions type="expense" />} />
                 </StaggerItem>
@@ -363,7 +363,7 @@ function TransactionsListDialog({
                     </p>
                   </div>
                   <span className={cn("text-xs font-semibold tabular-nums shrink-0", variant === "success" ? "text-success" : "text-destructive")}>
-                    {variant === "destructive" ? "− " : "+ "}{formatCurrency(Math.abs(Number(tx.amount)))}
+                    {variant === "success" ? "+ " : "− "}{formatCurrency(Math.abs(Number(tx.amount)))}
                   </span>
                 </button>
               ))}

@@ -64,7 +64,7 @@ export function StatCardHoverTransactions({ type }: StatCardHoverTransactionsPro
                 isIncome ? "text-success" : "text-destructive"
               )}
             >
-              {formatCurrency(Number(tx.amount))}
+              {isIncome ? "+" : "−"} {formatCurrency(Number(tx.amount))}
             </span>
           </div>
         ))}

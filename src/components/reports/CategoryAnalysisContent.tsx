@@ -35,8 +35,13 @@ export function CategoryAnalysisContent() {
   const incomeCategories = data?.incomeCategories || [];
   const expenseCategories = data?.expenseCategories || [];
 
-  const incomeChartData = incomeCategories.map(c => ({ name: c.category_name, value: c.total, color: c.category_color }));
-  const expenseChartData = expenseCategories.map(c => ({ name: c.category_name, value: c.total, color: c.category_color }));
+  const CHART_COLORS = [
+    '#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316',
+    '#6366f1', '#84cc16', '#06b6d4', '#e11d48', '#a855f7', '#0ea5e9', '#d946ef', '#10b981',
+  ];
+
+  const incomeChartData = incomeCategories.map((c, i) => ({ name: c.category_name, value: c.total, color: c.category_color || CHART_COLORS[i % CHART_COLORS.length] }));
+  const expenseChartData = expenseCategories.map((c, i) => ({ name: c.category_name, value: c.total, color: c.category_color || CHART_COLORS[i % CHART_COLORS.length] }));
 
   const selectedIncomeData = selectedIncomeCategory
     ? incomeCategories.find(c => c.category_id === selectedIncomeCategory)
@@ -114,13 +119,13 @@ export function CategoryAnalysisContent() {
               </PieChart>
             </ResponsiveContainer>
 
-            {/* Legend / Detail */}
+            {/* Legend - always minimized, expand on click */}
             <div className="mt-2 max-h-[220px] overflow-y-auto space-y-0.5">
-              {(selectedData ? [selectedData] : categories).map(cat => (
+              {categories.map(cat => (
                 <div key={cat.category_id || "none"}>
                   <button
                     className={`flex items-center justify-between w-full text-left px-2 py-1.5 rounded-md text-xs transition-colors hover:bg-muted/40 ${
-                      cat.category_id === selectedId ? "bg-muted/60" : ""
+                      cat.category_id === selectedId ? "bg-muted/60 ring-1 ring-primary/20" : ""
                     }`}
                     onClick={() => {
                       if (title.includes("Receita")) {

@@ -687,7 +687,7 @@ function TransactionPendingCard({
   };
 
   return (
-    <div className="border rounded-lg px-3 py-2 space-y-1.5 hover:bg-muted/20 transition-colors">
+    <div className="border rounded-lg px-3 py-2 space-y-1.5 bg-card hover:bg-accent/30 transition-colors shadow-sm">
       <div className="flex items-center justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
