@@ -62,14 +62,22 @@ export function AdminClientPlansTab() {
       const subsMap = new Map<string, any>();
       subs?.forEach(s => subsMap.set(s.organization_id, s));
 
-      // Count members per org
+      // Count members per org (exclude admins — they are not considered members)
+      const { data: adminRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+      const adminUserIds = new Set((adminRoles || []).map(r => r.user_id));
+
       const { data: memberCounts } = await supabase
         .from("organization_members")
-        .select("organization_id");
+        .select("organization_id, user_id");
 
       const countMap = new Map<string, number>();
       memberCounts?.forEach(m => {
-        countMap.set(m.organization_id, (countMap.get(m.organization_id) || 0) + 1);
+        if (!adminUserIds.has(m.user_id)) {
+          countMap.set(m.organization_id, (countMap.get(m.organization_id) || 0) + 1);
+        }
       });
 
       return (orgs || []).map(org => ({
