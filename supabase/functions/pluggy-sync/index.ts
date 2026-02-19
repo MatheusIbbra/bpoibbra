@@ -135,9 +135,15 @@ function containsKeyword(description: string, keyword: string): number {
 }
 
 // ========================================
-// CLASSIFY TRANSACTION (rules + patterns only)
+// CLASSIFY TRANSACTION (rules + patterns + AI fallback)
 // ========================================
 async function classifyTransaction(supabaseAdmin: any, txId: string, description: string, amount: number, type: string, organizationId: string): Promise<void> {
+  // Skip transfers and already-classified system transactions
+  if (type === 'transfer' || type === 'investment' || type === 'redemption') {
+    console.log(`[CLASSIFY] TX ${txId}: skipped (type=${type})`);
+    return;
+  }
+
   const normalizedDescription = normalizeText(description);
   await supabaseAdmin.from("transactions").update({ normalized_description: normalizedDescription }).eq("id", txId);
 
@@ -193,7 +199,101 @@ async function classifyTransaction(supabaseAdmin: any, txId: string, description
       return;
     }
   }
-  console.log(`[CLASSIFY] TX ${txId}: no rule/pattern match, pending manual review`);
+
+  // STEP 3: AI Classification via Lovable AI Gateway
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) {
+    console.log(`[CLASSIFY] TX ${txId}: no rule/pattern match, AI not configured`);
+    return;
+  }
+
+  try {
+    console.log(`[CLASSIFY-AI] TX ${txId}: calling AI for "${description}"...`);
+
+    // Fetch categories and cost centers for AI context
+    const { data: categories } = await supabaseAdmin
+      .from("categories").select("id, name, type")
+      .or(`organization_id.eq.${organizationId},is_system_template.eq.true`)
+      .eq("type", type);
+
+    const { data: costCenters } = await supabaseAdmin
+      .from("cost_centers").select("id, name")
+      .eq("organization_id", organizationId).eq("is_active", true);
+
+    const categoryList = categories?.map((c: any) => `- ${c.name} (ID: ${c.id})`).join("\n") || "Nenhuma";
+    const costCenterList = costCenters?.map((cc: any) => `- ${cc.name} (ID: ${cc.id})`).join("\n") || "Nenhum";
+
+    const systemPrompt = `Você é um assistente financeiro. Classifique transações bancárias.
+REGRAS: Retorne APENAS JSON válido. Use SOMENTE IDs fornecidos. is_transfer = false SEMPRE.
+
+CATEGORIAS (${type}):
+${categoryList}
+
+CENTROS DE CUSTO:
+${costCenterList}
+
+Formato: {"category_id":"uuid|null","category_name":"nome|null","cost_center_id":"uuid|null","cost_center_name":"nome|null","confidence":0-1,"is_transfer":false,"reasoning":"explicação"}`;
+
+    const userPrompt = `Classifique: "${description}" | R$ ${amount.toFixed(2)} | ${type === "income" ? "Receita" : "Despesa"}`;
+
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
+        temperature: 0.3, max_tokens: 500,
+      }),
+    });
+
+    if (!aiResponse.ok) {
+      console.warn(`[CLASSIFY-AI] TX ${txId}: AI gateway error ${aiResponse.status}`);
+      return;
+    }
+
+    const aiData = await aiResponse.json();
+    const aiContent = aiData.choices?.[0]?.message?.content || "";
+    const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) { console.warn(`[CLASSIFY-AI] TX ${txId}: no JSON in AI response`); return; }
+
+    const aiResult = JSON.parse(jsonMatch[0]);
+
+    // Validate category ID exists
+    if (aiResult.category_id && categories) {
+      const validCat = categories.find((c: any) => c.id === aiResult.category_id);
+      if (!validCat) { aiResult.category_id = null; aiResult.category_name = null; }
+    }
+    // Validate cost center ID exists
+    if (aiResult.cost_center_id && costCenters) {
+      const validCc = costCenters.find((cc: any) => cc.id === aiResult.cost_center_id);
+      if (!validCc) { aiResult.cost_center_id = null; aiResult.cost_center_name = null; }
+    }
+
+    if (aiResult.category_id) {
+      await supabaseAdmin.from("transactions").update({
+        category_id: aiResult.category_id,
+        cost_center_id: aiResult.cost_center_id || null,
+        classification_source: "ai",
+      }).eq("id", txId);
+
+      // Save AI suggestion for audit trail
+      await supabaseAdmin.from("ai_suggestions").insert({
+        transaction_id: txId,
+        suggested_category_id: aiResult.category_id,
+        suggested_cost_center_id: aiResult.cost_center_id || null,
+        suggested_type: type,
+        confidence_score: Math.min(aiResult.confidence || 0, 0.75),
+        reasoning: aiResult.reasoning || "Classificado pela IA",
+        model_version: "lovable-ai-sync-v1",
+      });
+
+      console.log(`[CLASSIFY-AI] TX ${txId}: AI classified → ${aiResult.category_name} (${((aiResult.confidence || 0) * 100).toFixed(0)}%)`);
+    } else {
+      console.log(`[CLASSIFY-AI] TX ${txId}: AI returned no category`);
+    }
+  } catch (aiErr) {
+    console.warn(`[CLASSIFY-AI] TX ${txId}: error`, aiErr);
+  }
 }
 
 // ========================================
