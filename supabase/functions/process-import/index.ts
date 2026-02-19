@@ -170,8 +170,10 @@ async function parsePDF(pdfBytes: Uint8Array): Promise<ParsedTransaction[]> {
   // Limit PDF size to avoid CPU timeout (max 500KB for vision mode)
   const MAX_PDF_SIZE = 500 * 1024; // 500KB
   if (pdfBytes.length > MAX_PDF_SIZE) {
-    console.log(`PDF too large (${pdfBytes.length} bytes), truncating to ${MAX_PDF_SIZE} bytes`);
-    pdfBytes = pdfBytes.slice(0, MAX_PDF_SIZE);
+    throw new Error(
+      `PDF muito grande (${(pdfBytes.length / 1024).toFixed(0)}KB). ` +
+      `Tamanho máximo permitido: 500KB. Use OFX ou CSV para arquivos maiores.`
+    );
   }
 
   // Always use vision mode for PDFs - text extraction is unreliable

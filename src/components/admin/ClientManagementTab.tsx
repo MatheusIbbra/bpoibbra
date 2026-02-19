@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { callEdgeFunction } from "@/lib/supabase-helpers";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logAudit } from "@/lib/audit";
@@ -116,17 +117,7 @@ function EditOrganizationDialog({
     const fetchClientEmail = async () => {
       if (organization?.client_user_id) {
         try {
-          const { data: { session } } = await supabase.auth.getSession();
-          const response = await fetch(
-            `https://umqehhhpedwqdfjmdjqv.supabase.co/functions/v1/get-user-emails`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session?.access_token}`,
-              },
-            }
-          );
+          const response = await callEdgeFunction("get-user-emails");
           const result = await response.json();
           if (result.emails && result.emails[organization.client_user_id]) {
             setClientEmail(result.emails[organization.client_user_id]);
@@ -265,23 +256,11 @@ function EditOrganizationDialog({
 
     setIsUpdatingEmail(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const response = await fetch(
-        `https://umqehhhpedwqdfjmdjqv.supabase.co/functions/v1/manage-user-access`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({
-            action: 'update_email',
-            userId: organization.client_user_id,
-            email: clientEmail.trim(),
-          }),
-        }
-      );
+      const response = await callEdgeFunction("manage-user-access", {
+        action: 'update_email',
+        userId: organization.client_user_id,
+        email: clientEmail.trim(),
+      });
 
       const result = await response.json();
       
@@ -305,22 +284,10 @@ function EditOrganizationDialog({
 
     setIsResettingPassword(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const response = await fetch(
-        `https://umqehhhpedwqdfjmdjqv.supabase.co/functions/v1/manage-user-access`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({
-            action: 'reset_password',
-            userId: organization.client_user_id,
-          }),
-        }
-      );
+      const response = await callEdgeFunction("manage-user-access", {
+        action: 'reset_password',
+        userId: organization.client_user_id,
+      });
 
       const result = await response.json();
       

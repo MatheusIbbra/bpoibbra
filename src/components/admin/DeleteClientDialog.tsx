@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { callEdgeFunction } from "@/lib/supabase-helpers";
 import { logAudit } from "@/lib/audit";
 import { useQueryClient } from "@tanstack/react-query";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
@@ -46,22 +47,10 @@ export function DeleteClientDialog({
 
     setIsDeleting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      const response = await fetch(
-        `https://umqehhhpedwqdfjmdjqv.supabase.co/functions/v1/delete-client`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({
-            organizationId,
-            confirmedName: confirmedName.trim(),
-          }),
-        }
-      );
+      const response = await callEdgeFunction("delete-client", {
+        organizationId,
+        confirmedName: confirmedName.trim(),
+      });
 
       const result = await response.json();
 
