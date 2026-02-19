@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,12 +26,27 @@ import { AnomalyDetectionCard } from "@/components/dashboard/AnomalyDetectionCar
 import { StrategicHistoryCard } from "@/components/dashboard/StrategicHistoryCard";
 import { MacroSimulationCard } from "@/components/dashboard/MacroSimulationCard";
 import { StaggerGrid, StaggerItem } from "@/components/ui/motion";
+import { AIAssistantChat } from "@/components/ai/AIAssistantChat";
 
 export default function Relatorios() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { hasFeature } = useFeatureFlags();
-  const [activeTab, setActiveTab] = useState("movimentacoes");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get("tab") || "movimentacoes";
+  const [activeTab, setActiveTab] = useState(tabFromUrl);
+
+  // Sync tab from URL
+  useEffect(() => {
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -53,7 +67,7 @@ export default function Relatorios() {
   return (
     <AppLayout title="Relatórios">
       <div className="space-y-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="w-full justify-start bg-muted/50 p-1 h-auto flex-wrap gap-1">
             <TabsTrigger value="movimentacoes" className="gap-1.5 data-[state=active]:bg-background text-xs sm:text-sm">
               <Receipt className="h-3.5 w-3.5 shrink-0" />

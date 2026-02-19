@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Upload, AlertCircle, User, ChevronRight, Home, Receipt, Settings2, Wallet, FileText, Shield, Brain, Building2, CreditCard, BarChart3 } from "lucide-react";
+import { LogOut, Upload, AlertCircle, User, ChevronRight, ChevronDown, Home, Receipt, Settings2, Wallet, FileText, Shield, Brain, Building2, CreditCard, BarChart3, CircleDollarSign, PieChart, Layers, Tags, Lightbulb, Radio } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,15 +14,15 @@ import { supabase } from "@/integrations/supabase/client";
 import ibbraLogoWhite from "@/assets/ibbra-logo-white.png";
 import ibbraLogoFullWhite from "@/assets/ibbra-logo-full-white.png";
 
-const navItems = [
-  { title: "Consolidação", url: "/", icon: Home },
-  { title: "Open Finance", url: "/open-finance", icon: Building2 },
-  { title: "Cartões de Crédito", url: "/cartoes", icon: CreditCard },
-  { title: "Orçamentos", url: "/orcamentos", icon: Wallet },
-  { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
-  { title: "Pendências", url: "/pendencias", icon: AlertCircle },
-  { title: "Importar Extratos", url: "/importacoes", icon: Upload },
-  { title: "Cadastros", url: "/cadastros", icon: Settings2 },
+const reportSubItems = [
+  { title: "Movimentações", url: "/relatorios?tab=movimentacoes", tab: "movimentacoes", icon: Receipt },
+  { title: "Fluxo de Caixa", url: "/relatorios?tab=fluxo", tab: "fluxo", icon: CircleDollarSign },
+  { title: "DRE", url: "/relatorios?tab=dre", tab: "dre", icon: PieChart },
+  { title: "Orçamento", url: "/relatorios?tab=analise", tab: "analise", icon: BarChart3 },
+  { title: "Demonstrativo", url: "/relatorios?tab=demonstrativo", tab: "demonstrativo", icon: FileText },
+  { title: "Tipo Financeiro", url: "/relatorios?tab=tipo-financeiro", tab: "tipo-financeiro", icon: Layers },
+  { title: "Análise Categorias", url: "/relatorios?tab=categorias", tab: "categorias", icon: Tags },
+  { title: "Análises Estratégicas", url: "/relatorios?tab=estrategico", tab: "estrategico", icon: Lightbulb },
 ];
 
 export function AppSidebar() {
@@ -32,6 +33,7 @@ export function AppSidebar() {
   const { signOut, user } = useAuth();
   const { isAdmin } = useIsAdmin();
   const { data: pendingCount } = usePendingTransactionsCount();
+  const [reportsOpen, setReportsOpen] = useState(location.pathname === "/relatorios");
 
   const { data: userProfile } = useQuery({
     queryKey: ["sidebar-profile", user?.id],
@@ -66,6 +68,7 @@ export function AppSidebar() {
   };
 
   const isActive = (path: string) => location.pathname === path;
+  const isReportActive = location.pathname === "/relatorios";
 
   const getRoleLabel = (role: string | null | undefined): string => {
     const labels: Record<string, string> = {
@@ -79,6 +82,50 @@ export function AppSidebar() {
     if (!name) return "U";
     return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
   };
+
+  // Build nav items based on role
+  const navItems = [
+    { title: "Consolidação", url: "/", icon: Home },
+    { title: "Open Finance", url: "/open-finance", icon: Building2 },
+    { title: "Cartões de Crédito", url: "/cartoes", icon: CreditCard },
+    { title: "Orçamentos", url: "/orcamentos", icon: Wallet },
+  ];
+
+  // "Relatórios" is handled separately as submenu
+  const postReportItems = [
+    { title: "Pendências", url: "/pendencias", icon: AlertCircle },
+    { title: "Importar Extratos", url: "/importacoes", icon: Upload },
+  ];
+
+  // Cadastros only for admin
+  if (isAdmin) {
+    postReportItems.push({ title: "Cadastros", url: "/cadastros", icon: Settings2 });
+  }
+
+  const renderNavItem = (item: typeof navItems[0]) => (
+    <SidebarMenuItem key={item.title} className="relative">
+      <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={collapsed ? item.title : undefined}>
+        <NavLink to={item.url} end={item.url === "/"} className={`flex items-center transition-all duration-200 text-sm py-2.5 rounded-xl ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${isActive(item.url) ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
+          <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive(item.url) ? "text-sidebar-primary" : ""}`} />
+          {!collapsed && (
+            <span className="whitespace-nowrap flex-1 text-[13px]">
+              {item.title}
+            </span>
+          )}
+          {!collapsed && item.url === "/pendencias" && pendingCount > 0 && (
+            <Badge variant="destructive" className="ml-auto text-[10px] h-5 min-w-5 flex items-center justify-center">
+              {pendingCount}
+            </Badge>
+          )}
+        </NavLink>
+      </SidebarMenuButton>
+      {collapsed && item.url === "/pendencias" && pendingCount > 0 && (
+        <span className="absolute -top-1 -right-1 h-4 min-w-4 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold px-1">
+          {pendingCount}
+        </span>
+      )}
+    </SidebarMenuItem>
+  );
 
   return (
     <Sidebar collapsible="icon" className="border-r-0 transition-all duration-300 sidebar-premium">
@@ -96,30 +143,54 @@ export function AppSidebar() {
 
       <SidebarContent className="px-3 py-2">
         <SidebarMenu>
-          {navItems.map(item => (
-            <SidebarMenuItem key={item.title} className="relative">
-              <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={collapsed ? item.title : undefined}>
-                <NavLink to={item.url} end={item.url === "/"} className={`flex items-center transition-all duration-200 text-sm py-2.5 rounded-xl ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${isActive(item.url) ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
-                  <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive(item.url) ? "text-sidebar-primary" : ""}`} />
-                  {!collapsed && (
-                    <span className="whitespace-nowrap flex-1 text-[13px]">
-                      {item.title}
-                    </span>
-                  )}
-                  {!collapsed && item.url === "/pendencias" && pendingCount > 0 && (
-                    <Badge variant="destructive" className="ml-auto text-[10px] h-5 min-w-5 flex items-center justify-center">
-                      {pendingCount}
-                    </Badge>
-                  )}
+          {navItems.map(renderNavItem)}
+
+          {/* Reports with submenu */}
+          <SidebarMenuItem>
+            {collapsed ? (
+              <SidebarMenuButton asChild isActive={isReportActive} tooltip="Relatórios">
+                <NavLink to="/relatorios" className={`flex items-center justify-center transition-all duration-200 text-sm py-2.5 rounded-xl ${isReportActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
+                  <BarChart3 className={`h-[18px] w-[18px] shrink-0 ${isReportActive ? "text-sidebar-primary" : ""}`} />
                 </NavLink>
               </SidebarMenuButton>
-              {collapsed && item.url === "/pendencias" && pendingCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 min-w-4 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold px-1">
-                  {pendingCount}
-                </span>
-              )}
-            </SidebarMenuItem>
-          ))}
+            ) : (
+              <>
+                <button
+                  onClick={() => setReportsOpen(!reportsOpen)}
+                  className={`flex items-center w-full transition-all duration-200 text-sm py-2.5 rounded-xl gap-3 px-3 ${isReportActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`}
+                >
+                  <BarChart3 className={`h-[18px] w-[18px] shrink-0 ${isReportActive ? "text-sidebar-primary" : ""}`} />
+                  <span className="whitespace-nowrap flex-1 text-[13px] text-left">Relatórios</span>
+                  {reportsOpen ? (
+                    <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-muted" />
+                  ) : (
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-sidebar-muted" />
+                  )}
+                </button>
+                {reportsOpen && (
+                  <div className="ml-5 mt-1 space-y-0.5 border-l border-sidebar-border/30 pl-3">
+                    {reportSubItems.map(sub => {
+                      const searchParams = new URLSearchParams(location.search);
+                      const currentTab = searchParams.get("tab");
+                      const isSubActive = isReportActive && currentTab === sub.tab;
+                      return (
+                        <button
+                          key={sub.tab}
+                          onClick={() => navigate(`/relatorios?tab=${sub.tab}`)}
+                          className={`flex items-center gap-2 w-full text-[12px] py-1.5 px-2 rounded-lg transition-all duration-150 ${isSubActive ? "bg-sidebar-accent/60 text-sidebar-accent-foreground font-medium" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/30"}`}
+                        >
+                          <sub.icon className="h-3.5 w-3.5 shrink-0" />
+                          <span>{sub.title}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+          </SidebarMenuItem>
+
+          {postReportItems.map(renderNavItem)}
         </SidebarMenu>
 
         {isAdmin && <>
@@ -138,6 +209,14 @@ export function AppSidebar() {
                 <NavLink to="/padroes-aprendidos" className={`flex items-center transition-all duration-200 text-sm py-2.5 rounded-xl ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${isActive("/padroes-aprendidos") ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
                   <Brain className={`h-[18px] w-[18px] shrink-0 ${isActive("/padroes-aprendidos") ? "text-sidebar-primary" : ""}`} />
                   {!collapsed && <span className="whitespace-nowrap text-[13px]">Padrões Aprendidos</span>}
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={isActive("/open-finance-monitor")} tooltip={collapsed ? "Open Finance Monitor" : undefined}>
+                <NavLink to="/open-finance-monitor" className={`flex items-center transition-all duration-200 text-sm py-2.5 rounded-xl ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${isActive("/open-finance-monitor") ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
+                  <Radio className={`h-[18px] w-[18px] shrink-0 ${isActive("/open-finance-monitor") ? "text-sidebar-primary" : ""}`} />
+                  {!collapsed && <span className="whitespace-nowrap text-[13px]">OF Monitor</span>}
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>

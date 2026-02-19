@@ -3,7 +3,6 @@ import { useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { FintechTransactionsList } from "@/components/dashboard/FintechTransactionsList";
 import { MonthlyEvolutionChart } from "@/components/dashboard/MonthlyEvolutionChart";
-import { AIAssistantChat } from "@/components/ai/AIAssistantChat";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
@@ -175,8 +174,6 @@ const Index = () => {
           <ConnectedAccountsSection compact />
         </AnimatedCard>
       </div>
-
-      <AIAssistantChat isPaidUser={false} />
     </AppLayout>
   );
 };
