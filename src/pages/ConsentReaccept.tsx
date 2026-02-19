@@ -13,11 +13,7 @@ export default function ConsentReaccept() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [acceptTerms, setAcceptTerms] = useState(false);
-  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
-  const [acceptLgpd, setAcceptLgpd] = useState(false);
-
-  const allAccepted = acceptTerms && acceptPrivacy && acceptLgpd;
+  const [acceptAll, setAcceptAll] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -26,7 +22,7 @@ export default function ConsentReaccept() {
   }, [user, authLoading, navigate]);
 
   const handleAccept = async () => {
-    if (!user || !allAccepted) return;
+    if (!user || !acceptAll) return;
     setIsLoading(true);
 
     try {
@@ -105,37 +101,25 @@ export default function ConsentReaccept() {
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/30 transition-colors">
-            <Checkbox id="terms" checked={acceptTerms} onCheckedChange={(c) => setAcceptTerms(c === true)} className="mt-0.5" />
-            <label htmlFor="terms" className="text-sm leading-relaxed cursor-pointer">
-              Li e aceito os{" "}
-              <a href="/termos-de-uso" target="_blank" className="text-primary font-medium hover:underline inline-flex items-center gap-1">
-                Termos de Uso <ExternalLink className="h-3 w-3" />
-              </a>
-            </label>
-          </div>
-          <div className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/30 transition-colors">
-            <Checkbox id="privacy" checked={acceptPrivacy} onCheckedChange={(c) => setAcceptPrivacy(c === true)} className="mt-0.5" />
-            <label htmlFor="privacy" className="text-sm leading-relaxed cursor-pointer">
-              Li e aceito a{" "}
-              <a href="/politica-de-privacidade" target="_blank" className="text-primary font-medium hover:underline inline-flex items-center gap-1">
-                Política de Privacidade <ExternalLink className="h-3 w-3" />
-              </a>
-            </label>
-          </div>
-          <div className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/30 transition-colors">
-            <Checkbox id="lgpd" checked={acceptLgpd} onCheckedChange={(c) => setAcceptLgpd(c === true)} className="mt-0.5" />
-            <label htmlFor="lgpd" className="text-sm leading-relaxed cursor-pointer">
-              Autorizo o tratamento dos meus dados conforme a{" "}
-              <a href="/lgpd" target="_blank" className="text-primary font-medium hover:underline inline-flex items-center gap-1">
-                LGPD <ExternalLink className="h-3 w-3" />
-              </a>
-            </label>
-          </div>
+        <div className="flex items-start gap-3 p-4 rounded-lg border border-border hover:border-primary/30 transition-colors">
+          <Checkbox id="accept-all" checked={acceptAll} onCheckedChange={(c) => setAcceptAll(c === true)} className="mt-0.5" />
+          <label htmlFor="accept-all" className="text-sm leading-relaxed cursor-pointer">
+            Li e aceito os{" "}
+            <a href="/termos-de-uso" target="_blank" className="text-primary font-medium hover:underline inline-flex items-center gap-1">
+              Termos de Uso <ExternalLink className="h-3 w-3" />
+            </a>
+            , a{" "}
+            <a href="/politica-de-privacidade" target="_blank" className="text-primary font-medium hover:underline inline-flex items-center gap-1">
+              Política de Privacidade <ExternalLink className="h-3 w-3" />
+            </a>
+            {" "}e autorizo o tratamento dos meus dados conforme a{" "}
+            <a href="/lgpd" target="_blank" className="text-primary font-medium hover:underline inline-flex items-center gap-1">
+              LGPD <ExternalLink className="h-3 w-3" />
+            </a>
+          </label>
         </div>
 
-        <Button className="w-full h-12 text-sm font-semibold" onClick={handleAccept} disabled={!allAccepted || isLoading}>
+        <Button className="w-full h-12 text-sm font-semibold" onClick={handleAccept} disabled={!acceptAll || isLoading}>
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
           {isLoading ? "Salvando..." : "Aceitar e Continuar"}
         </Button>

@@ -25,9 +25,9 @@ export interface PlanUsage {
 }
 
 const DEFAULT_FREE_LIMITS = {
-  max_transactions: 500,
-  max_ai_requests: 50,
-  max_bank_connections: 2,
+  max_transactions: 200,
+  max_ai_requests: 10,
+  max_bank_connections: 1,
   allow_forecast: false,
   allow_simulator: false,
   allow_anomaly_detection: false,
@@ -43,7 +43,7 @@ export function usePlanLimits() {
     queryKey: ["plan-usage", user?.id, selectedOrganizationId],
     queryFn: async (): Promise<PlanUsage> => {
       const plan = currentPlan || DEFAULT_FREE_LIMITS;
-      const planName = currentPlan?.name || "Starter (Free)";
+      const planName = currentPlan?.name || "Starter";
 
       const now = new Date();
       const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
