@@ -687,11 +687,11 @@ function TransactionPendingCard({
   };
 
   return (
-    <div className="border rounded-lg px-3 py-3 space-y-2.5 hover:bg-muted/20 transition-colors">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-medium">{transaction.description || transaction.raw_description}</p>
+    <div className="border rounded-lg px-3 py-2.5 space-y-2 hover:bg-muted/20 transition-colors">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="text-sm font-medium truncate max-w-[300px]">{transaction.description || transaction.raw_description}</p>
             
             {/* Classification Source Badge */}
             {classificationSource && (
@@ -826,11 +826,11 @@ function TransactionPendingCard({
         </div>
       )}
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-        <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Tipo</label>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+        <div className="space-y-0.5">
+          <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Tipo</label>
           <Select value={selectedType} onValueChange={(v) => setSelectedType(v as TransactionType)}>
-            <SelectTrigger className="h-9">
+            <SelectTrigger className="h-8 text-xs">
               <SelectValue placeholder="Selecione..." />
             </SelectTrigger>
             <SelectContent>
@@ -863,14 +863,14 @@ function TransactionPendingCard({
           </Select>
         </div>
         
-        <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Categoria</label>
+        <div className="space-y-0.5">
+          <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Categoria</label>
           <Select 
             value={selectedCategory} 
             onValueChange={setSelectedCategory}
             disabled={requiresDestinationAccount}
           >
-            <SelectTrigger className="h-9">
+            <SelectTrigger className="h-8 text-xs">
               <SelectValue placeholder={requiresDestinationAccount ? "N/A" : "Selecione..."} />
             </SelectTrigger>
             <SelectContent>
@@ -883,14 +883,14 @@ function TransactionPendingCard({
           </Select>
         </div>
         
-        <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Centro de Custo</label>
+        <div className="space-y-0.5">
+          <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Centro de Custo</label>
           <Select 
             value={selectedCostCenter} 
             onValueChange={setSelectedCostCenter}
             disabled={requiresDestinationAccount}
           >
-            <SelectTrigger className="h-9">
+            <SelectTrigger className="h-8 text-xs">
               <SelectValue placeholder={requiresDestinationAccount ? "N/A" : "Selecione..."} />
             </SelectTrigger>
             <SelectContent>

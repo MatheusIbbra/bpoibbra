@@ -207,7 +207,7 @@ export default function Orcamentos() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-2 md:grid-cols-2">
+          <div className="grid gap-2 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {budgets?.map((budget) => {
               const spent = getSpentForCategory(budget.category_id);
               const percentage = Math.min((spent / Number(budget.amount)) * 100, 100);

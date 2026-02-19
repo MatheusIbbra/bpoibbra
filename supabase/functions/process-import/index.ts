@@ -498,38 +498,45 @@ Deno.serve(async (req) => {
 
     console.log(`Import completed: ${importedCount} imported, ${duplicateCount} duplicates, ${errorCount} errors`);
 
-    // Call AI classification in background (don't wait for it)
+    // Auto-classify ALL imported transactions (mandatory - no manual step needed)
+    let classifiedCount = 0;
     if (importedCount > 0) {
-      // Fire and forget - don't await
-      (async () => {
-        try {
-          console.log("Triggering classify-transactions for new imports...");
-          
-          const { data: batchTransactions } = await supabase
-            .from("transactions")
-            .select("id")
-            .eq("import_batch_id", batchId)
-            .limit(100); // Limit for performance
+      try {
+        console.log("Auto-classifying all imported transactions...");
+        
+        const { data: batchTransactions } = await supabase
+          .from("transactions")
+          .select("id")
+          .eq("import_batch_id", batchId)
+          .limit(500);
 
-          if (batchTransactions && batchTransactions.length > 0) {
-            const transactionIds = batchTransactions.map(t => t.id);
-            
-            await fetch(`${supabaseUrl}/functions/v1/classify-transactions`, {
-              method: "POST",
-              headers: {
-                "Authorization": `Bearer ${supabaseServiceKey}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                transactionIds,
-                organizationId,
-              }),
-            });
+        if (batchTransactions && batchTransactions.length > 0) {
+          const transactionIds = batchTransactions.map(t => t.id);
+          
+          const classifyResponse = await fetch(`${supabaseUrl}/functions/v1/classify-transactions`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${supabaseServiceKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              transactionIds,
+              organizationId,
+            }),
+          });
+
+          if (classifyResponse.ok) {
+            const classifyResult = await classifyResponse.json();
+            classifiedCount = classifyResult?.suggestionsCreated || 0;
+            console.log(`Auto-classified ${classifiedCount} transactions`);
+          } else {
+            console.error("Classification response error:", classifyResponse.status);
           }
-        } catch (classifyError) {
-          console.error("Error in AI classification:", classifyError);
         }
-      })();
+      } catch (classifyError) {
+        console.error("Error in auto-classification:", classifyError);
+        // Don't fail the import if classification fails
+      }
     }
 
     return new Response(
@@ -539,6 +546,7 @@ Deno.serve(async (req) => {
         imported: importedCount,
         duplicates: duplicateCount,
         errors: errorCount,
+        classified: classifiedCount,
         periodStart: periodStart?.toISOString().split("T")[0],
         periodEnd: periodEnd?.toISOString().split("T")[0],
       }),
