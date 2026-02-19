@@ -38,30 +38,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const BANK_LOGO_FALLBACKS: Record<string, string> = {
-  "itaú": "https://cdn.pluggy.ai/assets/connector-icons/201.svg",
-  "itau": "https://cdn.pluggy.ai/assets/connector-icons/201.svg",
-  "bradesco": "https://cdn.pluggy.ai/assets/connector-icons/202.svg",
-  "banco do brasil": "https://cdn.pluggy.ai/assets/connector-icons/001.svg",
-  "caixa": "https://cdn.pluggy.ai/assets/connector-icons/104.svg",
-  "santander": "https://cdn.pluggy.ai/assets/connector-icons/033.svg",
-  "nubank": "https://cdn.pluggy.ai/assets/connector-icons/260.svg",
-  "inter": "https://cdn.pluggy.ai/assets/connector-icons/077.svg",
-  "c6": "https://cdn.pluggy.ai/assets/connector-icons/336.svg",
-  "btg": "https://cdn.pluggy.ai/assets/connector-icons/208.svg",
-  "safra": "https://cdn.pluggy.ai/assets/connector-icons/422.svg",
-  "xp": "https://cdn.pluggy.ai/assets/connector-icons/102.svg",
-};
-
-function getBankLogoUrl(bankName: string, metaLogoUrl?: string | null): string | null {
-  if (metaLogoUrl) return metaLogoUrl;
-  const normalized = bankName.toLowerCase().trim();
-  for (const [key, url] of Object.entries(BANK_LOGO_FALLBACKS)) {
-    if (normalized.includes(key)) return url;
-  }
-  return null;
-}
-
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ComponentType<any> }> = {
   active: { label: "Ativo", variant: "default", icon: CheckCircle2 },
   pending: { label: "Pendente", variant: "secondary", icon: Clock },
@@ -519,7 +495,7 @@ function ConnectionCard({ connection, onSync, onDisconnect, onReconnect, isSynci
 
   const meta = (connection as any).metadata as ConnectionMeta | null;
   const bankName = meta?.bank_name || connection.provider_name || 'Banco via Open Finance';
-  const bankLogo = getBankLogoUrl(bankName, meta?.bank_logo_url);
+  const bankLogo = meta?.bank_logo_url;
   const pluggyAccounts = meta?.pluggy_accounts || [];
   const totalBalance = meta?.last_balance ?? null;
   const itemStatus = meta?.item_status;

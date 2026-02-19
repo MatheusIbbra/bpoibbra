@@ -219,26 +219,29 @@ export function MonthlyEvolutionChart() {
 
       {/* Month Detail Modal */}
       <Dialog open={!!selectedMonth} onOpenChange={(open) => !open && setSelectedMonth(null)}>
-        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto w-[calc(100vw-2rem)] sm:w-full p-4">
-          <DialogHeader className="pb-2">
-            <DialogTitle className="capitalize text-base">{selectedMonth?.label}</DialogTitle>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto w-[calc(100vw-2rem)] sm:w-full">
+          <DialogHeader>
+            <DialogTitle className="capitalize">{selectedMonth?.label}</DialogTitle>
           </DialogHeader>
-          <div className="divide-y divide-border/50">
+          <div className="space-y-1">
             {monthTransactions && monthTransactions.length > 0 ? (
               monthTransactions.slice(0, 50).map((tx) => (
                 <div 
                   key={tx.id} 
-                  className="flex items-center justify-between py-2.5 gap-3 cursor-pointer hover:bg-muted/30 -mx-1 px-1 rounded transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between py-2 px-2 rounded-md hover:bg-muted/50 cursor-pointer transition-colors gap-1"
                   onClick={() => setEditingTransaction(tx)}
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{tx.description || tx.raw_description}</p>
-                    <span className="text-[11px] text-muted-foreground">
-                      {format(parseLocalDate(tx.date), "dd/MM", { locale: ptBR })}
-                    </span>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{format(parseLocalDate(tx.date), "dd/MM/yyyy", { locale: ptBR })}</span>
+                      <Badge variant={tx.type === "income" ? "default" : "destructive"} className="text-[10px] h-4 px-1.5">
+                        {tx.type === "income" ? "Receita" : "Despesa"}
+                      </Badge>
+                    </div>
                   </div>
-                  <span className={`text-sm font-semibold tabular-nums shrink-0 ${tx.type === "income" ? "text-primary" : "text-destructive"}`}>
-                    {tx.type === "income" ? "+" : "−"}{formatCurrency(Math.abs(Number(tx.amount))).replace("R$\u00a0", "")}
+                  <span className={`text-sm font-semibold tabular-nums shrink-0 ${tx.type === "income" ? "text-success" : "text-destructive"}`}>
+                    {formatCurrency(Math.abs(Number(tx.amount)))}
                   </span>
                 </div>
               ))
