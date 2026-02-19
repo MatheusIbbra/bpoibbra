@@ -73,14 +73,14 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const plan = (sub?.plans as any) || {
-      max_transactions: 500,
-      max_ai_requests: 50,
-      max_bank_connections: 2,
+      max_transactions: 200,
+      max_ai_requests: 10,
+      max_bank_connections: 1,
       allow_forecast: false,
       allow_simulator: false,
       allow_anomaly_detection: false,
       allow_benchmarking: false,
-      name: "Starter (Free)",
+      name: "Starter",
     };
 
     const startOfMonth = new Date();
