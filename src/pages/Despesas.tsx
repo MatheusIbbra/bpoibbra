@@ -192,8 +192,8 @@ export default function Despesas() {
                     </div>
 
                     <div className="text-right shrink-0">
-                      <p className="font-semibold text-sm md:text-base">
-                        -{formatCurrency(Number(transaction.amount))}
+                      <p className="font-semibold text-sm md:text-base text-destructive">
+                        {formatCurrency(Math.abs(Number(transaction.amount)))}
                       </p>
                     </div>
 

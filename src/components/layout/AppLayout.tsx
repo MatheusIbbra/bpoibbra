@@ -3,6 +3,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
 import { BrandBackground } from "./BrandBackground";
+import { AIAssistantChat } from "@/components/ai/AIAssistantChat";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -66,6 +67,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
           }
         </main>
       </SidebarInset>
+      <AIAssistantChat isPaidUser={false} />
     </SidebarProvider>);
 
 }

@@ -28,6 +28,14 @@ export function useOnboardingGuard() {
       return;
     }
 
+    // Block access if email not confirmed
+    if (!user.email_confirmed_at) {
+      setChecking(false);
+      setCompleted(false);
+      navigate("/auth", { replace: true });
+      return;
+    }
+
     let cancelled = false;
 
     const checkOnboarding = async () => {
