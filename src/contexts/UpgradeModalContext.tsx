@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useCallback } from "react";
 
-type UpgradeTrigger = "transactions" | "ai" | "connections" | "forecast" | "simulator" | "anomaly" | "benchmarking" | "general";
+type UpgradeTrigger = "transactions" | "ai" | "connections" | "forecast" | "simulator" | "anomaly" | "general";
 
 interface UpgradeModalState {
   isOpen: boolean;

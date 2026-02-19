@@ -13,7 +13,6 @@ const TRIGGER_MESSAGES: Record<string, string> = {
   forecast: "Projeção de fluxo de caixa disponível em planos superiores.",
   simulator: "Simulador financeiro disponível em planos superiores.",
   anomaly: "Detecção de anomalias disponível em planos superiores.",
-  benchmarking: "Benchmarking disponível em planos superiores.",
   general: "Desbloqueie todo o potencial do IBBRA com um plano superior.",
 };
 
@@ -129,7 +128,6 @@ export function UpgradeModal() {
                   <FeatureRow label="Projeção de caixa" enabled={plan.allow_forecast} />
                   <FeatureRow label="Simulador financeiro" enabled={plan.allow_simulator} />
                   <FeatureRow label="Detecção de anomalias" enabled={plan.allow_anomaly_detection} />
-                  <FeatureRow label="Benchmarking" enabled={plan.allow_benchmarking} />
                 </div>
 
                 {/* CTA */}

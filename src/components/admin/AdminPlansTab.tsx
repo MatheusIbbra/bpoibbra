@@ -26,7 +26,6 @@ interface Plan {
   allow_forecast: boolean;
   allow_anomaly_detection: boolean;
   allow_simulator: boolean;
-  allow_benchmarking: boolean;
   is_active: boolean;
   sort_order: number;
 }
@@ -68,7 +67,7 @@ export function AdminPlansTab() {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: "", slug: "", price: 0, max_transactions: 200, max_ai_requests: 10, max_bank_connections: 1, max_sync_per_day: 10, max_reports_per_day: 20, allow_forecast: false, allow_anomaly_detection: false, allow_simulator: false, allow_benchmarking: false, is_active: true, sort_order: (plans?.length || 0) + 1 });
+    setForm({ name: "", slug: "", price: 0, max_transactions: 200, max_ai_requests: 10, max_bank_connections: 1, max_sync_per_day: 10, max_reports_per_day: 20, allow_forecast: false, allow_anomaly_detection: false, allow_simulator: false, is_active: true, sort_order: (plans?.length || 0) + 1 });
     setDialogOpen(true);
   };
 
@@ -120,7 +119,6 @@ export function AdminPlansTab() {
                   <Badge variant="outline" className="text-[10px]">{plan.max_bank_connections} conex</Badge>
                   {plan.allow_forecast && <Badge className="text-[10px]">Forecast</Badge>}
                   {plan.allow_simulator && <Badge className="text-[10px]">Simulador</Badge>}
-                  {plan.allow_benchmarking && <Badge className="text-[10px]">Benchmark</Badge>}
                 </div>
                 {!plan.is_active && <Badge variant="destructive" className="text-[10px]">Inativo</Badge>}
               </CardContent>
@@ -157,7 +155,6 @@ export function AdminPlansTab() {
                 { key: "allow_forecast" as const, label: "Previsão de Fluxo" },
                 { key: "allow_anomaly_detection" as const, label: "Detecção de Anomalias" },
                 { key: "allow_simulator" as const, label: "Simulador Financeiro" },
-                { key: "allow_benchmarking" as const, label: "Benchmarking" },
                 { key: "is_active" as const, label: "Ativo" },
               ].map(item => (
                 <div key={item.key} className="flex items-center justify-between">
