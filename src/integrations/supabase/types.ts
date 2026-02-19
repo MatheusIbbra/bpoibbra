@@ -1559,6 +1559,8 @@ export type Database = {
         Row: {
           address: string | null
           birth_date: string | null
+          city: string | null
+          complement: string | null
           cpf: string | null
           created_at: string
           expires_at: string
@@ -1568,11 +1570,16 @@ export type Database = {
           is_ibbra_client: boolean | null
           phone: string | null
           session_token: string
+          state: string | null
+          street_number: string | null
           validated: boolean | null
+          zip_code: string | null
         }
         Insert: {
           address?: string | null
           birth_date?: string | null
+          city?: string | null
+          complement?: string | null
           cpf?: string | null
           created_at?: string
           expires_at?: string
@@ -1582,11 +1589,16 @@ export type Database = {
           is_ibbra_client?: boolean | null
           phone?: string | null
           session_token?: string
+          state?: string | null
+          street_number?: string | null
           validated?: boolean | null
+          zip_code?: string | null
         }
         Update: {
           address?: string | null
           birth_date?: string | null
+          city?: string | null
+          complement?: string | null
           cpf?: string | null
           created_at?: string
           expires_at?: string
@@ -1596,7 +1608,10 @@ export type Database = {
           is_ibbra_client?: boolean | null
           phone?: string | null
           session_token?: string
+          state?: string | null
+          street_number?: string | null
           validated?: boolean | null
+          zip_code?: string | null
         }
         Relationships: []
       }
