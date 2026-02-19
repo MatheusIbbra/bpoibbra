@@ -35,13 +35,17 @@ export function CategoryAnalysisContent() {
   const incomeCategories = data?.incomeCategories || [];
   const expenseCategories = data?.expenseCategories || [];
 
-  const CHART_COLORS = [
-    '#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316',
-    '#6366f1', '#84cc16', '#06b6d4', '#e11d48', '#a855f7', '#0ea5e9', '#d946ef', '#10b981',
+  const INCOME_COLORS = [
+    '#22c55e', '#16a34a', '#15803d', '#4ade80', '#86efac', '#34d399', '#10b981', '#059669',
+    '#6ee7b7', '#a7f3d0', '#bbf7d0', '#047857', '#065f46', '#064e3b', '#14b8a6', '#0d9488',
+  ];
+  const EXPENSE_COLORS = [
+    '#ef4444', '#f97316', '#f59e0b', '#e11d48', '#ec4899', '#d946ef', '#a855f7', '#8b5cf6',
+    '#6366f1', '#3b82f6', '#0ea5e9', '#06b6d4', '#14b8a6', '#f43f5e', '#fb923c', '#fbbf24',
   ];
 
-  const incomeChartData = incomeCategories.map((c, i) => ({ name: c.category_name, value: c.total, color: c.category_color || CHART_COLORS[i % CHART_COLORS.length] }));
-  const expenseChartData = expenseCategories.map((c, i) => ({ name: c.category_name, value: c.total, color: c.category_color || CHART_COLORS[i % CHART_COLORS.length] }));
+  const incomeChartData = incomeCategories.map((c, i) => ({ name: c.category_name, value: c.total, color: c.category_color || INCOME_COLORS[i % INCOME_COLORS.length] }));
+  const expenseChartData = expenseCategories.map((c, i) => ({ name: c.category_name, value: c.total, color: c.category_color || EXPENSE_COLORS[i % EXPENSE_COLORS.length] }));
 
   const selectedIncomeData = selectedIncomeCategory
     ? incomeCategories.find(c => c.category_id === selectedIncomeCategory)
@@ -95,9 +99,9 @@ export function CategoryAnalysisContent() {
                   data={chartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
-                  paddingAngle={2}
+                  innerRadius={55}
+                  outerRadius={85}
+                  paddingAngle={3}
                   dataKey="value"
                   onClick={(_, index) => onPieClick(index)}
                   className="cursor-pointer"
