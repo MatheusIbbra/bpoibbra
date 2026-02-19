@@ -219,7 +219,7 @@ export function MonthlyEvolutionChart() {
 
       {/* Month Detail Modal */}
       <Dialog open={!!selectedMonth} onOpenChange={(open) => !open && setSelectedMonth(null)}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto w-[calc(100vw-2rem)] sm:w-full">
           <DialogHeader>
             <DialogTitle className="capitalize">{selectedMonth?.label}</DialogTitle>
           </DialogHeader>
@@ -228,23 +228,21 @@ export function MonthlyEvolutionChart() {
               monthTransactions.slice(0, 50).map((tx) => (
                 <div 
                   key={tx.id} 
-                  className="flex items-center justify-between py-2 px-2 rounded-md hover:bg-muted/50 cursor-pointer transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between py-2 px-2 rounded-md hover:bg-muted/50 cursor-pointer transition-colors gap-1"
                   onClick={() => setEditingTransaction(tx)}
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{tx.description || tx.raw_description}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(parseLocalDate(tx.date), "dd/MM/yyyy", { locale: ptBR })}
-                    </p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{format(parseLocalDate(tx.date), "dd/MM/yyyy", { locale: ptBR })}</span>
+                      <Badge variant={tx.type === "income" ? "default" : "destructive"} className="text-[10px] h-4 px-1.5">
+                        {tx.type === "income" ? "Receita" : "Despesa"}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0 ml-2">
-                    <Badge variant={tx.type === "income" ? "default" : "destructive"} className="text-[10px] h-5">
-                      {tx.type === "income" ? "Receita" : "Despesa"}
-                    </Badge>
-                    <span className={`text-sm font-semibold tabular-nums ${tx.type === "income" ? "text-success" : "text-destructive"}`}>
-                      {formatCurrency(Math.abs(Number(tx.amount)))}
-                    </span>
-                  </div>
+                  <span className={`text-sm font-semibold tabular-nums shrink-0 ${tx.type === "income" ? "text-success" : "text-destructive"}`}>
+                    {formatCurrency(Math.abs(Number(tx.amount)))}
+                  </span>
                 </div>
               ))
             ) : (
