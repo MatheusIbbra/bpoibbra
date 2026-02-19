@@ -125,7 +125,9 @@ export function CategoryAnalysisContent() {
 
             {/* Legend - always minimized, expand on click */}
             <div className="mt-2 max-h-[220px] overflow-y-auto space-y-0.5">
-              {categories.map(cat => (
+              {categories.map((cat, catIndex) => {
+                const chartColor = chartData[catIndex]?.color || cat.category_color;
+                return (
                 <div key={cat.category_id || "none"}>
                   <button
                     className={`flex items-center justify-between w-full text-left px-2 py-1.5 rounded-md text-xs transition-colors hover:bg-muted/40 ${
@@ -140,7 +142,7 @@ export function CategoryAnalysisContent() {
                     }}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.category_color }} />
+                      <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: chartColor }} />
                       <span className="font-medium truncate">{cat.category_name}</span>
                       <Badge variant="secondary" className="text-[8px] h-3.5 px-1 shrink-0">{cat.count}</Badge>
                     </div>
@@ -171,7 +173,8 @@ export function CategoryAnalysisContent() {
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </>
         )}
