@@ -445,15 +445,26 @@ Deno.serve(async (req) => {
     const pluggyAccountToLocal: Record<string, string> = {};
     for (const acc of accounts) {
       const accountType = mapPluggyAccountType(acc.type || 'BANK', acc.subtype);
-      // Create distinct name including subtype to avoid collisions (e.g. "Itaú - Conta Corrente" vs "Itaú - Poupança")
       const subtypeLabel = acc.subtype === 'SAVINGS_ACCOUNT' ? 'Poupança' : acc.subtype === 'CHECKING_ACCOUNT' ? 'Conta Corrente' : acc.subtype === 'CREDIT_CARD' ? 'Cartão' : null;
       const accountName = subtypeLabel ? `${acc.name || connectorName} - ${subtypeLabel}` : (acc.name || `${connectorName} - ${acc.type || 'Conta'}`);
       const apiBalance = acc.balance ?? 0;
       const now = new Date().toISOString();
 
-      // Search by org + bank_name + account_type + pluggy subtype for accurate matching
-      const { data: existing } = await supabaseAdmin.from('accounts').select('id')
+      // Search by org + bank_name + account_type + exact name for accurate matching
+      let { data: existing } = await supabaseAdmin.from('accounts').select('id, name')
         .eq('organization_id', connectionToSync.organization_id).eq('bank_name', connectorName).eq('account_type', accountType).eq('name', accountName).maybeSingle();
+
+      // Fallback: legacy accounts without subtype label (e.g. "itau" instead of "Itaú - Conta Corrente")
+      if (!existing) {
+        const { data: legacyAccounts } = await supabaseAdmin.from('accounts').select('id, name')
+          .eq('organization_id', connectionToSync.organization_id).eq('bank_name', connectorName).eq('account_type', accountType);
+        // If there's exactly one legacy account of this type, adopt it and rename
+        if (legacyAccounts && legacyAccounts.length === 1 && legacyAccounts[0].name !== accountName) {
+          existing = legacyAccounts[0];
+          console.log(`[ACC] Legacy match: renaming "${existing.name}" → "${accountName}"`);
+          await supabaseAdmin.from('accounts').update({ name: accountName }).eq('id', existing.id);
+        }
+      }
 
       if (existing) {
         await supabaseAdmin.from('accounts').update({ official_balance: apiBalance, last_official_balance_at: now, current_balance: apiBalance, updated_at: now }).eq('id', existing.id);
