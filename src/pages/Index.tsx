@@ -24,8 +24,13 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StaggerGrid, StaggerItem, AnimatedCard } from "@/components/ui/motion";
 import { StatCardSkeleton } from "@/components/ui/premium-skeleton";
+import { TransactionDialog } from "@/components/transactions/TransactionDialog";
 import { Loader2, RefreshCw, Wallet, ArrowUpRight, ArrowDownRight, TrendingUp, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTransactions, Transaction } from "@/hooks/useTransactions";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { parseLocalDate } from "@/lib/formatters";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -33,6 +38,19 @@ const Index = () => {
   const { data: stats, error, isLoading: statsLoading } = useDashboardStats();
   const { data: accounts } = useAccounts();
   const [showAccountsDialog, setShowAccountsDialog] = useState(false);
+  const [showIncomeDialog, setShowIncomeDialog] = useState(false);
+  const [showExpenseDialog, setShowExpenseDialog] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const { data: allTransactions } = useTransactions({});
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const monthTransactions = allTransactions?.filter((t) => {
+    const d = parseLocalDate(t.date);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  }) || [];
 
   useEffect(() => {
     if (!loading && !user) {
@@ -103,6 +121,7 @@ const Index = () => {
                     icon={<ArrowUpRight className="h-5 w-5" />}
                     variant="success"
                     trend={stats?.incomeChange ? { value: stats.incomeChange, isPositive: stats.incomeChange >= 0 } : undefined}
+                    onClick={() => setShowIncomeDialog(true)}
                     hoverContent={<StatCardHoverTransactions type="income" />} />
                 </StaggerItem>
                 <StaggerItem>
@@ -112,6 +131,7 @@ const Index = () => {
                     icon={<ArrowDownRight className="h-5 w-5" />}
                     variant="destructive"
                     trend={stats?.expenseChange ? { value: stats.expenseChange, isPositive: stats.expenseChange <= 0 } : undefined}
+                    onClick={() => setShowExpenseDialog(true)}
                     hoverContent={<StatCardHoverTransactions type="expense" />} />
                 </StaggerItem>
                 <StaggerItem>
@@ -138,6 +158,34 @@ const Index = () => {
             <AccountsBreakdown accounts={accounts || []} />
           </DialogContent>
         </Dialog>
+
+        {/* Income transactions dialog */}
+        <TransactionsListDialog
+          open={showIncomeDialog}
+          onOpenChange={setShowIncomeDialog}
+          title="Entradas Financeiras do Mês"
+          transactions={monthTransactions.filter(t => t.type === "income").sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime())}
+          variant="success"
+          onEditTransaction={(tx) => { setEditingTransaction(tx); setEditDialogOpen(true); }}
+        />
+
+        {/* Expense transactions dialog */}
+        <TransactionsListDialog
+          open={showExpenseDialog}
+          onOpenChange={setShowExpenseDialog}
+          title="Saídas Financeiras do Mês"
+          transactions={monthTransactions.filter(t => t.type === "expense").sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime())}
+          variant="destructive"
+          onEditTransaction={(tx) => { setEditingTransaction(tx); setEditDialogOpen(true); }}
+        />
+
+        {/* Edit transaction dialog */}
+        <TransactionDialog
+          open={editDialogOpen}
+          onOpenChange={(open) => { setEditDialogOpen(open); if (!open) setEditingTransaction(null); }}
+          transaction={editingTransaction}
+          defaultType="expense"
+        />
 
         {/* 2. Main content with budget sidebar on desktop */}
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-[1fr_280px]">
@@ -272,6 +320,61 @@ function AccountsBreakdown({ accounts }: { accounts: Array<{ id: string; name: s
         </span>
       </div>
     </div>
+  );
+}
+
+/** Transactions list modal for StatCard click */
+function TransactionsListDialog({
+  open,
+  onOpenChange,
+  title,
+  transactions,
+  variant,
+  onEditTransaction,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  transactions: Transaction[];
+  variant: "success" | "destructive";
+  onEditTransaction: (tx: Transaction) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md max-h-[70vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="text-base flex items-center gap-2">
+            {variant === "success" ? <ArrowUpRight className="h-4 w-4 text-success" /> : <ArrowDownRight className="h-4 w-4 text-destructive" />}
+            {title}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="overflow-y-auto flex-1 -mx-2 px-2">
+          {transactions.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-6">Sem movimentações no mês</p>
+          ) : (
+            <div className="space-y-0.5">
+              {transactions.slice(0, 30).map((tx) => (
+                <button
+                  key={tx.id}
+                  onClick={() => { onOpenChange(false); setTimeout(() => onEditTransaction(tx), 200); }}
+                  className="flex items-center justify-between gap-2 w-full px-2 py-2 rounded-lg hover:bg-muted/50 transition-colors text-left"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">{tx.description || "—"}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {tx.categories?.name || "Sem categoria"} · {format(parseLocalDate(tx.date), "dd/MM", { locale: ptBR })}
+                    </p>
+                  </div>
+                  <span className={cn("text-xs font-semibold tabular-nums shrink-0", variant === "success" ? "text-success" : "text-destructive")}>
+                    {formatCurrency(Math.abs(Number(tx.amount)))}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

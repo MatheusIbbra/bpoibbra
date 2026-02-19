@@ -358,7 +358,7 @@ export function DemonstrativoContent() {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-            <Card className="border-l-4 border-l-green-500 shadow-sm">
+            <Card className="border-l-4 border-l-success shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between py-2 px-3">
                 <CardTitle className="text-xs font-medium text-muted-foreground">
                   Total Receitas
@@ -372,7 +372,7 @@ export function DemonstrativoContent() {
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-red-500 shadow-sm">
+            <Card className="border-l-4 border-l-destructive shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between py-2 px-3">
                 <CardTitle className="text-xs font-medium text-muted-foreground">
                   Total Despesas
@@ -388,7 +388,7 @@ export function DemonstrativoContent() {
 
             <Card className={cn(
               "border-l-4 shadow-sm",
-              (data?.balance || 0) >= 0 ? "border-l-blue-500" : "border-l-orange-500"
+              (data?.balance || 0) >= 0 ? "border-l-primary" : "border-l-warning"
             )}>
               <CardHeader className="flex flex-row items-center justify-between py-2 px-3">
                 <CardTitle className="text-xs font-medium text-muted-foreground">
@@ -420,12 +420,12 @@ export function DemonstrativoContent() {
             <CardContent className="px-4 pb-4">
               <div className="space-y-4">
                 <div>
-                  <div className="flex items-center justify-between py-2 px-3 bg-green-500/10 rounded-lg border border-green-200/50 mb-2">
+                  <div className="flex items-center justify-between py-2 px-3 bg-success/10 rounded-lg border border-success/20 mb-2">
                     <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-green-600" />
-                      <span className="font-bold text-green-700 text-sm">RECEITAS</span>
+                      <TrendingUp className="h-4 w-4 text-success" />
+                      <span className="font-bold text-success text-sm">RECEITAS</span>
                     </div>
-                    <span className="font-bold text-green-600">
+                    <span className="font-bold text-success">
                       {formatCurrency(data?.incomeGroup.total || 0)}
                     </span>
                   </div>
@@ -443,12 +443,12 @@ export function DemonstrativoContent() {
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between py-2 px-3 bg-red-500/10 rounded-lg border border-red-200/50 mb-2">
+                  <div className="flex items-center justify-between py-2 px-3 bg-destructive/10 rounded-lg border border-destructive/20 mb-2">
                     <div className="flex items-center gap-2">
-                      <TrendingDown className="h-4 w-4 text-red-600" />
-                      <span className="font-bold text-red-700 text-sm">DESPESAS</span>
+                      <TrendingDown className="h-4 w-4 text-destructive" />
+                      <span className="font-bold text-destructive text-sm">DESPESAS</span>
                     </div>
-                    <span className="font-bold text-red-600">
+                    <span className="font-bold text-destructive">
                       {formatCurrency(data?.expenseGroup.total || 0)}
                     </span>
                   </div>
@@ -466,27 +466,27 @@ export function DemonstrativoContent() {
                 </div>
 
                 <div className={cn(
-                  "flex items-center justify-between py-3 px-3 rounded-lg border-2",
+                  "flex items-center justify-between py-2.5 px-4 rounded-xl border",
                   (data?.balance || 0) >= 0 
-                    ? "bg-blue-500/10 border-blue-300" 
-                    : "bg-orange-500/10 border-orange-300"
+                    ? "bg-primary/5 border-primary/20" 
+                    : "bg-destructive/5 border-destructive/20"
                 )}>
                   <div className="flex items-center gap-2">
                     <DollarSign className={cn(
                       "h-4 w-4",
-                      (data?.balance || 0) >= 0 ? "text-blue-600" : "text-orange-600"
+                      (data?.balance || 0) >= 0 ? "text-primary" : "text-destructive"
                     )} />
                     <span className={cn(
-                      "font-bold",
-                      (data?.balance || 0) >= 0 ? "text-blue-700" : "text-orange-700"
+                      "text-sm font-semibold tracking-tight",
+                      (data?.balance || 0) >= 0 ? "text-primary" : "text-destructive"
                     )}>
-                      RESULTADO DO PERÍODO
+                      Resultado do Período
                     </span>
                   </div>
                   <span className={cn(
-                    "font-bold text-lg",
-                    (data?.balance || 0) >= 0 ? "text-blue-600" : "text-orange-600"
-                  )}>
+                    "font-bold text-base tabular-nums",
+                    (data?.balance || 0) >= 0 ? "text-success" : "text-destructive"
+                  )} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
                     {formatCurrency(data?.balance || 0)}
                   </span>
                 </div>

@@ -3,12 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart as PieChartIcon, ChevronDown, ChevronUp } from "lucide-react";
 import { SkeletonCard } from "@/components/common/SkeletonCard";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Sector } from "recharts";
-import { useTransactions } from "@/hooks/useTransactions";
+import { useTransactions, Transaction } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import { useMemo } from "react";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { TransactionDialog } from "@/components/transactions/TransactionDialog";
 
 const DISTINCT_COLORS = [
   "#6366f1", "#f43f5e", "#f59e0b", "#22c55e", "#06b6d4",
@@ -24,7 +25,7 @@ interface DonutData {
   value: number;
   color: string;
   percentage: number;
-  transactions: { description: string; amount: number; date: string }[];
+  transactions: { id: string; description: string; amount: number; date: string }[];
 }
 
 export function CategoryDonutChart() {
@@ -37,23 +38,27 @@ export function CategoryDonutChart() {
     endDate: end,
   });
   const { data: categories } = useCategories();
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
-  const { incomeData, expenseData } = useMemo(() => {
-    if (!transactions || !categories) return { incomeData: [], expenseData: [] };
+  const { incomeData, expenseData, txMap } = useMemo(() => {
+    if (!transactions || !categories) return { incomeData: [], expenseData: [], txMap: new Map() };
 
-    const incomeMap = new Map<string, { total: number; txs: { description: string; amount: number; date: string }[] }>();
-    const expenseMap = new Map<string, { total: number; txs: { description: string; amount: number; date: string }[] }>();
+    const txById = new Map<string, Transaction>();
+    const incomeMap = new Map<string, { total: number; txs: { id: string; description: string; amount: number; date: string }[] }>();
+    const expenseMap = new Map<string, { total: number; txs: { id: string; description: string; amount: number; date: string }[] }>();
 
     transactions.forEach((tx) => {
+      txById.set(tx.id, tx);
       if (!tx.category_id) return;
       const map = tx.type === "income" ? incomeMap : expenseMap;
       const existing = map.get(tx.category_id) || { total: 0, txs: [] };
       existing.total += Number(tx.amount);
-      existing.txs.push({ description: tx.description || "—", amount: Number(tx.amount), date: tx.date });
+      existing.txs.push({ id: tx.id, description: tx.description || "—", amount: Number(tx.amount), date: tx.date });
       map.set(tx.category_id, existing);
     });
 
-    const buildData = (map: Map<string, { total: number; txs: { description: string; amount: number; date: string }[] }>): DonutData[] => {
+    const buildData = (map: Map<string, { total: number; txs: { id: string; description: string; amount: number; date: string }[] }>): DonutData[] => {
       const total = Array.from(map.values()).reduce((s, v) => s + v.total, 0);
       return Array.from(map.entries())
         .map(([catId, data], i) => {
@@ -73,8 +78,17 @@ export function CategoryDonutChart() {
     return {
       incomeData: buildData(incomeMap),
       expenseData: buildData(expenseMap),
+      txMap: txById,
     };
   }, [transactions, categories]);
+
+  const handleTxClick = (txId: string) => {
+    const tx = txMap.get(txId);
+    if (tx) {
+      setEditingTx(tx);
+      setEditOpen(true);
+    }
+  };
 
   const isLoading = loadingTx;
 
@@ -91,11 +105,17 @@ export function CategoryDonutChart() {
           <DonutSkeletonInline />
         ) : (
           <div className="space-y-4">
-            <DonutSection title="Receitas" data={incomeData} type="income" />
-            <DonutSection title="Despesas" data={expenseData} type="expense" />
+            <DonutSection title="Receitas" data={incomeData} type="income" onTxClick={handleTxClick} />
+            <DonutSection title="Despesas" data={expenseData} type="expense" onTxClick={handleTxClick} />
           </div>
         )}
       </CardContent>
+      <TransactionDialog
+        open={editOpen}
+        onOpenChange={(open) => { setEditOpen(open); if (!open) setEditingTx(null); }}
+        transaction={editingTx}
+        defaultType="expense"
+      />
     </Card>
   );
 }
@@ -127,7 +147,7 @@ function DonutSkeletonInline() {
   );
 }
 
-function DonutSection({ title, data, type }: { title: string; data: DonutData[]; type: "income" | "expense" }) {
+function DonutSection({ title, data, type, onTxClick }: { title: string; data: DonutData[]; type: "income" | "expense"; onTxClick: (txId: string) => void }) {
   const total = data.reduce((s, d) => s + d.value, 0);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -237,10 +257,14 @@ function DonutSection({ title, data, type }: { title: string; data: DonutData[];
           </div>
           <div className="space-y-1">
             {selectedData.transactions.map((tx, i) => (
-              <div key={i} className="flex items-center justify-between text-[10px]">
+              <button
+                key={i}
+                onClick={() => onTxClick(tx.id)}
+                className="flex items-center justify-between text-[10px] w-full px-1 py-0.5 rounded hover:bg-muted/60 transition-colors text-left"
+              >
                 <span className="truncate flex-1 text-muted-foreground">{tx.description}</span>
                 <span className="font-medium tabular-nums ml-2">{formatCurrency(tx.amount)}</span>
-              </div>
+              </button>
             ))}
             {selectedData.transactions.length === 5 && (
               <p className="text-[9px] text-muted-foreground text-center pt-0.5">
