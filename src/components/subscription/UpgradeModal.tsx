@@ -70,7 +70,7 @@ export function UpgradeModal() {
                 className={cn(
                   "relative rounded-xl border-2 p-5 flex flex-col transition-all duration-300",
                   isCurrentPlan
-                    ? "border-[hsl(var(--brand-highlight))] bg-[hsl(var(--brand-light-blue))] shadow-lg scale-[1.02]"
+                    ? "border-[hsl(var(--brand-highlight))] bg-[hsl(var(--brand-light-blue))] dark:bg-accent/10 shadow-lg scale-[1.02]"
                     : "border-border bg-card hover:border-[hsl(var(--brand-highlight))]/50 hover:shadow-md"
                 )}
               >
