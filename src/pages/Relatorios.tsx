@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
-import { Loader2, Receipt, BarChart3, FileText, PieChart, CircleDollarSign, Layers, Tags, Lightbulb } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 // Report components
 import { AnaliseOrcamentoContent } from "@/components/reports/AnaliseOrcamentoContent";
@@ -15,7 +14,7 @@ import { MovimentacoesReportContent } from "@/components/reports/MovimentacoesRe
 import { FinancialTypeReportContent } from "@/components/reports/FinancialTypeReportContent";
 import { CategoryAnalysisContent } from "@/components/reports/CategoryAnalysisContent";
 
-// Strategic analysis cards (moved from dashboard)
+// Strategic analysis cards
 import { StructuredLiquidityCard } from "@/components/dashboard/StructuredLiquidityCard";
 import { PersonalRunwayCard } from "@/components/dashboard/PersonalRunwayCard";
 import { CashflowForecastCard } from "@/components/dashboard/CashflowForecastCard";
@@ -26,27 +25,24 @@ import { AnomalyDetectionCard } from "@/components/dashboard/AnomalyDetectionCar
 import { StrategicHistoryCard } from "@/components/dashboard/StrategicHistoryCard";
 import { MacroSimulationCard } from "@/components/dashboard/MacroSimulationCard";
 import { StaggerGrid, StaggerItem } from "@/components/ui/motion";
-import { AIAssistantChat } from "@/components/ai/AIAssistantChat";
+
+const TITLE_MAP: Record<string, string> = {
+  movimentacoes: "Movimentações",
+  fluxo: "Fluxo de Caixa",
+  dre: "DRE",
+  analise: "Análise de Orçamento",
+  demonstrativo: "Demonstrativo Financeiro",
+  "tipo-financeiro": "Tipo Financeiro",
+  categorias: "Análise de Categorias",
+  estrategico: "Análises Estratégicas",
+};
 
 export default function Relatorios() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { hasFeature } = useFeatureFlags();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const tabFromUrl = searchParams.get("tab") || "movimentacoes";
-  const [activeTab, setActiveTab] = useState(tabFromUrl);
-
-  // Sync tab from URL
-  useEffect(() => {
-    if (tabFromUrl && tabFromUrl !== activeTab) {
-      setActiveTab(tabFromUrl);
-    }
-  }, [tabFromUrl]);
-
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-    setSearchParams({ tab });
-  };
+  const [searchParams] = useSearchParams();
+  const tab = searchParams.get("tab") || "movimentacoes";
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -64,106 +60,49 @@ export default function Relatorios() {
 
   if (!user) return null;
 
+  const pageTitle = TITLE_MAP[tab] || "Relatórios";
+
   return (
-    <AppLayout title="Relatórios">
+    <AppLayout title={pageTitle}>
       <div className="space-y-4">
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="w-full justify-start bg-muted/50 p-1 h-auto flex-wrap gap-1">
-            <TabsTrigger value="movimentacoes" className="gap-1.5 data-[state=active]:bg-background text-xs sm:text-sm">
-              <Receipt className="h-3.5 w-3.5 shrink-0" />
-              Movimentações
-            </TabsTrigger>
-            <TabsTrigger value="fluxo" className="gap-1.5 data-[state=active]:bg-background text-xs sm:text-sm">
-              <CircleDollarSign className="h-3.5 w-3.5 shrink-0" />
-              Fluxo Caixa
-            </TabsTrigger>
-            <TabsTrigger value="dre" className="gap-1.5 data-[state=active]:bg-background text-xs sm:text-sm">
-              <PieChart className="h-3.5 w-3.5 shrink-0" />
-              DRE
-            </TabsTrigger>
-            <TabsTrigger value="analise" className="gap-1.5 data-[state=active]:bg-background text-xs sm:text-sm">
-              <BarChart3 className="h-3.5 w-3.5 shrink-0" />
-              Orçamento
-            </TabsTrigger>
-            <TabsTrigger value="demonstrativo" className="gap-1.5 data-[state=active]:bg-background text-xs sm:text-sm">
-              <FileText className="h-3.5 w-3.5 shrink-0" />
-              Demonstrativo
-            </TabsTrigger>
-            <TabsTrigger value="tipo-financeiro" className="gap-1.5 data-[state=active]:bg-background text-xs sm:text-sm">
-              <Layers className="h-3.5 w-3.5 shrink-0" />
-              Tipo Financeiro
-            </TabsTrigger>
-            <TabsTrigger value="categorias" className="gap-1.5 data-[state=active]:bg-background text-xs sm:text-sm">
-              <Tags className="h-3.5 w-3.5 shrink-0" />
-              Análise Categorias
-            </TabsTrigger>
-            <TabsTrigger value="estrategico" className="gap-1.5 data-[state=active]:bg-background text-xs sm:text-sm">
-              <Lightbulb className="h-3.5 w-3.5 shrink-0" />
-              Análises Estratégicas
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="movimentacoes" className="mt-4">
-            <MovimentacoesReportContent />
-          </TabsContent>
-          
-          <TabsContent value="analise" className="mt-4">
-            <AnaliseOrcamentoContent />
-          </TabsContent>
-          
-          <TabsContent value="dre" className="mt-4">
-            <DREContent />
-          </TabsContent>
-          
-          <TabsContent value="demonstrativo" className="mt-4">
-            <DemonstrativoContent />
-          </TabsContent>
-          
-          <TabsContent value="fluxo" className="mt-4">
-            <FluxoCaixaContent />
-          </TabsContent>
-
-          <TabsContent value="tipo-financeiro" className="mt-4">
-            <FinancialTypeReportContent />
-          </TabsContent>
-
-          <TabsContent value="categorias" className="mt-4">
-            <CategoryAnalysisContent />
-          </TabsContent>
-
-          <TabsContent value="estrategico" className="mt-4">
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-lg font-semibold mb-1" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                  Análises Estratégicas
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Métricas profundas de liquidez, sustentabilidade e projeções financeiras.
-                </p>
-              </div>
-              {/* Histórico & Simulação Macro - feature flagged */}
-              {(hasFeature("strategic_history") || hasFeature("macro_simulation")) && (
-                <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-                  {hasFeature("strategic_history") && <StaggerItem><StrategicHistoryCard /></StaggerItem>}
-                  {hasFeature("macro_simulation") && <StaggerItem><MacroSimulationCard /></StaggerItem>}
-                </StaggerGrid>
-              )}
-              <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-                <StaggerItem><PatrimonyEvolutionCard /></StaggerItem>
-                {hasFeature("anomaly_detection") && <StaggerItem><AnomalyDetectionCard /></StaggerItem>}
-              </StaggerGrid>
-              <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-                <StaggerItem><StructuredLiquidityCard /></StaggerItem>
-                <StaggerItem><PersonalRunwayCard /></StaggerItem>
-              </StaggerGrid>
-              <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-                {hasFeature("cashflow_forecast") && <StaggerItem><CashflowForecastCard /></StaggerItem>}
-                <StaggerItem><LifestylePatternCard /></StaggerItem>
-              </StaggerGrid>
-              {hasFeature("financial_simulator") && <FinancialSimulatorCard />}
+        {tab === "movimentacoes" && <MovimentacoesReportContent />}
+        {tab === "analise" && <AnaliseOrcamentoContent />}
+        {tab === "dre" && <DREContent />}
+        {tab === "demonstrativo" && <DemonstrativoContent />}
+        {tab === "fluxo" && <FluxoCaixaContent />}
+        {tab === "tipo-financeiro" && <FinancialTypeReportContent />}
+        {tab === "categorias" && <CategoryAnalysisContent />}
+        {tab === "estrategico" && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold mb-1" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                Análises Estratégicas
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Métricas profundas de liquidez, sustentabilidade e projeções financeiras.
+              </p>
             </div>
-          </TabsContent>
-        </Tabs>
+            {(hasFeature("strategic_history") || hasFeature("macro_simulation")) && (
+              <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+                {hasFeature("strategic_history") && <StaggerItem><StrategicHistoryCard /></StaggerItem>}
+                {hasFeature("macro_simulation") && <StaggerItem><MacroSimulationCard /></StaggerItem>}
+              </StaggerGrid>
+            )}
+            <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+              <StaggerItem><PatrimonyEvolutionCard /></StaggerItem>
+              {hasFeature("anomaly_detection") && <StaggerItem><AnomalyDetectionCard /></StaggerItem>}
+            </StaggerGrid>
+            <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+              <StaggerItem><StructuredLiquidityCard /></StaggerItem>
+              <StaggerItem><PersonalRunwayCard /></StaggerItem>
+            </StaggerGrid>
+            <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+              {hasFeature("cashflow_forecast") && <StaggerItem><CashflowForecastCard /></StaggerItem>}
+              <StaggerItem><LifestylePatternCard /></StaggerItem>
+            </StaggerGrid>
+            {hasFeature("financial_simulator") && <FinancialSimulatorCard />}
+          </div>
+        )}
       </div>
     </AppLayout>
   );

@@ -899,9 +899,9 @@ export default function Admin() {
 
 // Audit Log Component
 function AuditLogTab({ logs, loading }: { logs: AuditLogEntry[]; loading: boolean }) {
-  const [actionFilter, setActionFilter] = useState("");
-  const [userFilter, setUserFilter] = useState("");
-  const [tableFilter, setTableFilter] = useState("");
+  const [actionFilter, setActionFilter] = useState("__all__");
+  const [userFilter, setUserFilter] = useState("__all__");
+  const [tableFilter, setTableFilter] = useState("__all__");
 
   const getActionIcon = (action: string) => {
     switch (action.toLowerCase()) {
@@ -973,9 +973,9 @@ function AuditLogTab({ logs, loading }: { logs: AuditLogEntry[]; loading: boolea
   const uniqueUsers = [...new Set(logs.map(l => l.user_name).filter(Boolean))].sort();
 
   const filteredLogs = logs.filter(log => {
-    if (actionFilter && log.action !== actionFilter) return false;
-    if (tableFilter && log.table_name !== tableFilter) return false;
-    if (userFilter && log.user_name !== userFilter) return false;
+    if (actionFilter && actionFilter !== "__all__" && log.action !== actionFilter) return false;
+    if (tableFilter && tableFilter !== "__all__" && log.table_name !== tableFilter) return false;
+    if (userFilter && userFilter !== "__all__" && log.user_name !== userFilter) return false;
     return true;
   });
 
@@ -1011,7 +1011,7 @@ function AuditLogTab({ logs, loading }: { logs: AuditLogEntry[]; loading: boolea
                 <SelectValue placeholder="Ação" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas ações</SelectItem>
+                <SelectItem value="__all__">Todas ações</SelectItem>
                 {uniqueActions.map(a => (
                   <SelectItem key={a} value={a} className="text-xs">{a}</SelectItem>
                 ))}
@@ -1022,7 +1022,7 @@ function AuditLogTab({ logs, loading }: { logs: AuditLogEntry[]; loading: boolea
                 <SelectValue placeholder="Tabela" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas tabelas</SelectItem>
+                <SelectItem value="__all__">Todas tabelas</SelectItem>
                 {uniqueTables.map(t => (
                   <SelectItem key={t} value={t} className="text-xs">{formatTableName(t)}</SelectItem>
                 ))}
@@ -1033,18 +1033,18 @@ function AuditLogTab({ logs, loading }: { logs: AuditLogEntry[]; loading: boolea
                 <SelectValue placeholder="Usuário" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos usuários</SelectItem>
+                <SelectItem value="__all__">Todos usuários</SelectItem>
                 {uniqueUsers.map(u => (
                   <SelectItem key={u!} value={u!} className="text-xs">{u}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {(actionFilter || tableFilter || userFilter) && (
+            {(actionFilter && actionFilter !== "__all__" || tableFilter && tableFilter !== "__all__" || userFilter && userFilter !== "__all__") && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-8 text-xs"
-                onClick={() => { setActionFilter(""); setTableFilter(""); setUserFilter(""); }}
+                onClick={() => { setActionFilter("__all__"); setTableFilter("__all__"); setUserFilter("__all__"); }}
               >
                 Limpar filtros
               </Button>
