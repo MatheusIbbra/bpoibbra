@@ -1,5 +1,5 @@
 import { useNavigate, Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { FintechTransactionsList } from "@/components/dashboard/FintechTransactionsList";
 import { MonthlyEvolutionChart } from "@/components/dashboard/MonthlyEvolutionChart";
@@ -7,28 +7,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
 import { CategoryDonutChart } from "@/components/dashboard/CategoryDonutChart";
-import { BudgetProgress } from "@/components/dashboard/BudgetProgress";
-import { ReconciliationMetricsCard } from "@/components/dashboard/ReconciliationMetricsCard";
-import { ConnectedAccountsSection } from "@/components/dashboard/ConnectedAccountsSection";
 import { MultiCurrencyBalanceSection } from "@/components/dashboard/MultiCurrencyBalanceSection";
+import { ReconciliationMetricsCard } from "@/components/dashboard/ReconciliationMetricsCard";
 
 import { StatCard } from "@/components/dashboard/StatCard";
 import { StatCardHoverTransactions } from "@/components/dashboard/StatCardHoverTransactions";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useAccounts } from "@/hooks/useAccounts";
-import { formatCurrency } from "@/lib/formatters";
+import { useBudgets } from "@/hooks/useBudgets";
+import { useTransactions, Transaction } from "@/hooks/useTransactions";
+import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import { StaggerGrid, StaggerItem, AnimatedCard } from "@/components/ui/motion";
 import { StatCardSkeleton } from "@/components/ui/premium-skeleton";
 import { TransactionDialog } from "@/components/transactions/TransactionDialog";
-import { Loader2, RefreshCw, Wallet, ArrowUpRight, ArrowDownRight, TrendingUp, Building2 } from "lucide-react";
+import { Loader2, RefreshCw, Wallet, ArrowUpRight, ArrowDownRight, TrendingUp, Building2, ChevronDown, ChevronUp, CalendarDays, Target, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useTransactions, Transaction } from "@/hooks/useTransactions";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth, differenceInDays, eachDayOfInterval, isWeekend } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { parseLocalDate } from "@/lib/formatters";
+import { useBaseFilter } from "@/contexts/BaseFilterContext";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -128,7 +128,7 @@ const Index = () => {
                 <StaggerItem>
                   <StatCard
                     title="Saídas Financeiras"
-                    value={"− " + formatCurrency(stats?.monthlyExpenses ?? 0)}
+                    value={formatCurrency(stats?.monthlyExpenses ?? 0)}
                     icon={<ArrowDownRight className="h-5 w-5" />}
                     variant="destructive"
                     trend={stats?.expenseChange ? { value: Math.abs(stats.expenseChange), isPositive: stats.expenseChange <= 0 } : undefined}
@@ -203,7 +203,7 @@ const Index = () => {
                     </Link>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <BudgetProgress inline />
+                    <InteractiveBudgetList />
                     <BudgetAlerts showNotifications={true} compact />
                   </CardContent>
                 </Card>
@@ -230,11 +230,6 @@ const Index = () => {
             <AnimatedCard delay={0.05}>
               <ReconciliationMetricsCard />
             </AnimatedCard>
-
-            {/* Contas Conectadas */}
-            <AnimatedCard delay={0.05}>
-              <ConnectedAccountsSection compact />
-            </AnimatedCard>
           </div>
 
           {/* Right: Budget sidebar (desktop only) - single interactive card */}
@@ -249,7 +244,7 @@ const Index = () => {
                     </Link>
                   </CardHeader>
                   <CardContent className="px-4 pb-4 space-y-4">
-                    <BudgetProgress inline />
+                    <InteractiveBudgetList />
                     <div className="border-t pt-3">
                       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Alertas</p>
                       <BudgetAlerts showNotifications={false} compact />
@@ -264,6 +259,187 @@ const Index = () => {
     </AppLayout>
   );
 };
+
+/** Interactive budget list with click-to-expand details */
+function InteractiveBudgetList() {
+  const { requiresBaseSelection } = useBaseFilter();
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const now = new Date();
+  const startDate = format(startOfMonth(now), "yyyy-MM-dd");
+  const endDate = format(endOfMonth(now), "yyyy-MM-dd");
+
+  const { data: budgets, isLoading: budgetsLoading } = useBudgets();
+  const { data: transactions, isLoading: transactionsLoading } = useTransactions({
+    type: "expense",
+    startDate,
+    endDate,
+  });
+
+  const isLoading = budgetsLoading || transactionsLoading;
+
+  const spentByCategory = useMemo(() => {
+    const map = new Map<string, { total: number; dates: string[] }>();
+    transactions?.forEach((tx) => {
+      if (tx.category_id) {
+        const current = map.get(tx.category_id) || { total: 0, dates: [] };
+        current.total += tx.amount;
+        current.dates.push(tx.date);
+        map.set(tx.category_id, current);
+      }
+    });
+    return map;
+  }, [transactions]);
+
+  const currentMonthBudgets = useMemo(() => {
+    return budgets
+      ?.filter((b) => b.month === now.getMonth() + 1 && b.year === now.getFullYear())
+      .map((budget) => {
+        const catData = spentByCategory.get(budget.category_id) || { total: 0, dates: [] };
+        return { ...budget, spent: catData.total, txDates: catData.dates };
+      })
+      .slice(0, 8) || [];
+  }, [budgets, spentByCategory, now]);
+
+  if (requiresBaseSelection) return null;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="space-y-2">
+            <div className="h-3.5 w-24 rounded-md bg-muted animate-pulse" />
+            <div className="h-2 w-full rounded-full bg-muted animate-pulse" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (!currentMonthBudgets || currentMonthBudgets.length === 0) {
+    return (
+      <div className="flex h-20 items-center justify-center text-muted-foreground text-sm">
+        Nenhum orçamento definido
+      </div>
+    );
+  }
+
+  // Calculate business days remaining in month
+  const monthEnd = endOfMonth(now);
+  const remainingDays = differenceInDays(monthEnd, now);
+  const remainingBusinessDays = eachDayOfInterval({ start: now, end: monthEnd }).filter(d => !isWeekend(d)).length;
+
+  return (
+    <div className="space-y-1">
+      {currentMonthBudgets.map((budget) => {
+        const percentage = Math.min((budget.spent / budget.amount) * 100, 100);
+        const isOverBudget = budget.spent > budget.amount;
+        const remaining = budget.amount - budget.spent;
+        const dailyAvgRemaining = remainingBusinessDays > 0 ? remaining / remainingBusinessDays : 0;
+        const isExpanded = expandedId === budget.id;
+
+        // Find exceeded date
+        let exceededDate: string | null = null;
+        if (isOverBudget && budget.txDates.length > 0) {
+          const sortedDates = [...budget.txDates].sort();
+          let runningTotal = 0;
+          // We need to find when cumulative spending exceeded the budget
+          const txsByDate = transactions?.filter(tx => tx.category_id === budget.category_id)
+            .sort((a, b) => a.date.localeCompare(b.date)) || [];
+          for (const tx of txsByDate) {
+            runningTotal += tx.amount;
+            if (runningTotal > budget.amount) {
+              exceededDate = tx.date;
+              break;
+            }
+          }
+        }
+
+        return (
+          <div key={budget.id}>
+            <button
+              className={cn(
+                "w-full text-left px-2 py-2 rounded-lg transition-colors hover:bg-muted/50",
+                isExpanded && "bg-muted/40"
+              )}
+              onClick={() => setExpandedId(prev => prev === budget.id ? null : budget.id)}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="flex h-6 w-6 items-center justify-center rounded-md text-primary-foreground text-[9px] font-bold shrink-0"
+                    style={{ backgroundColor: budget.categories?.color || "#6366f1" }}
+                  >
+                    {budget.categories?.name?.charAt(0) || "?"}
+                  </div>
+                  <span className="text-xs font-medium truncate">{budget.categories?.name || "Categoria"}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className={cn("text-xs font-semibold tabular-nums", isOverBudget && "text-destructive")}>
+                    {formatCurrency(budget.spent)}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">/ {formatCurrency(budget.amount)}</span>
+                  {isExpanded ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />}
+                </div>
+              </div>
+              <Progress value={percentage} className={cn("h-1.5", isOverBudget && "[&>div]:bg-destructive")} />
+            </button>
+
+            {/* Expanded details */}
+            {isExpanded && (
+              <div className="mx-2 mb-2 mt-1 p-3 rounded-lg bg-muted/30 border border-border/40 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-start gap-2">
+                    <Target className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Utilizado</p>
+                      <p className="text-xs font-semibold">{percentage.toFixed(0)}%</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CalendarDays className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Dias restantes</p>
+                      <p className="text-xs font-semibold">{remainingDays}d ({remainingBusinessDays} úteis)</p>
+                    </div>
+                  </div>
+                </div>
+
+                {!isOverBudget && remaining > 0 && (
+                  <div className="flex items-start gap-2 pt-1 border-t border-border/30">
+                    <TrendingUp className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Média diária disponível</p>
+                      <p className="text-xs font-semibold text-success">{formatCurrency(Math.max(dailyAvgRemaining, 0))}/dia útil</p>
+                      <p className="text-[10px] text-muted-foreground">Restam {formatCurrency(remaining)}</p>
+                    </div>
+                  </div>
+                )}
+
+                {isOverBudget && (
+                  <div className="flex items-start gap-2 pt-1 border-t border-border/30">
+                    <AlertTriangle className="h-3.5 w-3.5 text-destructive mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Orçamento excedido</p>
+                      <p className="text-xs font-semibold text-destructive">
+                        {formatCurrency(Math.abs(remaining))} acima do limite
+                      </p>
+                      {exceededDate && (
+                        <p className="text-[10px] text-muted-foreground">
+                          Excedido em {format(parseLocalDate(exceededDate), "dd 'de' MMMM", { locale: ptBR })}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 /** Compact accounts list for hover/dialog - excludes credit cards */
 function AccountsBreakdown({ accounts }: { accounts: Array<{ id: string; name: string; bank_name: string | null; current_balance: number | null; account_type: string; color: string | null }> }) {

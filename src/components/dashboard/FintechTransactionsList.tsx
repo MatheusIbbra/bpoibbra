@@ -134,7 +134,7 @@ export function FintechTransactionsList() {
           variant="ghost"
           size="sm"
           className="text-xs h-6 text-muted-foreground hover:text-foreground"
-          onClick={() => navigate("/relatorios/movimentacoes")}
+          onClick={() => navigate("/movimentacoes")}
         >
           Ver todas
           <ChevronRight className="h-3 w-3 ml-0.5" />
@@ -162,7 +162,7 @@ export function FintechTransactionsList() {
                         "flex items-center gap-2 px-1.5 py-1.5 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer",
                         tx.is_ignored && "opacity-50"
                       )}
-                      onClick={() => navigate("/relatorios/movimentacoes")}
+                      onClick={() => navigate("/movimentacoes")}
                     >
                       <div
                         className={cn(
