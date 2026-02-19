@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { callEdgeFunction } from "@/lib/supabase-helpers";
 import { useToast } from "@/hooks/use-toast";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 
@@ -92,28 +93,11 @@ export function useStrategicInsights() {
         throw new Error("Selecione uma base específica para gerar insights");
       }
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-
-      if (!accessToken) {
-        throw new Error("Usuário não autenticado");
-      }
-
-      const response = await fetch(
-        `https://umqehhhpedwqdfjmdjqv.supabase.co/functions/v1/generate-ai-insights`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            organization_id: selectedBaseId,
-            period,
-            force_refresh: forceRefresh,
-          }),
-        }
-      );
+      const response = await callEdgeFunction("generate-ai-insights", {
+        organization_id: selectedBaseId,
+        period,
+        force_refresh: forceRefresh,
+      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { callEdgeFunction } from "@/lib/supabase-helpers";
 import {
   Dialog,
   DialogContent,
@@ -212,22 +213,11 @@ export function EditUserAccessDialog({
     if (!user || !email.trim()) return;
     setIsUpdatingEmail(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(
-        `https://umqehhhpedwqdfjmdjqv.supabase.co/functions/v1/manage-user-access`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({
+      const response = await callEdgeFunction("manage-user-access", {
             action: 'update_email',
             userId: user.id,
             email: email.trim(),
-          }),
-        }
-      );
+          });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Failed to update email');
       toast.success("Email atualizado com sucesso!");
@@ -244,21 +234,10 @@ export function EditUserAccessDialog({
     if (!user) return;
     setIsResettingPassword(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(
-        `https://umqehhhpedwqdfjmdjqv.supabase.co/functions/v1/manage-user-access`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({
+      const response = await callEdgeFunction("manage-user-access", {
             action: 'reset_password',
             userId: user.id,
-          }),
-        }
-      );
+          });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Failed to send reset email');
       toast.success("Email de redefinição de senha enviado!");
@@ -275,23 +254,12 @@ export function EditUserAccessDialog({
     const newBlockedState = !user.is_blocked;
     setIsTogglingBlock(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(
-        `https://umqehhhpedwqdfjmdjqv.supabase.co/functions/v1/manage-user-access`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({
-            action: 'toggle_block',
-            userId: user.id,
-            blocked: newBlockedState,
-            blockedReason: newBlockedState ? blockedReason : null,
-          }),
-        }
-      );
+      const response = await callEdgeFunction("manage-user-access", {
+        action: 'toggle_block',
+        userId: user.id,
+        blocked: newBlockedState,
+        blockedReason: newBlockedState ? blockedReason : null,
+      });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Failed to toggle block status');
       setIsBlocked(newBlockedState);

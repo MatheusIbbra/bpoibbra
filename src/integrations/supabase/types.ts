@@ -2770,8 +2770,6 @@ export type Database = {
         Args: { p_org_id: string; p_user_id: string }
         Returns: Json
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
       simulate_macro_scenario: {
         Args: {
           p_currency_shock_pct?: number
@@ -2787,7 +2785,6 @@ export type Database = {
         Args: { text1: string; text2: string }
         Returns: number
       }
-      unaccent: { Args: { "": string }; Returns: string }
       upsert_transaction_pattern: {
         Args: {
           p_amount: number

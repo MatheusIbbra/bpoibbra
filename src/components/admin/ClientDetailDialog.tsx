@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { callEdgeFunction } from "@/lib/supabase-helpers";
 import {
   Dialog,
   DialogContent,
@@ -109,17 +110,7 @@ export function ClientDetailDialog({
     queryKey: ["client-detail-email", clientUserId],
     queryFn: async () => {
       if (!clientUserId) return null;
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(
-        `https://umqehhhpedwqdfjmdjqv.supabase.co/functions/v1/get-user-emails`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.access_token}`,
-          },
-        }
-      );
+      const response = await callEdgeFunction("get-user-emails");
       const result = await response.json();
       return result.emails?.[clientUserId] || null;
     },
