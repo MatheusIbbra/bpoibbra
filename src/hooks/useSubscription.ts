@@ -15,7 +15,6 @@ export interface PlanData {
   allow_forecast: boolean;
   allow_anomaly_detection: boolean;
   allow_simulator: boolean;
-  allow_benchmarking: boolean;
 }
 
 export interface SubscriptionData {

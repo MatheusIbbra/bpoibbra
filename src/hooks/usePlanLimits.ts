@@ -20,7 +20,6 @@ export interface PlanUsage {
   allowForecast: boolean;
   allowSimulator: boolean;
   allowAnomalyDetection: boolean;
-  allowBenchmarking: boolean;
   planName: string;
 }
 
@@ -31,7 +30,6 @@ const DEFAULT_FREE_LIMITS = {
   allow_forecast: true,
   allow_simulator: true,
   allow_anomaly_detection: true,
-  allow_benchmarking: true,
 };
 
 export function usePlanLimits() {
@@ -109,7 +107,6 @@ export function usePlanLimits() {
         allowForecast: (plan as any).allow_forecast ?? false,
         allowSimulator: (plan as any).allow_simulator ?? false,
         allowAnomalyDetection: (plan as any).allow_anomaly_detection ?? false,
-        allowBenchmarking: (plan as any).allow_benchmarking ?? false,
         planName,
       };
     },
