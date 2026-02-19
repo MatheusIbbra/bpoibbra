@@ -25,11 +25,11 @@ export interface PlanUsage {
 
 const DEFAULT_FREE_LIMITS = {
   max_transactions: 1000,
-  max_ai_requests: 100,
+  max_ai_requests: 0,
   max_bank_connections: 20,
-  allow_forecast: true,
-  allow_simulator: true,
-  allow_anomaly_detection: true,
+  allow_forecast: false,
+  allow_simulator: false,
+  allow_anomaly_detection: false,
 };
 
 export function usePlanLimits() {
