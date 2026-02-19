@@ -40,6 +40,7 @@ import { EditUserHierarchyDialog } from "@/components/admin/EditUserHierarchyDia
 import { DeleteUserDialog } from "@/components/admin/DeleteUserDialog";
 import { EditUserAccessDialog } from "@/components/admin/EditUserAccessDialog";
 import { AdminPlansTab } from "@/components/admin/AdminPlansTab";
+import { AdminClientPlansTab } from "@/components/admin/AdminClientPlansTab";
 import { AdminBITab } from "@/components/admin/AdminBITab";
 import {
   Table,
@@ -593,6 +594,11 @@ export default function Admin() {
               <span className="hidden sm:inline">Planos</span>
               <span className="sm:hidden">Plan</span>
             </TabsTrigger>
+            <TabsTrigger value="client-plans" className="gap-1.5 text-xs sm:text-sm">
+              <Building2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Cliente × Plano</span>
+              <span className="sm:hidden">C×P</span>
+            </TabsTrigger>
             <TabsTrigger value="bi" className="gap-1.5 text-xs sm:text-sm">
               <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">BI Estratégico</span>
@@ -885,6 +891,11 @@ export default function Admin() {
           {/* Plans Tab */}
           <TabsContent value="plans">
             <AdminPlansTab />
+          </TabsContent>
+
+          {/* Client-Plans Tab */}
+          <TabsContent value="client-plans">
+            <AdminClientPlansTab />
           </TabsContent>
 
           {/* BI Tab */}

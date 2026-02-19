@@ -99,11 +99,6 @@ export function AppSidebar() {
     { title: "Cadastros", url: "/cadastros", icon: Settings2 },
   ];
 
-  // Cadastros only for admin
-  if (isAdmin) {
-    postReportItems.push({ title: "Cadastros", url: "/cadastros", icon: Settings2 });
-  }
-
   const renderNavItem = (item: typeof navItems[0]) => (
     <SidebarMenuItem key={item.title} className="relative">
       <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={collapsed ? item.title : undefined}>
