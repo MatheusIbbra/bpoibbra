@@ -12,10 +12,12 @@ import {
   Users,
   Plus,
   Trash2,
+  Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,6 +70,39 @@ const emptyFamilyMember = (): FamilyMember => ({
   email: "",
 });
 
+// Format phone: (XX) XXXXX-XXXX
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
+// Format birth date: DD/MM/YYYY
+function formatBirthDate(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+// Convert DD/MM/YYYY to YYYY-MM-DD
+function birthDateToISO(formatted: string): string {
+  const parts = formatted.split("/");
+  if (parts.length === 3 && parts[2].length === 4) {
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return "";
+}
+
+// Mask partial email: m****@gmail.com
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!domain) return "***@***";
+  const visible = local.slice(0, 1);
+  return `${visible}${"*".repeat(Math.max(local.length - 1, 3))}@${domain}`;
+}
+
 export default function RegistrationFlow({ onBack, onGoogleSignUp }: RegistrationFlowProps) {
   const [step, setStep] = useState<Step>("client_question");
   const [isIbbraClient, setIsIbbraClient] = useState<boolean | null>(null);
@@ -77,15 +112,28 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
   const [cpf, setCpf] = useState("");
   const [validationResult, setValidationResult] = useState<IbbraClientValidationResult | null>(null);
   const [validationError, setValidationError] = useState("");
+  
+  // CPF duplicate check
+  const [cpfDuplicateEmail, setCpfDuplicateEmail] = useState<string | null>(null);
 
   // Form state
   const [fullName, setFullName] = useState("");
-  const [birthDate, setBirthDate] = useState("");
+  const [birthDate, setBirthDate] = useState(""); // DD/MM/YYYY format
   const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  
+  // Address fields (separated)
+  const [street, setStreet] = useState("");
+  const [streetNumber, setStreetNumber] = useState("");
+  const [complement, setComplement] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [zipCode, setZipCode] = useState("");
+  
+  // Consent
+  const [consentAccepted, setConsentAccepted] = useState(false);
 
   // Family members state
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([emptyFamilyMember()]);
@@ -113,6 +161,7 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
     setCpf(formatCPF(value));
     setValidationError("");
     setValidationResult(null);
+    setCpfDuplicateEmail(null);
   };
 
   const handleValidateCpf = async () => {
@@ -123,12 +172,17 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
     }
     setIsLoading(true);
     setValidationError("");
+    setCpfDuplicateEmail(null);
     try {
       const result = await validateClientByCPF(cleanCpf);
       setValidationResult(result);
       if (result.found) {
         setFullName(result.full_name || "");
-        setBirthDate(result.birth_date || "");
+        // Convert ISO date to DD/MM/YYYY for display
+        if (result.birth_date) {
+          const [y, m, d] = result.birth_date.split("-");
+          setBirthDate(`${d}/${m}/${y}`);
+        }
         toast.success("Cliente IBBRA confirmado!");
       } else {
         setValidationError(
@@ -141,6 +195,23 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
       setIsLoading(false);
     }
   };
+  
+  // Check CPF duplicate when leaving CPF field in standard form
+  const handleCpfBlur = async () => {
+    const cleanCpf = cpf.replace(/\D/g, "");
+    if (cleanCpf.length !== 11 || !isValidCPF(cleanCpf)) return;
+    
+    try {
+      const { data } = await supabase.functions.invoke("get-user-emails", {
+        body: { cpf: cleanCpf },
+      });
+      if (data?.email) {
+        setCpfDuplicateEmail(data.email);
+      }
+    } catch {
+      // Silently fail - not critical
+    }
+  };
 
   const handleProceedToForm = () => {
     if (validationResult?.found) {
@@ -150,22 +221,26 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
 
   const handleChooseGoogle = async () => {
     try {
-      // Store registration data server-side instead of localStorage
+      const addressFull = [street, streetNumber, complement, city, state, zipCode].filter(Boolean).join(", ");
       const { data, error } = await (supabase as any)
         .from("pending_registrations")
         .insert({
           is_ibbra_client: isIbbraClient || false,
           cpf: cpf.replace(/\D/g, "") || null,
           full_name: validationResult?.found ? fullName : null,
-          birth_date: validationResult?.found ? birthDate : null,
+          birth_date: validationResult?.found && birthDate ? birthDateToISO(birthDate) : null,
           validated: validationResult?.found || false,
+          address: addressFull || null,
+          state: state || null,
+          city: city || null,
+          zip_code: zipCode || null,
+          street_number: streetNumber || null,
+          complement: complement || null,
         })
         .select("session_token")
         .single();
 
       if (error) throw error;
-
-      // Only store the opaque token, not sensitive data
       localStorage.setItem("ibbra_reg_token", data.session_token);
       onGoogleSignUp?.();
     } catch (err) {
@@ -199,21 +274,31 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
       toast.error("Informe seu nome completo.");
       return;
     }
+    if (!consentAccepted) {
+      toast.error("Você precisa aceitar os termos para continuar.");
+      return;
+    }
 
     setIsLoading(true);
 
     try {
-      // Save registration data server-side instead of localStorage
       const validMembers = familyMembers.filter(m => m.full_name.trim() && m.relationship);
+      const addressFull = [street, streetNumber, complement, city, state, zipCode].filter(Boolean).join(", ");
+      
       const { data: pendingReg, error: pendingError } = await (supabase as any)
         .from("pending_registrations")
         .insert({
           is_ibbra_client: isIbbraClient || false,
           cpf: cpf.replace(/\D/g, "") || null,
           full_name: fullName || null,
-          birth_date: birthDate || null,
-          phone: phone || null,
-          address: address || null,
+          birth_date: birthDate ? birthDateToISO(birthDate) : null,
+          phone: phone.replace(/\D/g, "") || null,
+          address: addressFull || null,
+          state: state || null,
+          city: city || null,
+          zip_code: zipCode || null,
+          street_number: streetNumber || null,
+          complement: complement || null,
           validated: validationResult?.found || false,
           family_members: validMembers.length > 0 ? validMembers : null,
         })
@@ -222,7 +307,6 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
 
       if (pendingError) throw pendingError;
 
-      // Only store the opaque token
       localStorage.setItem("ibbra_reg_token", pendingReg.session_token);
 
       const { data, error } = await supabase.auth.signUp({
@@ -236,7 +320,6 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
 
       if (error) throw error;
 
-      // Detect fake/repeated signup (Supabase returns user with no identities for existing emails)
       const isRepeatedSignup = data.user && 
         (!data.user.identities || data.user.identities.length === 0);
 
@@ -245,7 +328,6 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
         return;
       }
 
-      // Check if email confirmation is required
       const needsConfirmation = data.user && !data.session;
 
       if (needsConfirmation) {
@@ -517,28 +599,75 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
             animate="center"
             exit="exit"
             transition={{ duration: 0.25 }}
-            className="space-y-4"
+            className="space-y-3"
           >
             <FieldGroup label="Nome completo">
               <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Seu nome completo" className="h-11 text-sm input-executive" />
             </FieldGroup>
-            <FieldGroup label="Data de nascimento">
-              <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="h-11 text-sm input-executive" />
-            </FieldGroup>
-            <FieldGroup label="CPF">
-              <Input value={cpf} onChange={(e) => handleCpfChange(e.target.value)} placeholder="000.000.000-00" className="h-11 text-sm input-executive" inputMode="numeric" maxLength={14} />
-            </FieldGroup>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <FieldGroup label="Data de nascimento">
+                <Input 
+                  value={birthDate} 
+                  onChange={(e) => setBirthDate(formatBirthDate(e.target.value))} 
+                  placeholder="DD/MM/AAAA" 
+                  className="h-11 text-sm input-executive" 
+                  inputMode="numeric"
+                  maxLength={10}
+                />
+              </FieldGroup>
+              <FieldGroup label="CPF">
+                <Input 
+                  value={cpf} 
+                  onChange={(e) => handleCpfChange(e.target.value)} 
+                  onBlur={handleCpfBlur}
+                  placeholder="000.000.000-00" 
+                  className="h-11 text-sm input-executive" 
+                  inputMode="numeric" 
+                  maxLength={14} 
+                />
+              </FieldGroup>
+            </div>
+            
+            {/* CPF Duplicate Warning */}
+            {cpfDuplicateEmail && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-start gap-3 p-3 rounded-lg bg-warning/10 border border-warning/30"
+              >
+                <Mail className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                <div className="text-xs">
+                  <p className="font-medium">CPF já cadastrado</p>
+                  <p className="text-muted-foreground mt-0.5">
+                    E-mail vinculado: <span className="font-mono">{maskEmail(cpfDuplicateEmail)}</span>
+                  </p>
+                  <button 
+                    onClick={onBack} 
+                    className="text-primary underline mt-1 hover:text-primary/80"
+                  >
+                    Recuperar senha
+                  </button>
+                </div>
+              </motion.div>
+            )}
+            
             <div className="grid grid-cols-2 gap-3">
               <FieldGroup label="Telefone">
-                <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-0000" className="h-11 text-sm input-executive" inputMode="tel" />
+                <Input 
+                  value={phone} 
+                  onChange={(e) => setPhone(formatPhone(e.target.value))} 
+                  placeholder="(11) 99999-0000" 
+                  className="h-11 text-sm input-executive" 
+                  inputMode="tel"
+                  maxLength={15}
+                />
               </FieldGroup>
               <FieldGroup label="Email">
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className="h-11 text-sm input-executive" />
               </FieldGroup>
             </div>
-            <FieldGroup label="Endereço">
-              <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade" className="h-11 text-sm input-executive" />
-            </FieldGroup>
+            
             <div className="grid grid-cols-2 gap-3">
               <FieldGroup label="Senha">
                 <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="h-11 text-sm input-executive" />
@@ -547,12 +676,31 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
                 <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" className="h-11 text-sm input-executive" />
               </FieldGroup>
             </div>
+            
+            {/* Consent */}
+            <div className="flex items-start gap-2 pt-2">
+              <Checkbox 
+                id="consent" 
+                checked={consentAccepted} 
+                onCheckedChange={(v) => setConsentAccepted(v === true)}
+                className="mt-0.5"
+              />
+              <label htmlFor="consent" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
+                Aceito os <a href="/termos-de-uso" target="_blank" className="text-primary underline">Termos de Uso</a>, 
+                a <a href="/politica-privacidade" target="_blank" className="text-primary underline">Política de Privacidade</a> e 
+                o tratamento dos meus dados conforme a LGPD.
+              </label>
+            </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-3 pt-1">
               <Button variant="outline" className="h-12" onClick={() => setStep("signup_method")}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <Button className="flex-1 h-12 text-sm font-semibold" onClick={() => setStep("family_question")} disabled={!email.trim() || !password || password.length < 6 || password !== confirmPassword || !fullName.trim()}>
+              <Button 
+                className="flex-1 h-12 text-sm font-semibold" 
+                onClick={() => setStep("family_question")} 
+                disabled={!email.trim() || !password || password.length < 6 || password !== confirmPassword || !fullName.trim() || !consentAccepted}
+              >
                 Continuar
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
@@ -569,23 +717,29 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
             animate="center"
             exit="exit"
             transition={{ duration: 0.25 }}
-            className="space-y-4"
+            className="space-y-3"
           >
             <FieldGroup label="Nome completo (validado)">
               <Input value={fullName} readOnly className="h-11 text-sm input-executive bg-muted/50 cursor-not-allowed" />
             </FieldGroup>
             <FieldGroup label="Data de nascimento (validada)">
-              <Input type="date" value={birthDate} readOnly className="h-11 text-sm input-executive bg-muted/50 cursor-not-allowed" />
+              <Input value={birthDate} readOnly className="h-11 text-sm input-executive bg-muted/50 cursor-not-allowed" />
             </FieldGroup>
-            <FieldGroup label="Telefone">
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-0000" className="h-11 text-sm input-executive" inputMode="tel" />
-            </FieldGroup>
-            <FieldGroup label="Endereço">
-              <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade" className="h-11 text-sm input-executive" />
-            </FieldGroup>
-            <FieldGroup label="Email">
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className="h-11 text-sm input-executive" />
-            </FieldGroup>
+            <div className="grid grid-cols-2 gap-3">
+              <FieldGroup label="Telefone">
+                <Input 
+                  value={phone} 
+                  onChange={(e) => setPhone(formatPhone(e.target.value))} 
+                  placeholder="(11) 99999-0000" 
+                  className="h-11 text-sm input-executive" 
+                  inputMode="tel"
+                  maxLength={15}
+                />
+              </FieldGroup>
+              <FieldGroup label="Email">
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className="h-11 text-sm input-executive" />
+              </FieldGroup>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <FieldGroup label="Senha">
                 <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="h-11 text-sm input-executive" />
@@ -594,12 +748,31 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
                 <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" className="h-11 text-sm input-executive" />
               </FieldGroup>
             </div>
+            
+            {/* Consent */}
+            <div className="flex items-start gap-2 pt-2">
+              <Checkbox 
+                id="consent-ibbra" 
+                checked={consentAccepted} 
+                onCheckedChange={(v) => setConsentAccepted(v === true)}
+                className="mt-0.5"
+              />
+              <label htmlFor="consent-ibbra" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
+                Aceito os <a href="/termos-de-uso" target="_blank" className="text-primary underline">Termos de Uso</a>, 
+                a <a href="/politica-privacidade" target="_blank" className="text-primary underline">Política de Privacidade</a> e 
+                o tratamento dos meus dados conforme a LGPD.
+              </label>
+            </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-3 pt-1">
               <Button variant="outline" className="h-12" onClick={() => setStep("signup_method")}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <Button className="flex-1 h-12 text-sm font-semibold" onClick={() => setStep("family_question")} disabled={!email.trim() || !password || password.length < 6 || password !== confirmPassword}>
+              <Button 
+                className="flex-1 h-12 text-sm font-semibold" 
+                onClick={() => setStep("family_question")} 
+                disabled={!email.trim() || !password || password.length < 6 || password !== confirmPassword || !consentAccepted}
+              >
                 Continuar
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
@@ -713,7 +886,7 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
                     <Input value={member.age} onChange={(e) => updateFamilyMember(index, "age", e.target.value)} placeholder="Ex: 35" className="h-11 text-sm input-executive" inputMode="numeric" />
                   </FieldGroup>
                   <FieldGroup label="Telefone">
-                    <Input value={member.phone} onChange={(e) => updateFamilyMember(index, "phone", e.target.value)} placeholder="(11) 99999-0000" className="h-11 text-sm input-executive" inputMode="tel" />
+                    <Input value={member.phone} onChange={(e) => updateFamilyMember(index, "phone", formatPhone(e.target.value))} placeholder="(11) 99999-0000" className="h-11 text-sm input-executive" inputMode="tel" maxLength={15} />
                   </FieldGroup>
                   <FieldGroup label="Email">
                     <Input type="email" value={member.email} onChange={(e) => updateFamilyMember(index, "email", e.target.value)} placeholder="email@email.com" className="h-11 text-sm input-executive" />

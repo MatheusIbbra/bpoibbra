@@ -1,9 +1,11 @@
 import { forwardRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { useMonthlyEvolution } from "@/hooks/useMonthlyEvolution";
 import { useDailyEvolution } from "@/hooks/useDailyEvolution";
+import { useTransactions } from "@/hooks/useTransactions";
 import {
   BarChart,
   Bar,
@@ -17,13 +19,15 @@ import {
 import { Loader2, Calendar, CalendarDays } from "lucide-react";
 import { startOfMonth, endOfMonth, parse, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatCurrency, parseLocalDate } from "@/lib/formatters";
+import { TransactionDialog } from "@/components/transactions/TransactionDialog";
 
-const formatCurrency = (value: number) => {
+const formatChartCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
 };
 
@@ -47,7 +51,7 @@ const CustomTooltipContent = forwardRef<HTMLDivElement, CustomTooltipProps>(
           <p className="font-semibold text-foreground mb-2">{label}</p>
           {payload.map((entry, index) => (
             <p key={index} style={{ color: entry.color }} className="text-xs font-medium">
-              {entry.name}: {formatCurrency(entry.value)}
+              {entry.name}: {formatChartCurrency(entry.value)}
             </p>
           ))}
         </div>
@@ -62,21 +66,40 @@ CustomTooltipContent.displayName = "CustomTooltipContent";
 type ViewMode = "monthly" | "daily";
 
 export function MonthlyEvolutionChart() {
-  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>("monthly");
+  const [selectedMonth, setSelectedMonth] = useState<{ start: string; end: string; label: string } | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<any>(null);
+  
   const { data: monthlyData, isLoading: isLoadingMonthly } = useMonthlyEvolution(6);
   const { data: dailyData, isLoading: isLoadingDaily } = useDailyEvolution();
+
+  // Fetch transactions for selected month
+  const { data: monthTransactions } = useTransactions({
+    startDate: selectedMonth?.start,
+    endDate: selectedMonth?.end,
+  });
 
   const isLoading = viewMode === "monthly" ? isLoadingMonthly : isLoadingDaily;
   const rawData = viewMode === "monthly" ? monthlyData : dailyData;
   const labelKey = viewMode === "monthly" ? "monthLabel" : "dayLabel";
 
-  // Transform data to only show income and expense
   const data = rawData?.map((item) => ({
     ...item,
     entradas: item.income,
     saidas: item.expense,
   })) || [];
+
+  const handleBarClick = (state: any) => {
+    if (!state?.activePayload?.length) return;
+    const clicked = state.activePayload[0].payload;
+    if (clicked.month) {
+      const monthDate = parse(clicked.month, "yyyy-MM", new Date());
+      const start = format(startOfMonth(monthDate), "yyyy-MM-dd");
+      const end = format(endOfMonth(monthDate), "yyyy-MM-dd");
+      const label = format(monthDate, "MMMM yyyy", { locale: ptBR });
+      setSelectedMonth({ start, end, label });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -117,90 +140,127 @@ export function MonthlyEvolutionChart() {
   }
 
   return (
-    <Card className="shadow-executive">
-      <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
-        <CardTitle className="text-sm font-semibold flex items-center gap-2">
-          Evolução Financeira
-          <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-        </CardTitle>
-        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-          <TabsList className="h-7 bg-muted/50">
-            <TabsTrigger value="monthly" className="text-xs gap-1 px-2.5 h-6 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <Calendar className="h-3 w-3" />
-              Mensal
-            </TabsTrigger>
-            <TabsTrigger value="daily" className="text-xs gap-1 px-2.5 h-6 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <CalendarDays className="h-3 w-3" />
-              Diário
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </CardHeader>
-      <CardContent className="px-4 pb-4">
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart
-            data={data}
-            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-            onClick={(state) => {
-              if (!state?.activePayload?.length) return;
-              const clicked = state.activePayload[0].payload;
-              // month field is "yyyy-MM"
-              if (clicked.month) {
-                const monthDate = parse(clicked.month, "yyyy-MM", new Date());
-                const start = format(startOfMonth(monthDate), "yyyy-MM-dd");
-                const end = format(endOfMonth(monthDate), "yyyy-MM-dd");
-                navigate(`/extrato?startDate=${start}&endDate=${end}`);
-              }
-            }}
-            style={{ cursor: "pointer" }}
-          >
-            <defs>
-              <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(152 55% 42%)" stopOpacity={1}/>
-                <stop offset="100%" stopColor="hsl(152 55% 42%)" stopOpacity={0.7}/>
-              </linearGradient>
-              <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(0 65% 50%)" stopOpacity={1}/>
-                <stop offset="100%" stopColor="hsl(0 65% 50%)" stopOpacity={0.7}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" vertical={false} />
-            <XAxis 
-              dataKey={labelKey} 
-              tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
-              axisLine={{ stroke: "hsl(var(--border))" }}
-              tickLine={false}
-              interval={viewMode === "daily" ? 3 : 0}
-            />
-            <YAxis
-              tickFormatter={(value) => formatCurrency(value)}
-              tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
-              axisLine={false}
-              tickLine={false}
-              width={80}
-            />
-            <Tooltip content={<CustomTooltipContent />} cursor={{ fill: 'hsl(var(--muted) / 0.3)' }} />
-            <Legend 
-              wrapperStyle={{ paddingTop: "12px", fontSize: "11px" }}
-              formatter={(value) => <span className="text-foreground text-xs font-medium">{value}</span>}
-            />
-            <Bar
-              dataKey="entradas"
-              name="Entradas"
-              fill="url(#colorIncome)"
-              radius={[4, 4, 0, 0]}
-              maxBarSize={40}
-            />
-            <Bar
-              dataKey="saidas"
-              name="Saídas"
-              fill="url(#colorExpense)"
-              radius={[4, 4, 0, 0]}
-              maxBarSize={40}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
+    <>
+      <Card className="shadow-executive">
+        <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            Evolução Financeira
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+          </CardTitle>
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+            <TabsList className="h-7 bg-muted/50">
+              <TabsTrigger value="monthly" className="text-xs gap-1 px-2.5 h-6 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <Calendar className="h-3 w-3" />
+                Mensal
+              </TabsTrigger>
+              <TabsTrigger value="daily" className="text-xs gap-1 px-2.5 h-6 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <CalendarDays className="h-3 w-3" />
+                Diário
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart
+              data={data}
+              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+              onClick={viewMode === "monthly" ? handleBarClick : undefined}
+              style={{ cursor: viewMode === "monthly" ? "pointer" : "default" }}
+            >
+              <defs>
+                <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(152 55% 42%)" stopOpacity={0.95}/>
+                  <stop offset="100%" stopColor="hsl(152 55% 42%)" stopOpacity={0.6}/>
+                </linearGradient>
+                <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(0 65% 50%)" stopOpacity={0.95}/>
+                  <stop offset="100%" stopColor="hsl(0 65% 50%)" stopOpacity={0.6}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" vertical={false} />
+              <XAxis 
+                dataKey={labelKey} 
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
+                axisLine={{ stroke: "hsl(var(--border))" }}
+                tickLine={false}
+                interval={viewMode === "daily" ? 3 : 0}
+              />
+              <YAxis
+                tickFormatter={(value) => formatChartCurrency(value)}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }}
+                axisLine={false}
+                tickLine={false}
+                width={90}
+              />
+              <Tooltip content={<CustomTooltipContent />} cursor={{ fill: 'hsl(var(--muted) / 0.3)' }} />
+              <Legend 
+                wrapperStyle={{ paddingTop: "12px", fontSize: "11px" }}
+                formatter={(value) => <span className="text-foreground text-xs font-medium">{value}</span>}
+              />
+              <Bar
+                dataKey="entradas"
+                name="Entradas"
+                fill="url(#colorIncome)"
+                radius={[6, 6, 0, 0]}
+                maxBarSize={36}
+              />
+              <Bar
+                dataKey="saidas"
+                name="Saídas"
+                fill="url(#colorExpense)"
+                radius={[6, 6, 0, 0]}
+                maxBarSize={36}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Month Detail Modal */}
+      <Dialog open={!!selectedMonth} onOpenChange={(open) => !open && setSelectedMonth(null)}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="capitalize">{selectedMonth?.label}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1">
+            {monthTransactions && monthTransactions.length > 0 ? (
+              monthTransactions.slice(0, 50).map((tx) => (
+                <div 
+                  key={tx.id} 
+                  className="flex items-center justify-between py-2 px-2 rounded-md hover:bg-muted/50 cursor-pointer transition-colors"
+                  onClick={() => setEditingTransaction(tx)}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{tx.description || tx.raw_description}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(parseLocalDate(tx.date), "dd/MM/yyyy", { locale: ptBR })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    <Badge variant={tx.type === "income" ? "default" : "destructive"} className="text-[10px] h-5">
+                      {tx.type === "income" ? "Receita" : "Despesa"}
+                    </Badge>
+                    <span className={`text-sm font-semibold tabular-nums ${tx.type === "income" ? "text-success" : "text-destructive"}`}>
+                      {formatCurrency(Math.abs(Number(tx.amount)))}
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhuma movimentação</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Transaction Dialog */}
+      <TransactionDialog
+        open={!!editingTransaction}
+        onOpenChange={(open) => !open && setEditingTransaction(null)}
+        transaction={editingTransaction}
+        defaultType={editingTransaction?.type === "income" ? "income" : "expense"}
+      />
+    </>
   );
 }
