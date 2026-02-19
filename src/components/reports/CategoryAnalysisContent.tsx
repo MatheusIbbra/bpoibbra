@@ -44,8 +44,9 @@ export function CategoryAnalysisContent() {
     '#6366f1', '#3b82f6', '#0ea5e9', '#06b6d4', '#14b8a6', '#f43f5e', '#fb923c', '#fbbf24',
   ];
 
-  const incomeChartData = incomeCategories.map((c, i) => ({ name: c.category_name, value: c.total, color: c.category_color || INCOME_COLORS[i % INCOME_COLORS.length] }));
-  const expenseChartData = expenseCategories.map((c, i) => ({ name: c.category_name, value: c.total, color: c.category_color || EXPENSE_COLORS[i % EXPENSE_COLORS.length] }));
+  // Always use distinct palette colors for the donut chart (DB colors are often identical defaults)
+  const incomeChartData = incomeCategories.map((c, i) => ({ name: c.category_name, value: c.total, color: INCOME_COLORS[i % INCOME_COLORS.length] }));
+  const expenseChartData = expenseCategories.map((c, i) => ({ name: c.category_name, value: c.total, color: EXPENSE_COLORS[i % EXPENSE_COLORS.length] }));
 
   const selectedIncomeData = selectedIncomeCategory
     ? incomeCategories.find(c => c.category_id === selectedIncomeCategory)
