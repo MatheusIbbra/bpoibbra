@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -193,42 +193,7 @@ async function classifyTransaction(supabaseAdmin: any, txId: string, description
       return;
     }
   }
-  console.log(`[CLASSIFY] TX ${txId}: no rule/pattern match, calling AI...`);
-  
-  // STEP 3: AI Classification (Gemini fallback) - call classify-transaction edge function
-  try {
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const aiResponse = await fetch(`${SUPABASE_URL}/functions/v1/classify-transaction`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      },
-      body: JSON.stringify({
-        transaction_id: txId,
-        description,
-        amount,
-        type,
-        organization_id: organizationId,
-      }),
-    });
-    
-    if (aiResponse.ok) {
-      const aiResult = await aiResponse.json();
-      if (aiResult.category_id) {
-        console.log(`[CLASSIFY] TX ${txId}: AI classified → ${aiResult.category_name} (conf=${aiResult.confidence})`);
-        // AI classification applied by the edge function itself via transaction_id
-        return;
-      }
-    } else {
-      console.warn(`[CLASSIFY] AI call failed for TX ${txId}: ${aiResponse.status}`);
-    }
-  } catch (aiErr) {
-    console.warn(`[CLASSIFY] AI error for TX ${txId}:`, aiErr);
-  }
-  
-  console.log(`[CLASSIFY] TX ${txId}: no classification found, pending manual`);
+  console.log(`[CLASSIFY] TX ${txId}: no rule/pattern match, pending manual review`);
 }
 
 // ========================================
