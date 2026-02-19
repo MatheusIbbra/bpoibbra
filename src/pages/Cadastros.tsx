@@ -50,6 +50,7 @@ import { RuleDialog } from "@/components/rules/RuleDialog";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { cn } from "@/lib/utils";
+import { useIsAdmin } from "@/hooks/useUserRoles";
 
 const ACCOUNT_TYPE_ICONS: Record<AccountType, typeof Building2> = {
   checking: Building2,
@@ -70,6 +71,7 @@ const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
 export default function Cadastros() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { isAdmin } = useIsAdmin();
   const [activeTab, setActiveTab] = useState("contas");
   
   // Account state

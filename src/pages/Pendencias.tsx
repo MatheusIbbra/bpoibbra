@@ -687,278 +687,127 @@ function TransactionPendingCard({
   };
 
   return (
-    <div className="border rounded-lg px-3 py-2.5 space-y-2 hover:bg-muted/20 transition-colors">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+    <div className="border rounded-lg px-3 py-2 space-y-1.5 hover:bg-muted/20 transition-colors">
+      <div className="flex items-center justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <p className="text-sm font-medium truncate max-w-[300px]">{transaction.description || transaction.raw_description}</p>
+            <p className="text-xs font-medium truncate max-w-[280px]">{transaction.description || transaction.raw_description}</p>
             
             {/* Classification Source Badge */}
             {classificationSource && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    {classificationSource === "rule" && (
-                      <Badge variant="default" className="gap-1 bg-emerald-500 hover:bg-emerald-600">
-                        <BookOpen className="h-3 w-3" />
-                        Regra
-                      </Badge>
-                    )}
-                    {classificationSource === "pattern" && (
-                      <Badge variant="default" className="gap-1 bg-blue-500 hover:bg-blue-600">
-                        <Brain className="h-3 w-3" />
-                        Aprendido
-                      </Badge>
-                    )}
-                    {classificationSource === "ai" && (
-                      <Badge variant="secondary" className="gap-1">
-                        <Sparkles className="h-3 w-3" />
-                        IA
-                      </Badge>
-                    )}
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    {classificationSource === "rule" && (
-                      <p className="text-sm">Classificado automaticamente por uma regra de conciliação</p>
-                    )}
-                    {classificationSource === "pattern" && (
-                      <p className="text-sm">Classificado com base no histórico de validações similares</p>
-                    )}
-                    {classificationSource === "ai" && (
-                      <p className="text-sm">Sugestão gerada pela inteligência artificial</p>
-                    )}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Badge variant={classificationSource === "rule" ? "default" : classificationSource === "pattern" ? "secondary" : "outline"} className="text-[9px] h-4 px-1.5 gap-0.5">
+                {classificationSource === "rule" && <BookOpen className="h-2.5 w-2.5" />}
+                {classificationSource === "pattern" && <Brain className="h-2.5 w-2.5" />}
+                {classificationSource === "ai" && <Sparkles className="h-2.5 w-2.5" />}
+                {classificationSource === "rule" ? "Regra" : classificationSource === "pattern" ? "Aprendido" : "IA"}
+              </Badge>
             )}
             
-            {/* AI Suggestion with confidence */}
             {aiSuggestion && !classificationSource && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Badge variant="secondary" className="gap-1">
-                      <Sparkles className="h-3 w-3" />
-                      IA
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="font-medium mb-1">Sugestão da IA ({Math.round((aiSuggestion.confidence_score || 0) * 100)}% confiança)</p>
-                    <p className="text-sm">{aiSuggestion.reasoning}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Badge variant="outline" className="text-[9px] h-4 px-1.5 gap-0.5">
+                <Sparkles className="h-2.5 w-2.5" /> IA
+              </Badge>
             )}
             
-            {/* Confidence indicator */}
             {(aiSuggestion?.confidence_score || transaction.ai_confidence) && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Badge 
-                      variant="outline" 
-                      className={`gap-1 text-xs ${
-                        (aiSuggestion?.confidence_score || transaction.ai_confidence || 0) >= 0.85 
-                          ? "border-emerald-500 text-emerald-600" 
-                          : (aiSuggestion?.confidence_score || transaction.ai_confidence || 0) >= 0.6 
-                            ? "border-amber-500 text-amber-600" 
-                            : "border-red-500 text-red-600"
-                      }`}
-                    >
-                      <Zap className="h-3 w-3" />
-                      {Math.round((aiSuggestion?.confidence_score || transaction.ai_confidence || 0) * 100)}%
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-sm">Nível de confiança da classificação</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            
-            {/* Organization Badge */}
-            {organizationName && (
-              <Badge variant="outline" className="gap-1 text-xs bg-primary/5 border-primary/20">
-                <Building2 className="h-3 w-3" />
-                {organizationName}
+              <Badge variant="outline" className={`text-[9px] h-4 px-1.5 ${
+                (aiSuggestion?.confidence_score || transaction.ai_confidence || 0) >= 0.85 
+                  ? "border-success/50 text-success" 
+                  : "border-warning/50 text-warning"
+              }`}>
+                <Zap className="h-2.5 w-2.5" />
+                {Math.round((aiSuggestion?.confidence_score || transaction.ai_confidence || 0) * 100)}%
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-            <span>{format(parseLocalDate(transaction.date), "dd/MM/yyyy", { locale: ptBR })}</span>
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
+            <span>{format(parseLocalDate(transaction.date), "dd/MM/yy", { locale: ptBR })}</span>
             <TransactionTypeBadge type={transaction.type} />
-            {currentAccount && (
-              <Badge variant="outline" className="text-xs">
-                {currentAccount.name}
-              </Badge>
-            )}
-            <span className="font-semibold text-foreground">
-              {formatCurrency(Number(transaction.amount))}
-            </span>
+            {currentAccount && <span className="truncate max-w-[80px]">{currentAccount.name}</span>}
+            <span className="font-semibold text-foreground">{formatCurrency(Number(transaction.amount))}</span>
           </div>
         </div>
       </div>
       
-      {/* Account flow indicator for transfers/investments/redemptions */}
+      {/* Account flow for transfers */}
       {requiresDestinationAccount && currentAccount && (
-        <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg text-sm">
-          <Badge variant="secondary" className="gap-1">
-            {currentAccount.name}
-          </Badge>
-          <ArrowRight className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center gap-2 p-1.5 bg-muted/30 rounded text-xs">
+          <Badge variant="secondary" className="text-[9px] h-5">{currentAccount.name}</Badge>
+          <ArrowRight className="h-3 w-3 text-muted-foreground" />
           <Select value={selectedDestinationAccount} onValueChange={setSelectedDestinationAccount}>
-            <SelectTrigger className="h-8 w-[200px]">
-              <SelectValue placeholder="Selecione conta destino..." />
+            <SelectTrigger className="h-6 w-[160px] text-[11px]">
+              <SelectValue placeholder="Conta destino..." />
             </SelectTrigger>
             <SelectContent>
               {availableDestinationAccounts.map((acc) => (
-                <SelectItem key={acc.id} value={acc.id}>
-                  {acc.name} {acc.bank_name && `(${acc.bank_name})`}
-                </SelectItem>
+                <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <span className="text-xs text-muted-foreground ml-2">
-            {selectedType === "transfer" && "Transferência entre contas"}
-            {selectedType === "investment" && "Aplicação em investimento"}
-            {selectedType === "redemption" && "Resgate de investimento"}
-          </span>
         </div>
       )}
       
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-        <div className="space-y-0.5">
-          <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Tipo</label>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5">
+        <div>
           <Select value={selectedType} onValueChange={(v) => setSelectedType(v as TransactionType)}>
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="Selecione..." />
+            <SelectTrigger className="h-7 text-[11px]">
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="income">
-                <span className="flex items-center gap-2">
-                  <TrendingUp className="h-3 w-3" /> Receita
-                </span>
-              </SelectItem>
-              <SelectItem value="expense">
-                <span className="flex items-center gap-2">
-                  <TrendingDown className="h-3 w-3" /> Despesa
-                </span>
-              </SelectItem>
-              <SelectItem value="transfer">
-                <span className="flex items-center gap-2">
-                  <ArrowLeftRight className="h-3 w-3" /> Transferência
-                </span>
-              </SelectItem>
-              <SelectItem value="investment">
-                <span className="flex items-center gap-2">
-                  <PiggyBank className="h-3 w-3" /> Aplicação
-                </span>
-              </SelectItem>
-              <SelectItem value="redemption">
-                <span className="flex items-center gap-2">
-                  <Wallet className="h-3 w-3" /> Resgate
-                </span>
-              </SelectItem>
+              <SelectItem value="income"><span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Receita</span></SelectItem>
+              <SelectItem value="expense"><span className="flex items-center gap-1"><TrendingDown className="h-3 w-3" /> Despesa</span></SelectItem>
+              <SelectItem value="transfer"><span className="flex items-center gap-1"><ArrowLeftRight className="h-3 w-3" /> Transf.</span></SelectItem>
+              <SelectItem value="investment"><span className="flex items-center gap-1"><PiggyBank className="h-3 w-3" /> Aplic.</span></SelectItem>
+              <SelectItem value="redemption"><span className="flex items-center gap-1"><Wallet className="h-3 w-3" /> Resgate</span></SelectItem>
             </SelectContent>
           </Select>
         </div>
         
-        <div className="space-y-0.5">
-          <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Categoria</label>
-          <Select 
-            value={selectedCategory} 
-            onValueChange={setSelectedCategory}
-            disabled={requiresDestinationAccount}
-          >
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder={requiresDestinationAccount ? "N/A" : "Selecione..."} />
+        <div>
+          <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={requiresDestinationAccount}>
+            <SelectTrigger className="h-7 text-[11px]">
+              <SelectValue placeholder={requiresDestinationAccount ? "N/A" : "Categoria"} />
             </SelectTrigger>
             <SelectContent>
               {filteredCategories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>
-                  {cat.name}
-                </SelectItem>
+                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         
-        <div className="space-y-0.5">
-          <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Centro de Custo</label>
-          <Select 
-            value={selectedCostCenter} 
-            onValueChange={setSelectedCostCenter}
-            disabled={requiresDestinationAccount}
-          >
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder={requiresDestinationAccount ? "N/A" : "Selecione..."} />
+        <div>
+          <Select value={selectedCostCenter} onValueChange={setSelectedCostCenter} disabled={requiresDestinationAccount}>
+            <SelectTrigger className="h-7 text-[11px]">
+              <SelectValue placeholder={requiresDestinationAccount ? "N/A" : "C. Custo"} />
             </SelectTrigger>
             <SelectContent>
               {costCenters?.map((cc) => (
-                <SelectItem key={cc.id} value={cc.id}>
-                  {cc.name}
-                </SelectItem>
+                <SelectItem key={cc.id} value={cc.id}>{cc.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         
-        <div className="flex items-end gap-2 lg:col-span-2">
-          {/* AI Classify Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1"
-            onClick={() => onClassifyWithAI(transaction)}
-            disabled={isClassifying || !!classificationSource}
-          >
-            {isClassifying ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}
-            Classificar IA
+        <div className="flex items-end gap-1 lg:col-span-2">
+          <Button variant="outline" size="sm" className="h-7 text-[11px] gap-0.5 px-2" onClick={() => onClassifyWithAI(transaction)} disabled={isClassifying || !!classificationSource}>
+            {isClassifying ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+            IA
           </Button>
-          
           {aiSuggestion && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1"
-              onClick={handleAcceptSuggestion}
-            >
-              <Sparkles className="h-4 w-4" />
-              Usar
+            <Button variant="outline" size="sm" className="h-7 text-[11px] gap-0.5 px-2" onClick={handleAcceptSuggestion}>
+              <Sparkles className="h-3 w-3" /> Usar
             </Button>
           )}
-          
-          <Button
-            variant="default"
-            size="sm"
-            className="gap-1"
-            onClick={handleValidate}
-            disabled={isLoading || (requiresDestinationAccount && !selectedDestinationAccount)}
-          >
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            Validar
+          <Button variant="default" size="sm" className="h-7 text-[11px] gap-0.5 px-2" onClick={handleValidate} disabled={isLoading || (requiresDestinationAccount && !selectedDestinationAccount)}>
+            {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+            OK
           </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-1 text-muted-foreground hover:text-warning"
-            onClick={() => onIgnore(transaction.id)}
-          >
-            <EyeOff className="h-4 w-4" />
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-warning" onClick={() => onIgnore(transaction.id)}>
+            <EyeOff className="h-3 w-3" />
           </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-1 text-destructive hover:text-destructive"
-            onClick={() => onReject(transaction.id)}
-          >
-            <X className="h-4 w-4" />
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => onReject(transaction.id)}>
+            <X className="h-3 w-3" />
           </Button>
         </div>
       </div>
