@@ -119,10 +119,10 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
       <SidebarTrigger className="shrink-0 h-8 w-8 md:h-9 md:w-9 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/40 rounded-lg transition-all duration-200" />
       
       <div className="flex flex-1 items-center gap-2 md:gap-4 min-w-0">
-        {/* Title */}
+      {/* Title or greeting */}
         <div className="hidden md:flex flex-col">
           <h1 className="text-[15px] font-medium text-sidebar-foreground/90 tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
-            {title}
+            {userRole === 'cliente' ? `Olá, ${displayName.split(' ')[0]}` : title}
           </h1>
         </div>
         
