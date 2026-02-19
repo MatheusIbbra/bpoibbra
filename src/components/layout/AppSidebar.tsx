@@ -73,7 +73,7 @@ export function AppSidebar() {
   const getRoleLabel = (role: string | null | undefined): string => {
     const labels: Record<string, string> = {
       admin: "Administrador", supervisor: "Supervisor", kam: "KAM",
-      fa: "FA", projetista: "Projetista", cliente: "Cliente", user: "Usuário"
+      fa: "FA", projetista: "Projetista", user: "Usuário"
     };
     return role ? labels[role] || "Usuário" : "Usuário";
   };
