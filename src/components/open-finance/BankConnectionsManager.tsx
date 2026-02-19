@@ -506,129 +506,81 @@ function ConnectionCard({ connection, onSync, onDisconnect, onReconnect, isSynci
   };
 
   return (
-    <div className="flex flex-col gap-3 p-3 sm:p-4 border rounded-lg bg-card">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          {bankLogo ? (
-            <img
-              src={bankLogo}
-              alt={bankName}
-              className="h-10 w-10 rounded-lg object-contain bg-muted p-0.5"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-            />
-          ) : (
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-primary" />
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-medium">{bankName}</span>
-              <Badge variant={status.variant} className="text-xs">
-                <StatusIcon className="h-3 w-3 mr-1" />
-                {status.label}
-              </Badge>
-              {hasLoginError && (
-                <Badge variant="destructive" className="text-xs">
-                  <AlertCircle className="h-3 w-3 mr-1" />
-                  Requer reconexão
-                </Badge>
-              )}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {connection.last_sync_at ? (
-                <>
-                  Última sincronização:{" "}
-                  {formatDistanceToNow(new Date(connection.last_sync_at), { 
-                    addSuffix: true, 
-                    locale: ptBR 
-                  })}
-                </>
-              ) : (
-                "Nunca sincronizado"
-              )}
-            </div>
-            {connection.sync_error && (
-              <div className="text-xs text-destructive mt-1">
-                Erro: {connection.sync_error}
-              </div>
-            )}
+    <div className="flex flex-col gap-2 p-2.5 border rounded-lg bg-card">
+      <div className="flex items-center gap-2.5">
+        {bankLogo ? (
+          <img
+            src={bankLogo}
+            alt={bankName}
+            className="h-8 w-8 rounded-lg object-contain bg-muted p-0.5"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+        ) : (
+          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <Building2 className="h-4 w-4 text-primary" />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-sm font-medium">{bankName}</span>
+            <Badge variant={status.variant} className="text-[10px] h-4 px-1.5">
+              <StatusIcon className="h-2.5 w-2.5 mr-0.5" />
+              {status.label}
+            </Badge>
             {hasLoginError && (
-              <div className="text-xs text-destructive mt-1">
-                O consentimento expirou ou houve erro de login. Desconecte e reconecte o banco.
-              </div>
+              <Badge variant="destructive" className="text-[10px] h-4 px-1.5">
+                Reconectar
+              </Badge>
             )}
+          </div>
+          <div className="text-[11px] text-muted-foreground">
+            {connection.last_sync_at ? (
+              <>Sync: {formatDistanceToNow(new Date(connection.last_sync_at), { addSuffix: true, locale: ptBR })}</>
+            ) : "Nunca sincronizado"}
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-          {totalBalance !== null && !hasLoginError && (
-            <div className="text-right mr-2">
-              <div className="text-xs text-muted-foreground">Saldo Total</div>
-              <div className={`text-sm font-semibold ${totalBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>
-                {formatCurrency(totalBalance)}
-              </div>
+        {totalBalance !== null && !hasLoginError && (
+          <div className="text-right shrink-0">
+            <div className={`text-sm font-semibold ${totalBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>
+              {formatCurrency(totalBalance)}
             </div>
+          </div>
+        )}
+
+        <div className="flex items-center gap-1 shrink-0">
+          {isActive ? (
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onSync} disabled={isSyncing || isDisconnecting}>
+              {isSyncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            </Button>
+          ) : (
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onReconnect}>
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
           )}
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={onDisconnect} disabled={isSyncing || isDisconnecting}>
+            {isDisconnecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Unlink className="h-3.5 w-3.5" />}
+          </Button>
         </div>
       </div>
 
-      {/* Account details */}
-      {pluggyAccounts.length > 0 && !hasLoginError && (
-        <div className="border-t pt-2 space-y-1.5">
-          <div className="text-xs font-medium text-muted-foreground">Contas vinculadas</div>
-          <div className="grid gap-1.5 grid-cols-1 sm:grid-cols-2">
-            {pluggyAccounts.map((acc) => (
-              <div key={acc.id} className="flex items-center justify-between text-xs p-1.5 rounded bg-muted/50">
-                <span className="truncate">{acc.name || acc.type}</span>
-                <span className={`font-medium ${(acc.balance ?? 0) >= 0 ? 'text-primary' : 'text-destructive'}`}>
-                  {acc.balance !== null ? formatCurrency(acc.balance) : '—'}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+      {connection.sync_error && (
+        <p className="text-[10px] text-destructive px-1">Erro: {connection.sync_error}</p>
       )}
 
-      <div className="flex items-center gap-2 justify-end border-t pt-2">
-        {isActive ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onSync}
-            disabled={isSyncing || isDisconnecting}
-          >
-            {isSyncing ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <RefreshCw className="h-3.5 w-3.5" />
-            )}
-            <span className="ml-1.5">Sincronizar</span>
-          </Button>
-        ) : (
-          <Button
-            variant="default"
-            size="sm"
-            onClick={onReconnect}
-          >
-            <Plus className="h-3.5 w-3.5 mr-1.5" />
-            Reconectar
-          </Button>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onDisconnect}
-          disabled={isSyncing || isDisconnecting}
-          className="text-destructive hover:text-destructive"
-        >
-          {isDisconnecting ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Unlink className="h-3.5 w-3.5" />
-          )}
-        </Button>
-      </div>
+      {/* Compact account details */}
+      {pluggyAccounts.length > 0 && !hasLoginError && (
+        <div className="flex flex-wrap gap-1.5 px-1">
+          {pluggyAccounts.map((acc) => (
+            <div key={acc.id} className="flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full bg-muted/50">
+              <span className="truncate max-w-[100px]">{acc.name || acc.type}</span>
+              <span className={`font-medium ${(acc.balance ?? 0) >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                {acc.balance !== null ? formatCurrency(acc.balance) : '—'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
