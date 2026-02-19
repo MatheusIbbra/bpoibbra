@@ -50,6 +50,7 @@ export function CategoryDonutChart() {
 
     transactions.forEach((tx) => {
       txById.set(tx.id, tx);
+      if (tx.is_ignored) return;
       const catKey = tx.category_id || "__sem_categoria__";
       const map = tx.type === "income" ? incomeMap : expenseMap;
       const existing = map.get(catKey) || { total: 0, txs: [] };
