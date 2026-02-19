@@ -221,11 +221,6 @@ const Index = () => {
               <StaggerItem><MonthlyEvolutionChart /></StaggerItem>
             </StaggerGrid>
 
-            {/* Últimas Movimentações */}
-            <AnimatedCard delay={0.05}>
-              <FintechTransactionsList />
-            </AnimatedCard>
-
             {/* Conciliação */}
             <AnimatedCard delay={0.05}>
               <ReconciliationMetricsCard />
@@ -255,6 +250,11 @@ const Index = () => {
             </div>
           </div>
         </div>
+
+        {/* Últimas Movimentações - full width */}
+        <AnimatedCard delay={0.05}>
+          <FintechTransactionsList />
+        </AnimatedCard>
       </div>
     </AppLayout>
   );

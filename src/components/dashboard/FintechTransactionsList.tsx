@@ -97,7 +97,7 @@ function getIconBg(type: string) {
 export function FintechTransactionsList() {
   const navigate = useNavigate();
   const { data: transactions, isLoading } = useTransactions({});
-  
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const recentTransactions = useMemo(
     () => (transactions || []).slice(0, 5),
@@ -128,19 +128,25 @@ export function FintechTransactionsList() {
 
   return (
     <Card className="flex flex-col">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-semibold">Últimas Movimentações</CardTitle>
+      <CardHeader
+        className="flex flex-row items-center justify-between pb-2 cursor-pointer hover:bg-muted/30 transition-colors rounded-t-xl"
+        onClick={() => setIsExpanded(prev => !prev)}
+      >
+        <div className="flex items-center gap-2">
+          <CardTitle className="text-sm font-semibold">Últimas Movimentações</CardTitle>
+          <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
+        </div>
         <Button
           variant="ghost"
           size="sm"
           className="text-xs h-6 text-muted-foreground hover:text-foreground"
-          onClick={() => navigate("/relatorios?tab=movimentacoes")}
+          onClick={(e) => { e.stopPropagation(); navigate("/relatorios?tab=movimentacoes"); }}
         >
           Ver todas
           <ChevronRight className="h-3 w-3 ml-0.5" />
         </Button>
       </CardHeader>
-      <CardContent className="flex-1">
+      {isExpanded && <CardContent className="flex-1">
         {grouped.length === 0 ? (
           <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
             Nenhuma movimentação encontrada
@@ -203,7 +209,7 @@ export function FintechTransactionsList() {
             ))}
           </div>
         )}
-      </CardContent>
+      </CardContent>}
     </Card>
   );
 }
