@@ -99,13 +99,13 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
   };
 
   const getRoleLabel = (role: string | null | undefined): string => {
+    if (role === 'cliente') return ''; // Don't show "Cliente" label
     const labels: Record<string, string> = {
       admin: "Admin",
       supervisor: "Supervisor",
       kam: "KAM",
       fa: "FA",
       projetista: "Projetista",
-      cliente: "Cliente",
       user: "User",
     };
     return role ? labels[role] || "User" : "User";
@@ -133,28 +133,6 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center gap-1 md:gap-1.5">
-        {/* Open Finance status indicator */}
-        {hasItems && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate("/open-finance-monitor")}
-                className="h-8 w-8 md:h-9 md:w-9 hover:bg-sidebar-accent/40 rounded-lg transition-all duration-200 relative"
-              >
-                <Radio className={`h-4 w-4 ${ofStatusColor}`} />
-                {overallStatus === "error" && (
-                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive animate-pulse" />
-                )}
-                <span className="sr-only">Open Finance Status</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">
-              {ofStatusLabel}
-            </TooltipContent>
-          </Tooltip>
-        )}
         {/* Eye toggle */}
         <Button
           variant="ghost"
@@ -225,9 +203,11 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
               {/* User info */}
               <div className="hidden lg:flex flex-col items-end text-right">
                 <span className="text-sm font-medium leading-none text-sidebar-foreground">{displayName}</span>
-                <Badge className="mt-0.5 text-[9px] px-1.5 py-0 h-4 font-medium rounded-md bg-sidebar-accent text-sidebar-accent-foreground border-0">
-                  {getRoleLabel(userRole)}
-                </Badge>
+                {getRoleLabel(userRole) && (
+                  <Badge className="mt-0.5 text-[9px] px-1.5 py-0 h-4 font-medium rounded-md bg-sidebar-accent text-sidebar-accent-foreground border-0">
+                    {getRoleLabel(userRole)}
+                  </Badge>
+                )}
               </div>
               <Avatar className="h-8 w-8 md:h-9 md:w-9 border-2 border-sidebar-border/50">
                 <AvatarImage src={profile?.avatar_url || undefined} alt="Avatar" />
@@ -251,9 +231,11 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
                   <p className="text-xs leading-none text-muted-foreground truncate max-w-[120px]">
                     {user?.email}
                   </p>
-                  <Badge variant="secondary" className="w-fit text-[9px] px-1 py-0 h-3.5 mt-0.5">
-                    {getRoleLabel(userRole)}
-                  </Badge>
+                  {getRoleLabel(userRole) && (
+                    <Badge variant="secondary" className="w-fit text-[9px] px-1 py-0 h-3.5 mt-0.5">
+                      {getRoleLabel(userRole)}
+                    </Badge>
+                  )}
                 </div>
               </div>
             </DropdownMenuLabel>
@@ -273,23 +255,6 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
                 Configurações
               </DropdownMenuItem>
             )}
-            {/* Theme toggle - mobile */}
-            <DropdownMenuItem 
-              onClick={toggleTheme} 
-              className="md:hidden cursor-pointer py-2 px-3 rounded-lg"
-            >
-              {theme === "light" ? (
-                <>
-                  <Moon className="mr-2 h-4 w-4" />
-                  Modo Escuro
-                </>
-              ) : (
-                <>
-                  <Sun className="mr-2 h-4 w-4" />
-                  Modo Claro
-                </>
-              )}
-            </DropdownMenuItem>
             <DropdownMenuSeparator className="my-1" />
             <DropdownMenuItem 
               className="text-destructive cursor-pointer py-2 px-3 rounded-lg hover:bg-destructive/10" 

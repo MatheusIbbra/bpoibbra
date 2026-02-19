@@ -176,9 +176,11 @@ export function FintechTransactionsList() {
                         <p className="text-xs font-medium truncate leading-tight">
                           {tx.description || "Movimentação"}
                         </p>
-                        <p className="text-[10px] text-muted-foreground truncate">
+                      <p className="text-[10px] text-muted-foreground truncate">
                           {format(parseLocalDate(tx.date), "dd/MM", { locale: ptBR })}
                           {tx.categories?.name && ` · ${tx.categories.name}`}
+                          {tx.accounts?.name && ` · ${tx.accounts.name}`}
+                          {tx.cost_centers?.name && ` · ${tx.cost_centers.name}`}
                         </p>
                       </div>
                       <p

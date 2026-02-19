@@ -35,7 +35,7 @@ export function AdminBITab() {
 
       return Array.from(merchantMap.entries())
         .map(([name, data]) => ({ name, ...data }))
-        .sort((a, b) => b.total - a.total)
+        .sort((a, b) => b.count - a.count)
         .slice(0, 10);
     },
   });
@@ -121,8 +121,8 @@ export function AdminBITab() {
                   <BarChart data={topMerchants} layout="vertical" margin={{ left: 0, right: 10 }}>
                     <XAxis type="number" hide />
                     <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 10 }} />
-                    <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
-                    <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                    <Tooltip formatter={(v: number) => `${v} compras`} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

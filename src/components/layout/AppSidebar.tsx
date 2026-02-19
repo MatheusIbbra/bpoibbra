@@ -71,6 +71,7 @@ export function AppSidebar() {
   const isReportActive = location.pathname === "/relatorios";
 
   const getRoleLabel = (role: string | null | undefined): string => {
+    if (role === 'cliente') return ''; // Don't show "Cliente" label
     const labels: Record<string, string> = {
       admin: "Administrador", supervisor: "Supervisor", kam: "KAM",
       fa: "FA", projetista: "Projetista", user: "Usuário"
@@ -95,6 +96,7 @@ export function AppSidebar() {
   const postReportItems = [
     { title: "Pendências", url: "/pendencias", icon: AlertCircle },
     { title: "Importar Extratos", url: "/importacoes", icon: Upload },
+    { title: "Cadastros", url: "/cadastros", icon: Settings2 },
   ];
 
   // Cadastros only for admin
@@ -239,9 +241,11 @@ export function AppSidebar() {
               <p className="text-xs font-medium text-sidebar-foreground truncate">
                 {userProfile?.full_name || "Usuário"}
               </p>
-              <p className="text-[9px] text-sidebar-primary font-semibold uppercase tracking-wider">
-                {getRoleLabel(userRole)}
-              </p>
+              {getRoleLabel(userRole) && (
+                <p className="text-[9px] text-sidebar-primary font-semibold uppercase tracking-wider">
+                  {getRoleLabel(userRole)}
+                </p>
+              )}
             </div>
             <ChevronRight className="h-3.5 w-3.5 text-sidebar-muted" />
           </div>

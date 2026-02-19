@@ -11,8 +11,6 @@ import { BudgetProgress } from "@/components/dashboard/BudgetProgress";
 import { ReconciliationMetricsCard } from "@/components/dashboard/ReconciliationMetricsCard";
 import { ConnectedAccountsSection } from "@/components/dashboard/ConnectedAccountsSection";
 import { MultiCurrencyBalanceSection } from "@/components/dashboard/MultiCurrencyBalanceSection";
-import { LifestylePatternCard } from "@/components/dashboard/LifestylePatternCard";
-import { PatrimonyEvolutionCard } from "@/components/dashboard/PatrimonyEvolutionCard";
 
 import { StatCard } from "@/components/dashboard/StatCard";
 import { StatCardHoverTransactions } from "@/components/dashboard/StatCardHoverTransactions";
@@ -87,6 +85,9 @@ const Index = () => {
     );
   }
 
+  // Filter accounts for "Posição Financeira" - exclude credit cards and investments
+  const financialAccounts = accounts?.filter(a => a.account_type !== 'credit_card' && a.account_type !== 'investment') || [];
+
   return (
     <AppLayout title="Consolidação Patrimonial">
       <div className="space-y-6 w-full">
@@ -111,7 +112,7 @@ const Index = () => {
                     variant="default"
                     onClick={() => setShowAccountsDialog(true)}
                     hoverContent={
-                      <AccountsBreakdown accounts={accounts || []} />
+                      <AccountsBreakdown accounts={financialAccounts} />
                     } />
                 </StaggerItem>
                 <StaggerItem>
@@ -155,7 +156,7 @@ const Index = () => {
                 Composição da Posição Financeira
               </DialogTitle>
             </DialogHeader>
-            <AccountsBreakdown accounts={accounts || []} />
+            <AccountsBreakdown accounts={financialAccounts} />
           </DialogContent>
         </Dialog>
 
@@ -188,7 +189,7 @@ const Index = () => {
         />
 
         {/* 2. Main content with budget sidebar on desktop */}
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-[1fr_280px]">
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-[1fr_320px]">
           {/* Left: main content */}
           <div className="space-y-6 min-w-0">
             {/* Mobile: budget card inline */}
@@ -220,12 +221,6 @@ const Index = () => {
               <StaggerItem><MonthlyEvolutionChart /></StaggerItem>
             </StaggerGrid>
 
-            {/* Padrão de Vida + Evolução Patrimonial 12M */}
-            <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-              <StaggerItem><LifestylePatternCard /></StaggerItem>
-              <StaggerItem><PatrimonyEvolutionCard /></StaggerItem>
-            </StaggerGrid>
-
             {/* Últimas Movimentações */}
             <AnimatedCard delay={0.05}>
               <FintechTransactionsList />
@@ -242,30 +237,23 @@ const Index = () => {
             </AnimatedCard>
           </div>
 
-          {/* Right: Budget sidebar (desktop only) */}
+          {/* Right: Budget sidebar (desktop only) - single interactive card */}
           <div className="hidden lg:block">
-            <div className="sticky top-4 space-y-4">
+            <div className="sticky top-4">
               <AnimatedCard delay={0.1}>
-                <Card>
+                <Card className="overflow-hidden">
                   <CardHeader className="flex flex-row items-center justify-between pb-2 px-4 pt-4">
-                    <CardTitle className="text-sm font-semibold">Orçamentos</CardTitle>
+                    <CardTitle className="text-sm font-semibold">Orçamentos & Alertas</CardTitle>
                     <Link to="/orcamentos">
                       <Badge variant="outline" className="cursor-pointer hover:bg-secondary text-[10px]">Ver todos</Badge>
                     </Link>
                   </CardHeader>
-                  <CardContent className="px-4 pb-4 space-y-3">
+                  <CardContent className="px-4 pb-4 space-y-4">
                     <BudgetProgress inline />
-                  </CardContent>
-                </Card>
-              </AnimatedCard>
-
-              <AnimatedCard delay={0.15}>
-                <Card>
-                  <CardHeader className="pb-2 px-4 pt-4">
-                    <CardTitle className="text-sm font-semibold">Alertas</CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-4 pb-4">
-                    <BudgetAlerts showNotifications={false} compact />
+                    <div className="border-t pt-3">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Alertas</p>
+                      <BudgetAlerts showNotifications={false} compact />
+                    </div>
                   </CardContent>
                 </Card>
               </AnimatedCard>
@@ -277,7 +265,7 @@ const Index = () => {
   );
 };
 
-/** Compact accounts list for hover/dialog */
+/** Compact accounts list for hover/dialog - excludes credit cards */
 function AccountsBreakdown({ accounts }: { accounts: Array<{ id: string; name: string; bank_name: string | null; current_balance: number | null; account_type: string; color: string | null }> }) {
   if (!accounts || accounts.length === 0) {
     return (
@@ -286,6 +274,15 @@ function AccountsBreakdown({ accounts }: { accounts: Array<{ id: string; name: s
       </div>
     );
   }
+
+  const typeLabel = (t: string) => {
+    switch (t) {
+      case 'checking': return 'Conta Corrente';
+      case 'savings': return 'Poupança';
+      case 'cash': return 'Dinheiro';
+      default: return 'Conta';
+    }
+  };
 
   return (
     <div className="p-2 space-y-1">
@@ -300,9 +297,9 @@ function AccountsBreakdown({ accounts }: { accounts: Array<{ id: string; name: s
             </div>
             <div className="min-w-0">
               <p className="text-xs font-medium truncate">{acc.name}</p>
-              {acc.bank_name && (
-                <p className="text-[10px] text-muted-foreground truncate">{acc.bank_name}</p>
-              )}
+              <p className="text-[10px] text-muted-foreground truncate">
+                {acc.bank_name || typeLabel(acc.account_type)}
+              </p>
             </div>
           </div>
           <span className={cn(
@@ -366,7 +363,7 @@ function TransactionsListDialog({
                     </p>
                   </div>
                   <span className={cn("text-xs font-semibold tabular-nums shrink-0", variant === "success" ? "text-success" : "text-destructive")}>
-                    {formatCurrency(Math.abs(Number(tx.amount)))}
+                    {variant === "destructive" ? "− " : "+ "}{formatCurrency(Math.abs(Number(tx.amount)))}
                   </span>
                 </button>
               ))}

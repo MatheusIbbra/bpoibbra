@@ -287,6 +287,7 @@ export function MovimentacoesReportContent() {
                       <span className="flex items-center">Categoria <SortIcon field="category" /></span>
                     </TableHead>
                     <TableHead className="w-24">Conta</TableHead>
+                    <TableHead className="w-20 hidden md:table-cell">Centro Custo</TableHead>
                     <TableHead className="w-16 text-center">Tipo</TableHead>
                     <TableHead className="w-20 text-center">Status</TableHead>
                     <TableHead className="w-28 text-right cursor-pointer" onClick={() => toggleSort("amount")}>
@@ -311,6 +312,9 @@ export function MovimentacoesReportContent() {
                       </TableCell>
                       <TableCell className="text-muted-foreground truncate max-w-[90px] py-1.5">
                         {transaction.accounts?.name || "-"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground truncate max-w-[80px] py-1.5 hidden md:table-cell">
+                        {transaction.cost_centers?.name || "-"}
                       </TableCell>
                       <TableCell className="text-center py-1.5">
                         <Badge variant="outline" className="text-[9px] px-1 py-0">
