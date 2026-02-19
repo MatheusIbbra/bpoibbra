@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { toast } from "sonner";
 
 interface Message {
@@ -132,6 +133,7 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { selectedOrganizationId } = useBaseFilter();
+  const { openUpgradeModal } = useUpgradeModal();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -200,7 +202,13 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
   if (!isOpen) {
     return (
       <Button
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          if (!isPaidUser) {
+            openUpgradeModal("ai");
+          } else {
+            setIsOpen(true);
+          }
+        }}
         className="fixed bottom-4 right-4 md:bottom-6 md:right-6 h-14 w-14 rounded-full shadow-lg z-50"
         size="icon"
       >
