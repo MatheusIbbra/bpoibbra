@@ -83,19 +83,21 @@ serve(async (req) => {
       });
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const supabaseClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") ?? "", {
+      global: { headers: { Authorization: authHeader } },
+    });
 
     const { description, amount, type, transaction_id, organization_id }: ClassificationRequest = await req.json();
 
@@ -131,6 +133,7 @@ serve(async (req) => {
         let bestMatch: { rule: typeof rules[0]; similarity: number } | null = null;
         
         for (const rule of rules) {
+          if (!rule.category_id) continue; // Skip rules without category
           const keywordSim = containsKeyword(description, rule.description);
           const normalizedSim = calculateSimilarity(normalizedDescription, normalizeText(rule.description));
           let similarity = Math.max(keywordSim, normalizedSim);

@@ -152,8 +152,8 @@ Deno.serve(async (req) => {
       if (rules && rules.length > 0) {
         const normalizedDesc = normalizeText(description);
         let bestMatch: { rule: any; similarity: number } | null = null;
-        let matchCount = 0;
         for (const rule of rules) {
+          if (!rule.category_id) continue; // Skip rules without category
           const nSim = calculateSimilarity(normalizedDesc, normalizeText(rule.description));
           let similarity = nSim;
           // Keyword containment boost
@@ -164,11 +164,10 @@ Deno.serve(async (req) => {
           }
           if (rule.amount && Math.abs(amount - rule.amount) / rule.amount <= 0.01) similarity = Math.min(similarity + 0.1, 1.0);
           if (similarity >= 0.80) {
-            matchCount++;
             if (!bestMatch || similarity > bestMatch.similarity) bestMatch = { rule, similarity };
           }
         }
-        if (bestMatch && matchCount === 1) {
+        if (bestMatch) {
           categoryId = bestMatch.rule.category_id;
           costCenterId = bestMatch.rule.cost_center_id;
           classificationSource = 'rule';

@@ -156,6 +156,7 @@ async function classifyTransaction(supabaseAdmin: any, txId: string, description
     let bestMatch: { rule: any; similarity: number } | null = null;
     let matchCount = 0;
     for (const rule of rules) {
+      if (!rule.category_id) continue; // Skip rules without category
       const kSim = containsKeyword(description, rule.description);
       const nSim = calculateSimilarity(normalizedDescription, normalizeText(rule.description));
       let similarity = Math.max(kSim, nSim);
@@ -165,7 +166,7 @@ async function classifyTransaction(supabaseAdmin: any, txId: string, description
         if (!bestMatch || similarity > bestMatch.similarity) bestMatch = { rule, similarity };
       }
     }
-    if (bestMatch && matchCount === 1) {
+    if (bestMatch) {
       await supabaseAdmin.from("transactions").update({
         category_id: bestMatch.rule.category_id, cost_center_id: bestMatch.rule.cost_center_id,
         classification_source: "rule", validation_status: "validated", validated_at: new Date().toISOString(),
