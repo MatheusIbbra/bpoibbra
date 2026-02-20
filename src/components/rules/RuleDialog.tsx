@@ -77,6 +77,8 @@ export function RuleDialog({ open, onOpenChange, rule }: RuleDialogProps) {
   };
 
   const filteredCategories = categories?.filter(c => {
+    // Only show child categories (those with parent_id)
+    if (!c.parent_id) return false;
     if (formData.transaction_type === "income") return c.type === "income";
     if (formData.transaction_type === "expense") return c.type === "expense";
     return true;

@@ -661,6 +661,8 @@ function TransactionPendingCard({
 
   // Filter categories based on selected type
   const filteredCategories = categories?.filter(c => {
+    // Only show child categories (those with parent_id)
+    if (!c.parent_id) return false;
     if (selectedType === "income") return c.type === "income";
     if (selectedType === "expense") return c.type === "expense";
     if (selectedType === "investment") return c.type === "investment";

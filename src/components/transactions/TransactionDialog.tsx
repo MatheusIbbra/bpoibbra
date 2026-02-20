@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { z } from "zod";
 import { handleSupabaseError } from "@/lib/error-handler";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarIcon, Loader2, Link2, EyeOff } from "lucide-react";
+import { CalendarIcon, Loader2, Link2, EyeOff, Check, ChevronsUpDown } from "lucide-react";
 import { TransactionComments } from "@/components/transactions/TransactionComments";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useCategories, CategoryType } from "@/hooks/useCategories";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCostCenters } from "@/hooks/useCostCenters";
@@ -238,7 +239,7 @@ export function TransactionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto [&_input]:bg-white [&_input]:dark:bg-muted [&_textarea]:bg-white [&_textarea]:dark:bg-muted">
         <DialogHeader>
           <DialogTitle>
             {transaction ? "Editar Transação" : "Nova Transação"}
@@ -256,7 +257,7 @@ export function TransactionDialog({
                     <FormLabel>Tipo</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white dark:bg-muted">
                           <SelectValue placeholder="Selecione o tipo" />
                         </SelectTrigger>
                       </FormControl>
@@ -317,7 +318,7 @@ export function TransactionDialog({
                     <FormLabel>{getAccountLabel()}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white dark:bg-muted">
                           <SelectValue placeholder="Selecione..." />
                         </SelectTrigger>
                       </FormControl>
@@ -343,7 +344,7 @@ export function TransactionDialog({
                       <FormLabel>Conta de Destino</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="bg-white dark:bg-muted">
                             <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
                         </FormControl>
@@ -393,7 +394,7 @@ export function TransactionDialog({
                         <FormLabel>Selecionar lançamento</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="bg-white dark:bg-muted">
                               <SelectValue placeholder="Selecione um lançamento..." />
                             </SelectTrigger>
                           </FormControl>
@@ -433,26 +434,59 @@ export function TransactionDialog({
                 <FormField
                   control={form.control}
                   name="category_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Categoria</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categories?.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.id}>
-                              {cat.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const selectedCat = categories?.find(c => c.id === field.value);
+                    return (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Categoria</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={cn(
+                                  "w-full justify-between bg-white dark:bg-muted font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {selectedCat ? selectedCat.name : "Buscar categoria..."}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                            <Command>
+                              <CommandInput placeholder="Digitar para buscar..." />
+                              <CommandList>
+                                <CommandEmpty>Nenhuma categoria encontrada.</CommandEmpty>
+                                <CommandGroup>
+                                  {categories?.map((cat) => (
+                                    <CommandItem
+                                      key={cat.id}
+                                      value={cat.name}
+                                      onSelect={() => {
+                                        field.onChange(cat.id);
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          field.value === cat.id ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      {cat.name}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
 
                 <FormField
@@ -463,7 +497,7 @@ export function TransactionDialog({
                       <FormLabel>Centro de Custo</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="bg-white dark:bg-muted">
                             <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
                         </FormControl>
