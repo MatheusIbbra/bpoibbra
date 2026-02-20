@@ -145,9 +145,10 @@ export function useCreditCardAdvancedSummary() {
 
       const { data: transactions } = await supabase
         .from("transactions")
-        .select("account_id, amount, type, date, accrual_date")
+        .select("account_id, amount, type, date, accrual_date, is_ignored, status")
         .in("account_id", accountIds)
         .gte("date", format(sixMonthsAgo, "yyyy-MM-dd"))
+        .neq("is_ignored", true)
         .order("date", { ascending: false });
 
       // 5. Build per-card data
