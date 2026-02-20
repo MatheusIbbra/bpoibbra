@@ -229,9 +229,9 @@ export function TransactionDialog({
   const isLoading = createTransaction.isPending || updateTransaction.isPending;
 
   const getAccountLabel = () => {
-    if (type === "transfer") return "Conta de Origem";
-    if (type === "investment") return "Conta de Origem";
-    if (type === "redemption") return "Conta de Destino";
+    if (type === "transfer") return "Conta de Origem (débito)";
+    if (type === "investment") return "Conta de Origem (débito)";
+    if (type === "redemption") return "Conta de Origem (débito)";
     return "Conta Bancária";
   };
 
@@ -341,7 +341,7 @@ export function TransactionDialog({
                   name="destination_account_id"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Conta de Destino</FormLabel>
+                      <FormLabel>Conta de Destino (crédito)</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="bg-white dark:bg-muted">
@@ -456,17 +456,21 @@ export function TransactionDialog({
                             </FormControl>
                           </PopoverTrigger>
                           <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                            <Command>
+                            <Command filter={(value, search) => {
+                              const cat = categories?.find(c => c.id === value);
+                              if (!cat) return 0;
+                              return cat.name.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+                            }}>
                               <CommandInput placeholder="Digitar para buscar..." />
-                              <CommandList>
+                              <CommandList className="max-h-[200px] overflow-y-auto">
                                 <CommandEmpty>Nenhuma categoria encontrada.</CommandEmpty>
                                 <CommandGroup>
                                   {categories?.map((cat) => (
                                     <CommandItem
                                       key={cat.id}
-                                      value={cat.name}
-                                      onSelect={() => {
-                                        field.onChange(cat.id);
+                                      value={cat.id}
+                                      onSelect={(val) => {
+                                        field.onChange(val);
                                       }}
                                     >
                                       <Check
