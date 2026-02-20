@@ -59,14 +59,24 @@ export function CategoryDonutChart() {
       map.set(catKey, existing);
     });
 
-  const buildData = (map: Map<string, { total: number; txs: { id: string; description: string; amount: number; date: string }[] }>): DonutData[] => {
-      const total = Array.from(map.values()).reduce((s, v) => s + v.total, 0);
+    const buildData = (map: Map<string, { total: number; txs: { id: string; description: string; amount: number; date: string }[] }>): DonutData[] => {
+      // First, merge any entries whose category_id doesn't exist in the categories list into __sem_categoria__
+      const mergedMap = new Map<string, { total: number; txs: { id: string; description: string; amount: number; date: string }[] }>();
+      for (const [catId, data] of map.entries()) {
+        const isKnown = catId === "__sem_categoria__" ? false : categories.some((c) => c.id === catId);
+        const key = isKnown ? catId : "__sem_categoria__";
+        const existing = mergedMap.get(key) || { total: 0, txs: [] };
+        existing.total += data.total;
+        existing.txs.push(...data.txs);
+        mergedMap.set(key, existing);
+      }
+
+      const total = Array.from(mergedMap.values()).reduce((s, v) => s + v.total, 0);
       let colorIndex = 0;
-      return Array.from(map.entries())
+      return Array.from(mergedMap.entries())
         .map(([catId, data]) => {
           const cat = categories.find((c) => c.id === catId);
           const isUncategorized = catId === "__sem_categoria__";
-          // Use a consistent neutral gray for "Sem categoria" to avoid confusion
           const color = isUncategorized ? "#9ca3af" : DISTINCT_COLORS[colorIndex++ % DISTINCT_COLORS.length];
           return {
             name: cat?.name || "Sem categoria",

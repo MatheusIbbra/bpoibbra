@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { createHmac } from "https://deno.land/std@0.177.0/node/crypto.ts";
 
 const corsHeaders = {
@@ -218,24 +218,138 @@ Deno.serve(async (req) => {
             if (!localAccountId) break;
 
             let imported = 0, skipped = 0;
+            const newTxIds: { id: string; description: string; amount: number; type: string }[] = [];
+
             for (const tx of transactions) {
               const externalId = tx.id || `${tx.date}-${tx.amount}-${tx.description}`;
-              const { data: existing } = await supabaseAdmin.from('transactions').select('id')
-                .eq('external_transaction_id', externalId).eq('bank_connection_id', connection.id).maybeSingle();
-              if (existing) { skipped++; continue; }
               const rawAmount = tx.amount || 0;
-              const type = tx.type === 'CREDIT' || rawAmount > 0 ? 'income' : 'expense';
-              const { error: insertError } = await supabaseAdmin.from('transactions').insert({
+              const txDate = tx.date ? tx.date.split('T')[0] : new Date().toISOString().split('T')[0];
+              const description = tx.description || tx.descriptionRaw || 'Via Open Finance';
+              const normalizedDesc = (description || '').toLowerCase().trim().replace(/\s+/g, ' ').substring(0, 100);
+              const dedupKey = externalId && externalId !== `${txDate}-${rawAmount}-${description}`
+                ? `ext:${externalId}`
+                : `comp:${txDate}|${Math.abs(rawAmount).toFixed(2)}|${normalizedDesc}`;
+
+              // DEDUP: org-wide external ID check
+              const { data: dup1 } = await supabaseAdmin.from('transactions').select('id')
+                .eq('external_transaction_id', externalId).eq('organization_id', connection.organization_id).maybeSingle();
+              if (dup1) { skipped++; continue; }
+
+              // DEDUP: org-wide composite key check
+              const { data: dup2 } = await supabaseAdmin.from('transactions').select('id')
+                .eq('organization_id', connection.organization_id).eq('sync_dedup_key', dedupKey).maybeSingle();
+              if (dup2) { skipped++; continue; }
+
+              const type = tx.type === 'CREDIT' || tx.creditDebitType === 'CREDIT' || rawAmount > 0 ? 'income' : 'expense';
+              const { data: inserted, error: insertError } = await supabaseAdmin.from('transactions').insert({
                 organization_id: connection.organization_id, user_id: connection.user_id,
                 bank_connection_id: connection.id, external_transaction_id: externalId,
+                sync_dedup_key: dedupKey,
                 account_id: localAccountId,
-                date: tx.date ? tx.date.split('T')[0] : new Date().toISOString().split('T')[0],
-                description: tx.description || tx.descriptionRaw || 'Via Open Finance',
+                date: txDate,
+                description,
                 amount: Math.abs(rawAmount), type, status: 'completed',
                 notes: `Importado via Open Finance (${connectorName})`
-              });
+              }).select('id').single();
               if (insertError) { if (insertError.code === '23505') skipped++; else skipped++; }
-              else { imported++; }
+              else { imported++; newTxIds.push({ id: inserted.id, description, amount: Math.abs(rawAmount), type }); }
+            }
+
+            // AUTO-CLASSIFY new transactions
+            if (newTxIds.length > 0) {
+              console.log(`[WEBHOOK-CLASSIFY] Classifying ${newTxIds.length} transactions...`);
+              const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+              for (const tx of newTxIds) {
+                if (tx.type === 'transfer' || tx.type === 'investment' || tx.type === 'redemption') continue;
+                try {
+                  // Try rules first
+                  const { data: rules } = await supabaseAdmin
+                    .from("reconciliation_rules").select("id, description, category_id, cost_center_id, transaction_type, amount")
+                    .eq("organization_id", connection.organization_id).eq("is_active", true).eq("transaction_type", tx.type);
+
+                  const normalizedTx = tx.description.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+                  let classified = false;
+
+                  if (rules && rules.length > 0) {
+                    for (const rule of rules) {
+                      const normalizedRule = (rule.description || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+                      if (normalizedTx.includes(normalizedRule) || normalizedRule.includes(normalizedTx)) {
+                        await supabaseAdmin.from("transactions").update({
+                          category_id: rule.category_id, cost_center_id: rule.cost_center_id,
+                          classification_source: "rule", validation_status: "validated", validated_at: new Date().toISOString(),
+                        }).eq("id", tx.id);
+                        classified = true;
+                        break;
+                      }
+                    }
+                  }
+
+                  // Try patterns
+                  if (!classified) {
+                    const { data: patterns } = await supabaseAdmin
+                      .from("transaction_patterns").select("id, normalized_description, category_id, cost_center_id, confidence, occurrences")
+                      .eq("organization_id", connection.organization_id).eq("transaction_type", tx.type).gte("confidence", 0.6)
+                      .order("confidence", { ascending: false }).limit(20);
+
+                    if (patterns && patterns.length > 0) {
+                      for (const pattern of patterns) {
+                        const words1 = normalizedTx.split(' ').filter((w: string) => w.length > 0);
+                        const set2 = new Set(pattern.normalized_description.split(' ').filter((w: string) => w.length > 0));
+                        const common = words1.filter((w: string) => set2.has(w)).length;
+                        const sim = common / Math.max(words1.length, set2.size);
+                        if (sim >= 0.8) {
+                          const autoValidate = pattern.confidence >= 0.85 && (pattern.occurrences || 1) >= 3;
+                          await supabaseAdmin.from("transactions").update({
+                            category_id: pattern.category_id, cost_center_id: pattern.cost_center_id,
+                            classification_source: "pattern",
+                            ...(autoValidate ? { validation_status: "validated", validated_at: new Date().toISOString() } : {}),
+                          }).eq("id", tx.id);
+                          classified = true;
+                          break;
+                        }
+                      }
+                    }
+                  }
+
+                  // AI fallback
+                  if (!classified && LOVABLE_API_KEY) {
+                    const { data: categories } = await supabaseAdmin
+                      .from("categories").select("id, name, type")
+                      .or(`organization_id.eq.${connection.organization_id},is_system_template.eq.true`)
+                      .eq("type", tx.type);
+                    const categoryList = categories?.map((c: any) => `- ${c.name} (ID: ${c.id})`).join("\n") || "Nenhuma";
+
+                    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                      method: "POST",
+                      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        model: "google/gemini-3-flash-preview",
+                        messages: [
+                          { role: "system", content: `Classifique transações. APENAS JSON. Categorias (${tx.type}):\n${categoryList}\nFormato: {"category_id":"uuid|null","confidence":0-1}` },
+                          { role: "user", content: `"${tx.description}" R$${tx.amount.toFixed(2)} ${tx.type === "income" ? "Receita" : "Despesa"}` }
+                        ],
+                        temperature: 0.3, max_tokens: 200,
+                      }),
+                    });
+                    if (aiResponse.ok) {
+                      const aiData = await aiResponse.json();
+                      const content = aiData.choices?.[0]?.message?.content || "";
+                      const jsonMatch = content.match(/\{[\s\S]*\}/);
+                      if (jsonMatch) {
+                        const result = JSON.parse(jsonMatch[0]);
+                        if (result.category_id && categories?.some((c: any) => c.id === result.category_id)) {
+                          await supabaseAdmin.from("transactions").update({
+                            category_id: result.category_id, classification_source: "ai",
+                          }).eq("id", tx.id);
+                        }
+                      }
+                    }
+                  }
+                } catch (classErr) {
+                  console.warn(`[WEBHOOK-CLASSIFY] Error for TX ${tx.id}:`, classErr);
+                }
+              }
             }
 
             if (ofItem) {
@@ -264,7 +378,7 @@ Deno.serve(async (req) => {
             await supabaseAdmin.from('integration_logs').insert({
               organization_id: connection.organization_id, bank_connection_id: connection.id,
               provider: 'pluggy', event_type: 'webhook_auto_sync', status: 'success',
-              message: `Auto-sync via webhook: ${imported} imported, ${skipped} skipped`
+              message: `Auto-sync via webhook: ${imported} imported, ${skipped} skipped, ${newTxIds.length} classified`
             });
           } catch (syncError) {
             console.error('[WEBHOOK-SYNC] Error:', syncError);

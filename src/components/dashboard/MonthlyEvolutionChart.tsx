@@ -17,7 +17,7 @@ import {
   Legend,
 } from "recharts";
 import { Loader2, Calendar, CalendarDays } from "lucide-react";
-import { startOfMonth, endOfMonth, parse, format } from "date-fns";
+import { startOfMonth, endOfMonth, parse, parseISO, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 import { TransactionDialog } from "@/components/transactions/TransactionDialog";
@@ -92,7 +92,10 @@ export function MonthlyEvolutionChart() {
   const handleBarClick = (state: any) => {
     if (!state?.activePayload?.length) return;
     const clicked = state.activePayload[0].payload;
-    if (clicked.month) {
+    if (viewMode === "daily" && clicked.day) {
+      // Daily mode: open transactions for the specific day
+      setSelectedMonth({ start: clicked.day, end: clicked.day, label: format(parseISO(clicked.day), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) });
+    } else if (clicked.month) {
       const monthDate = parse(clicked.month, "yyyy-MM", new Date());
       const start = format(startOfMonth(monthDate), "yyyy-MM-dd");
       const end = format(endOfMonth(monthDate), "yyyy-MM-dd");
@@ -165,8 +168,8 @@ export function MonthlyEvolutionChart() {
             <BarChart
               data={data}
               margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-              onClick={viewMode === "monthly" ? handleBarClick : undefined}
-              style={{ cursor: viewMode === "monthly" ? "pointer" : "default" }}
+              onClick={handleBarClick}
+              style={{ cursor: "pointer" }}
             >
               <defs>
                 <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
