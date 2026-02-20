@@ -321,9 +321,12 @@ export default function Orcamentos() {
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent
-                        className="w-[--radix-popover-trigger-width] p-0"
+                        className="w-[--radix-popover-trigger-width] p-0 max-h-[60vh] overflow-hidden"
                         align="start"
+                        side="bottom"
+                        avoidCollisions={true}
                         onWheel={(e) => e.stopPropagation()}
+                        onTouchMove={(e) => e.stopPropagation()}
                       >
                         <Command filter={(value, search) => {
                           const cat = allChildCategories.find(c => c.id === value);
@@ -331,7 +334,7 @@ export default function Orcamentos() {
                           return cat.name.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
                         }}>
                           <CommandInput placeholder="Digitar para buscar..." />
-                          <CommandList className="max-h-[250px] overflow-y-auto">
+                          <CommandList className="max-h-[200px] overflow-y-auto overscroll-contain">
                             <CommandEmpty>Nenhuma categoria encontrada.</CommandEmpty>
                             {sortedGroups.map((group) => (
                               <CommandGroup
