@@ -677,17 +677,18 @@ Deno.serve(async (req) => {
         .eq('organization_id', connectionToSync.organization_id).eq('sync_dedup_key', dedupKey).maybeSingle();
       if (dup2) { skipped++; duplicatesDetected++; continue; }
 
-      // DEDUP: fuzzy — scoped to ORGANIZATION + account + SAME TYPE direction
-      // IMPORTANT: income and expense with same description/amount/date are NOT duplicates (e.g. PIX sent and received)
-      const resolvedLocalAccount = tx._localAccountId || pluggyAccountToLocal[tx._pluggyAccountId] || pluggyInvToLocal[tx._pluggyAccountId] || fallbackAccountId;
+      // DEDUP: fuzzy — scoped to ORGANIZATION + SAME TYPE direction + same date/amount
+      // Check org-wide first (without account_id) to catch cross-account duplicates (e.g. XP)
       const creditDebitTypeRaw = (tx.creditDebitType || tx.type || '').toUpperCase();
       const fuzzyTypeFilter = creditDebitTypeRaw === 'CREDIT' ? 'income' : 'expense';
-      const { data: fuzzyMatches } = await supabaseAdmin.from('transactions').select('id, description')
+      const resolvedLocalAccount = tx._localAccountId || pluggyAccountToLocal[tx._pluggyAccountId] || pluggyInvToLocal[tx._pluggyAccountId] || fallbackAccountId;
+      
+      const { data: fuzzyMatchesOrgWide } = await supabaseAdmin.from('transactions').select('id, description')
         .eq('organization_id', connectionToSync.organization_id).eq('date', txDate).eq('amount', amount)
-        .eq('account_id', resolvedLocalAccount).eq('type', fuzzyTypeFilter).limit(5);
-      if (fuzzyMatches && fuzzyMatches.length > 0) {
+        .eq('type', fuzzyTypeFilter).limit(10);
+      if (fuzzyMatchesOrgWide && fuzzyMatchesOrgWide.length > 0) {
         const normNew = normalizeText(description);
-        const isDup = fuzzyMatches.some((e: any) => calculateSimilarity(normNew, normalizeText(e.description || '')) >= 0.90);
+        const isDup = fuzzyMatchesOrgWide.some((e: any) => calculateSimilarity(normNew, normalizeText(e.description || '')) >= 0.85);
         if (isDup) { skipped++; duplicatesDetected++; continue; }
       }
 
