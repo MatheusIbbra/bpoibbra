@@ -144,7 +144,7 @@ export function MonthlyEvolutionChart() {
 
   return (
     <>
-      <Card className="shadow-executive">
+      <Card className="shadow-executive h-full flex flex-col">
         <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             Evolução Financeira
@@ -163,7 +163,7 @@ export function MonthlyEvolutionChart() {
             </TabsList>
           </Tabs>
         </CardHeader>
-        <CardContent className="px-4 pb-4">
+        <CardContent className="px-4 pb-4 flex-1 flex flex-col justify-center">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart
               data={data}
