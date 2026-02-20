@@ -796,11 +796,7 @@ function TransactionPendingCard({
             {isClassifying ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
             IA
           </Button>
-          {aiSuggestion && (
-            <Button variant="outline" size="sm" className="h-7 text-[11px] gap-0.5 px-2" onClick={handleAcceptSuggestion}>
-              <Sparkles className="h-3 w-3" /> Usar
-            </Button>
-          )}
+          
           <Button variant="default" size="sm" className="h-7 text-[11px] gap-0.5 px-2" onClick={handleValidate} disabled={isLoading || (requiresDestinationAccount && !selectedDestinationAccount)}>
             {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
             OK
