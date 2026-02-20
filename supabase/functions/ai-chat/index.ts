@@ -34,8 +34,8 @@ serve(async (req) => {
       });
     }
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "AI not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -71,29 +71,34 @@ Diretrizes:
 - Seja conciso e direto, máximo 3 parágrafos por resposta
 - Se não souber algo específico sobre o cliente, diga claramente${financialContext}`;
 
-    // Build Gemini conversation from messages
-    const userMessages = messages.map((m: any) => m.content).join("\n\n");
-    const fullPrompt = `${systemPrompt}\n\nConversa:\n${userMessages}`;
-
-    // Use streaming endpoint
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
-
-    const response = await fetch(geminiUrl, {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: fullPrompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages,
+        ],
+        stream: true,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Gemini error:", response.status, errorText);
+      console.error("AI Gateway error:", response.status, errorText);
       
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns minutos." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Créditos de IA esgotados." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       
@@ -102,33 +107,8 @@ Diretrizes:
       });
     }
 
-    // Transform Gemini SSE stream to OpenAI-compatible SSE format
-    const transformStream = new TransformStream({
-      transform(chunk, controller) {
-        const text = new TextDecoder().decode(chunk);
-        const lines = text.split("\n");
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const jsonStr = line.slice(6).trim();
-          if (!jsonStr || jsonStr === "[DONE]") continue;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            if (content) {
-              const openAIChunk = JSON.stringify({
-                choices: [{ delta: { content }, index: 0 }],
-              });
-              controller.enqueue(new TextEncoder().encode(`data: ${openAIChunk}\n\n`));
-            }
-            if (parsed.candidates?.[0]?.finishReason === "STOP") {
-              controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
-            }
-          } catch { /* skip malformed */ }
-        }
-      },
-    });
-
-    return new Response(response.body!.pipeThrough(transformStream), {
+    // Stream SSE response back
+    return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (error) {

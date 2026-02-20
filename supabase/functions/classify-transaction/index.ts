@@ -229,8 +229,8 @@ serve(async (req) => {
       }
     }
 
-    // ETAPA 4: IA VIA GEMINI 2.5 FLASH (DIRETO)
-    console.log("[IA] Fallback to Gemini 2.5 Flash...");
+    // ETAPA 4: IA VIA LOVABLE AI GATEWAY
+    console.log("[IA] Fallback to Lovable AI Gateway...");
 
     const { data: categories, error: catError } = await supabaseClient
       .from("categories").select("id, name, type").eq("type", type);
@@ -243,7 +243,7 @@ serve(async (req) => {
     const categoryList = categories?.map((c) => `- ${c.name} (ID: ${c.id})`).join("\n") || "Nenhuma";
     const costCenterList = costCenters?.map((cc) => `- ${cc.name} (ID: ${cc.id})`).join("\n") || "Nenhum";
 
-    const fullPrompt = `Você é um assistente financeiro. Classifique transações bancárias.
+    const systemPrompt = `Você é um assistente financeiro. Classifique transações bancárias.
 REGRAS: Retorne APENAS JSON válido. Use SOMENTE IDs fornecidos. is_transfer = false SEMPRE.
 
 CATEGORIAS (${type}):
@@ -252,55 +252,45 @@ ${categoryList}
 CENTROS DE CUSTO:
 ${costCenterList}
 
-Formato: {"category_id":"uuid|null","category_name":"nome|null","cost_center_id":"uuid|null","cost_center_name":"nome|null","confidence":0-1,"is_transfer":false,"reasoning":"explicação"}
+Formato: {"category_id":"uuid|null","category_name":"nome|null","cost_center_id":"uuid|null","cost_center_name":"nome|null","confidence":0-1,"is_transfer":false,"reasoning":"explicação"}`;
 
-Classifique: "${description}" | R$ ${amount.toFixed(2)} | ${type === "income" ? "Receita" : "Despesa"}`;
+    const userPrompt = `Classifique: "${description}" | R$ ${amount.toFixed(2)} | ${type === "income" ? "Receita" : "Despesa"}`;
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
       result.reasoning = "IA não configurada";
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
       });
     }
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-    let aiContent = "";
-    for (let attempt = 0; attempt <= 1; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 30000);
-        const aiResponse = await fetch(geminiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: fullPrompt }] }],
-            generationConfig: { temperature: 0.3, maxOutputTokens: 500 },
-          }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-        if (!aiResponse.ok) {
-          const errorText = await aiResponse.text();
-          console.error(`[IA] Gemini error (attempt ${attempt}):`, aiResponse.status, errorText);
-          if (attempt < 1) continue;
-          result.reasoning = "IA indisponível";
-          return new Response(JSON.stringify(result), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
-          });
-        }
-        const aiData = await aiResponse.json();
-        aiContent = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        break;
-      } catch (err) {
-        console.error(`[IA] Gemini call failed (attempt ${attempt}):`, err);
-        if (attempt < 1) continue;
-        result.reasoning = "Timeout na chamada de IA";
-        return new Response(JSON.stringify(result), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
-        });
-      }
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.3,
+        max_tokens: 500,
+      }),
+    });
+
+    if (!aiResponse.ok) {
+      console.error("[IA] Gateway error:", aiResponse.status);
+      result.reasoning = "IA indisponível";
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+      });
     }
+
+    const aiData = await aiResponse.json();
+    const aiContent = aiData.choices?.[0]?.message?.content || "";
 
     let aiClassification: any;
     try {
@@ -352,7 +342,7 @@ Classifique: "${description}" | R$ ${amount.toFixed(2)} | ${type === "income" ? 
         transaction_id, suggested_category_id: result.category_id,
         suggested_cost_center_id: result.cost_center_id,
         suggested_type: type, confidence_score: result.confidence,
-        reasoning: result.reasoning, model_version: "gemini-2.5-flash",
+        reasoning: result.reasoning, model_version: "lovable-ai-v1",
       });
     }
 

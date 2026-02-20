@@ -158,12 +158,12 @@ function parseCSV(content: string): ParsedTransaction[] {
   return transactions;
 }
 
-// Parse PDF using AI (Gemini 2.5 Flash) - OPTIMIZED for CPU time
+// Parse PDF using AI (Lovable AI Gateway) - OPTIMIZED for CPU time
 async function parsePDF(pdfBytes: Uint8Array): Promise<ParsedTransaction[]> {
-  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   
-  if (!GEMINI_API_KEY) {
-    console.error("GEMINI_API_KEY not configured for PDF parsing");
+  if (!LOVABLE_API_KEY) {
+    console.error("LOVABLE_API_KEY not configured for PDF parsing");
     throw new Error("Configuração de IA não encontrada para processar PDF");
   }
 
@@ -177,7 +177,7 @@ async function parsePDF(pdfBytes: Uint8Array): Promise<ParsedTransaction[]> {
   }
 
   // Always use vision mode for PDFs - text extraction is unreliable
-  console.log("Sending PDF for Gemini vision analysis");
+  console.log("Sending PDF for AI vision analysis");
   const contentForAI = base64Encode(pdfBytes);
   console.log("Base64 content length:", contentForAI.length);
 
@@ -199,49 +199,51 @@ REGRAS:
   const userPrompt = `Analise este extrato bancário e extraia as transações financeiras. Retorne APENAS o array JSON.`;
 
   try {
-    console.log("Calling Gemini 2.5 Flash for PDF parsing (vision mode)...");
+    console.log("Calling AI for PDF parsing (vision mode)...");
     
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-    let aiContent: string | null = null;
-
-    for (let attempt = 0; attempt <= 1; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 60000);
-        const response = await fetch(geminiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                { text: `${systemPrompt}\n\n${userPrompt}` },
-                { inline_data: { mime_type: "application/pdf", data: contentForAI } }
-              ]
-            }],
-            generationConfig: { temperature: 0.1, maxOutputTokens: 8000 },
-          }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Gemini error:", response.status, errorText);
-          if (attempt < 1) continue;
-          if (response.status === 429) {
-            throw new Error("Limite de requisições excedido. Tente novamente em alguns minutos.");
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { 
+            role: "user", 
+            content: [
+              { type: "text", text: userPrompt },
+              { 
+                type: "image_url", 
+                image_url: { 
+                  url: `data:application/pdf;base64,${contentForAI}` 
+                } 
+              }
+            ]
           }
-          throw new Error("Erro ao processar PDF com IA");
-        }
+        ],
+        temperature: 0.1,
+        max_tokens: 8000, // Reduced for faster response
+      }),
+    });
 
-        const data = await response.json();
-        aiContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        break;
-      } catch (err) {
-        if (attempt < 1) { console.warn("Gemini PDF attempt failed, retrying...", err); continue; }
-        throw err;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("AI Gateway error:", response.status, errorText);
+      
+      if (response.status === 429) {
+        throw new Error("Limite de requisições excedido. Tente novamente em alguns minutos.");
       }
+      if (response.status === 402) {
+        throw new Error("Créditos de IA esgotados. Entre em contato com o suporte.");
+      }
+      throw new Error("Erro ao processar PDF com IA");
     }
+
+    const data = await response.json();
+    const aiContent = data.choices?.[0]?.message?.content;
     
     if (!aiContent) {
       console.error("No content in AI response");
