@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,8 +20,6 @@ import { cn } from "@/lib/utils";
 import { getAutoIcon } from "@/lib/category-icons";
 import { MaskedValue } from "@/contexts/ValuesVisibilityContext";
 import * as LucideIcons from "lucide-react";
-
-const STORAGE_KEY = "ibbra-fintech-list-expanded";
 
 interface GroupedTransactions {
   label: string;
@@ -99,40 +97,12 @@ function getIconBg(type: string) {
 export function FintechTransactionsList() {
   const navigate = useNavigate();
   const { data: transactions, isLoading } = useTransactions({});
-  const [isExpanded, setIsExpanded] = useState(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored === null ? false : stored === "true";
-    } catch {
-      return false;
-    }
-  });
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  // Persist state to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, String(isExpanded));
-    } catch { /* ignore */ }
-  }, [isExpanded]);
-
-  // Limit to exactly 10 most recent, sorted by date descending
-  const recentTransactions = useMemo(() => {
-    if (!transactions) return [];
-    const sorted = [...transactions].sort((a, b) => 
-      parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime()
-    );
-    // Deduplicate by ID
-    const seen = new Set<string>();
-    const unique: Transaction[] = [];
-    for (const tx of sorted) {
-      if (!seen.has(tx.id)) {
-        seen.add(tx.id);
-        unique.push(tx);
-      }
-      if (unique.length >= 10) break;
-    }
-    return unique;
-  }, [transactions]);
+  const recentTransactions = useMemo(
+    () => (transactions || []).slice(0, 5),
+    [transactions]
+  );
 
   const grouped = useMemo(
     () => groupByDate(recentTransactions),

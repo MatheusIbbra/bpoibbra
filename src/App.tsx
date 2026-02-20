@@ -165,7 +165,6 @@ const App = () => (
                     <Route path="/open-finance" element={<OpenFinance />} />
                     <Route path="/callback-klavi" element={<CallbackKlavi />} />
                     <Route path="/cartao-credito" element={<CartaoCredito />} />
-                    <Route path="/cartao/:accountId" element={<CartaoCredito />} />
                     <Route path="/cartoes-credito" element={<CartoesCredito />} />
                     <Route path="/cartoes" element={<CartoesCredito />} />
                     <Route path="/open-finance-monitor" element={<OpenFinanceMonitor />} />

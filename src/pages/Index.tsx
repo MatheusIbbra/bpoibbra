@@ -93,7 +93,7 @@ const Index = () => {
         {/* 1. Stat Cards */}
         <div className="relative">
           <div className="absolute inset-x-0 -mx-4 bg-[hsl(var(--sidebar-background))] rounded-b-3xl md:hidden" style={{ top: '-4rem', bottom: '-0.75rem' }} />
-          <StaggerGrid className="relative grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-5">
+          <StaggerGrid className="relative grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
             {statsLoading ? (
               <>
                 <StaggerItem><StatCardSkeleton /></StaggerItem>
@@ -187,59 +187,62 @@ const Index = () => {
           defaultType="expense"
         />
 
-        {/* 2. Main content */}
-        <div className="space-y-6">
-          {/* Mobile: budget card inline */}
-          <div className="block lg:hidden">
-            <AnimatedCard delay={0.1}>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-base font-semibold">Orçamentos & Alertas</CardTitle>
-                  <Link to="/orcamentos">
-                    <Badge variant="outline" className="cursor-pointer hover:bg-secondary text-xs">Ver todos</Badge>
-                  </Link>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <InteractiveBudgetList />
-                  <BudgetAlerts showNotifications={true} compact />
-                </CardContent>
-              </Card>
+        {/* 2. Main content with budget sidebar on desktop */}
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-[1fr_320px]">
+          {/* Left: main content */}
+          <div className="space-y-6 min-w-0">
+            {/* Mobile: budget card inline */}
+            <div className="block lg:hidden">
+              <AnimatedCard delay={0.1}>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-base font-semibold">Orçamentos & Alertas</CardTitle>
+                    <Link to="/orcamentos">
+                      <Badge variant="outline" className="cursor-pointer hover:bg-secondary text-xs">Ver todos</Badge>
+                    </Link>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <InteractiveBudgetList />
+                    <BudgetAlerts showNotifications={true} compact />
+                  </CardContent>
+                </Card>
+              </AnimatedCard>
+            </div>
+
+            {/* Posição Multimoeda */}
+            <AnimatedCard delay={0.15}>
+              <MultiCurrencyBalanceSection />
             </AnimatedCard>
+
+            {/* Distribuição por Categoria + Evolução Financeira */}
+            <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+              <StaggerItem><CategoryDonutChart /></StaggerItem>
+              <StaggerItem><MonthlyEvolutionChart /></StaggerItem>
+            </StaggerGrid>
+
           </div>
 
-          {/* Posição Multimoeda */}
-          <AnimatedCard delay={0.15}>
-            <MultiCurrencyBalanceSection />
-          </AnimatedCard>
-
-          {/* Distribuição por Categoria + Evolução Financeira - same height */}
-          <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-            <StaggerItem><div className="h-[360px]"><CategoryDonutChart /></div></StaggerItem>
-            <StaggerItem><div className="h-[360px]"><MonthlyEvolutionChart /></div></StaggerItem>
-          </StaggerGrid>
-
-          {/* Evolução Patrimonial + Orçamentos & Alertas side by side on desktop */}
-          <div className="hidden lg:grid lg:grid-cols-2 gap-4">
-            <AnimatedCard delay={0.1}>
-              <Card className="h-full" />
-            </AnimatedCard>
-            <AnimatedCard delay={0.1}>
-              <Card className="overflow-hidden h-full">
-                <CardHeader className="flex flex-row items-center justify-between pb-2 px-4 pt-4">
-                  <CardTitle className="text-sm font-semibold">Orçamentos & Alertas</CardTitle>
-                  <Link to="/orcamentos">
-                    <Badge variant="outline" className="cursor-pointer hover:bg-secondary text-[10px]">Ver todos</Badge>
-                  </Link>
-                </CardHeader>
-                <CardContent className="px-4 pb-4 space-y-4">
-                  <InteractiveBudgetList />
-                  <div className="border-t pt-3">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Alertas</p>
-                    <BudgetAlerts showNotifications={false} compact />
-                  </div>
-                </CardContent>
-              </Card>
-            </AnimatedCard>
+          {/* Right: Budget sidebar (desktop only) - single interactive card */}
+          <div className="hidden lg:block">
+            <div className="sticky top-4">
+              <AnimatedCard delay={0.1}>
+                <Card className="overflow-hidden">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2 px-4 pt-4">
+                    <CardTitle className="text-sm font-semibold">Orçamentos & Alertas</CardTitle>
+                    <Link to="/orcamentos">
+                      <Badge variant="outline" className="cursor-pointer hover:bg-secondary text-[10px]">Ver todos</Badge>
+                    </Link>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4 space-y-4">
+                    <InteractiveBudgetList />
+                    <div className="border-t pt-3">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Alertas</p>
+                      <BudgetAlerts showNotifications={false} compact />
+                    </div>
+                  </CardContent>
+                </Card>
+              </AnimatedCard>
+            </div>
           </div>
         </div>
 
