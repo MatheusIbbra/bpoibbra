@@ -133,48 +133,148 @@ Deno.serve(async (req) => {
       txType = 'transfer';
     }
 
-    // 4. Auto-classify using patterns
+    // 4. Auto-classify using reconciliation rules first, then patterns, then AI
     let categoryId: string | null = null;
     let costCenterId: string | null = null;
     let classificationSource: string | null = null;
+    let validationStatus: string | null = null;
 
-    // Check exact description matches in existing transactions
-    const { data: exactMatch } = await supabaseAdmin
-      .from('transactions')
-      .select('category_id, cost_center_id')
-      .eq('organization_id', organization_id)
-      .eq('description', description)
-      .not('category_id', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (exactMatch?.category_id) {
-      categoryId = exactMatch.category_id;
-      costCenterId = exactMatch.cost_center_id;
-      classificationSource = 'pattern';
-    }
-
-    // Check transaction_patterns table
-    if (!categoryId) {
-      const normalizedDesc = normalizeText(description);
-      const { data: patterns } = await supabaseAdmin
-        .from('transaction_patterns')
-        .select('normalized_description, category_id, cost_center_id, confidence')
+    // Skip classification for transfers/investments
+    if (txType !== 'transfer' && txType !== 'investment' && txType !== 'redemption') {
+      // STEP 1: Reconciliation Rules (>= 80% similarity)
+      const { data: rules } = await supabaseAdmin
+        .from('reconciliation_rules')
+        .select('id, description, category_id, cost_center_id, transaction_type, amount')
         .eq('organization_id', organization_id)
-        .eq('transaction_type', txType)
-        .gte('confidence', 0.7)
-        .order('confidence', { ascending: false })
-        .limit(20);
+        .eq('is_active', true)
+        .eq('transaction_type', txType);
 
-      if (patterns) {
-        for (const pattern of patterns) {
-          const similarity = calculateSimilarity(normalizedDesc, pattern.normalized_description);
+      if (rules && rules.length > 0) {
+        const normalizedDesc = normalizeText(description);
+        let bestMatch: { rule: any; similarity: number } | null = null;
+        let matchCount = 0;
+        for (const rule of rules) {
+          const nSim = calculateSimilarity(normalizedDesc, normalizeText(rule.description));
+          let similarity = nSim;
+          // Keyword containment boost
+          const nd = normalizedDesc;
+          const nk = normalizeText(rule.description);
+          if (nd.includes(nk) || nk.includes(nd)) {
+            similarity = Math.max(similarity, Math.min(0.75 + nk.length / Math.max(nd.length, 1) * 0.25, 1.0));
+          }
+          if (rule.amount && Math.abs(amount - rule.amount) / rule.amount <= 0.01) similarity = Math.min(similarity + 0.1, 1.0);
           if (similarity >= 0.80) {
-            categoryId = pattern.category_id;
-            costCenterId = pattern.cost_center_id;
+            matchCount++;
+            if (!bestMatch || similarity > bestMatch.similarity) bestMatch = { rule, similarity };
+          }
+        }
+        if (bestMatch && matchCount === 1) {
+          categoryId = bestMatch.rule.category_id;
+          costCenterId = bestMatch.rule.cost_center_id;
+          classificationSource = 'rule';
+          validationStatus = 'validated';
+        }
+      }
+
+      // STEP 2: Transaction Patterns (>= 80% similarity, confidence >= 60%)
+      if (!categoryId) {
+        const normalizedDesc = normalizeText(description);
+        const { data: patterns } = await supabaseAdmin
+          .from('transaction_patterns')
+          .select('id, normalized_description, category_id, cost_center_id, confidence, occurrences')
+          .eq('organization_id', organization_id)
+          .eq('transaction_type', txType)
+          .gte('confidence', 0.6)
+          .order('confidence', { ascending: false })
+          .limit(50);
+
+        if (patterns && patterns.length > 0) {
+          let bestPattern: { pattern: any; similarity: number } | null = null;
+          for (const pattern of patterns) {
+            const similarity = calculateSimilarity(normalizedDesc, pattern.normalized_description);
+            if (similarity >= 0.80 && (!bestPattern || similarity > bestPattern.similarity)) {
+              bestPattern = { pattern, similarity };
+            }
+          }
+          if (bestPattern) {
+            categoryId = bestPattern.pattern.category_id;
+            costCenterId = bestPattern.pattern.cost_center_id;
             classificationSource = 'pattern';
-            break;
+            const finalConf = Math.min(bestPattern.similarity * (bestPattern.pattern.confidence || 0.5) * 1.2, 0.95);
+            if (finalConf >= 0.85 && (bestPattern.pattern.occurrences || 1) >= 3) {
+              validationStatus = 'validated';
+            }
+          }
+        }
+      }
+
+      // STEP 2b: Check exact description matches in existing transactions (fallback)
+      if (!categoryId) {
+        const { data: exactMatch } = await supabaseAdmin
+          .from('transactions')
+          .select('category_id, cost_center_id')
+          .eq('organization_id', organization_id)
+          .eq('description', description)
+          .not('category_id', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (exactMatch?.category_id) {
+          categoryId = exactMatch.category_id;
+          costCenterId = exactMatch.cost_center_id;
+          classificationSource = 'pattern';
+        }
+      }
+
+      // STEP 3: AI Classification via Lovable AI Gateway
+      if (!categoryId) {
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+        if (LOVABLE_API_KEY) {
+          try {
+            const { data: categories } = await supabaseAdmin
+              .from('categories').select('id, name, type')
+              .or(`organization_id.eq.${organization_id},is_system_template.eq.true`)
+              .eq('type', txType);
+
+            const { data: costCenters } = await supabaseAdmin
+              .from('cost_centers').select('id, name')
+              .eq('organization_id', organization_id).eq('is_active', true);
+
+            const categoryList = categories?.map((c: any) => `- ${c.name} (ID: ${c.id})`).join("\n") || "Nenhuma";
+            const costCenterList = costCenters?.map((cc: any) => `- ${cc.name} (ID: ${cc.id})`).join("\n") || "Nenhum";
+
+            const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: "google/gemini-3-flash-preview",
+                messages: [
+                  { role: "system", content: `Classifique transações. APENAS JSON. Categorias (${txType}):\n${categoryList}\nCentros de Custo:\n${costCenterList}\nFormato: {"category_id":"uuid|null","cost_center_id":"uuid|null","confidence":0-1}` },
+                  { role: "user", content: `"${description}" R$${amount.toFixed(2)} ${txType === "income" ? "Receita" : "Despesa"}` }
+                ],
+                temperature: 0.3, max_tokens: 200,
+              }),
+            });
+
+            if (aiResponse.ok) {
+              const aiData = await aiResponse.json();
+              const content = aiData.choices?.[0]?.message?.content || "";
+              const jsonMatch = content.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                const result = JSON.parse(jsonMatch[0]);
+                if (result.category_id && categories?.some((c: any) => c.id === result.category_id)) {
+                  categoryId = result.category_id;
+                  if (result.cost_center_id && costCenters?.some((cc: any) => cc.id === result.cost_center_id)) {
+                    costCenterId = result.cost_center_id;
+                  }
+                  classificationSource = 'ai';
+                  console.log(`[ENGINE] AI classified: ${result.category_id}`);
+                }
+              }
+            }
+          } catch (aiErr) {
+            console.warn('[ENGINE] AI classification error:', aiErr);
           }
         }
       }
@@ -199,6 +299,10 @@ Deno.serve(async (req) => {
       insertData.category_id = categoryId;
       insertData.cost_center_id = costCenterId;
       insertData.classification_source = classificationSource;
+      if (validationStatus) {
+        insertData.validation_status = validationStatus;
+        insertData.validated_at = new Date().toISOString();
+      }
     }
 
     const { data: inserted, error: insertError } = await supabaseAdmin
