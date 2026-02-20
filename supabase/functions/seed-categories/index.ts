@@ -11,7 +11,7 @@ const initialCategories = [
   // RECEITA - PAI
   { id: 1, type: "income", name: "Renda", parent_id: null, dre_group: "receita_operacional", expense_classification: null },
   { id: 2, type: "income", name: "Renda Extra", parent_id: null, dre_group: "outras_receitas", expense_classification: null },
-  { id: 3, type: "income", name: "Rendimentos", parent_id: null, dre_group: "receitas_financeiras", expense_classification: null },
+  { id: 3, type: "income", name: "Rendimentos", parent_id: null, dre_group: "outras_receitas", expense_classification: null },
   { id: 4, type: "income", name: "Outras Receitas", parent_id: null, dre_group: "outras_receitas", expense_classification: null },
   // DESPESA - PAI (with expense_classification)
   { id: 5, type: "expense", name: "Moradia", parent_id: null, dre_group: "despesas_operacionais", expense_classification: "fixa" },
@@ -30,8 +30,8 @@ const initialCategories = [
   { id: 17, type: "income", name: "Pensão / Aposentadoria", parent_id: 1, dre_group: "receita_operacional", expense_classification: null },
   { id: 18, type: "income", name: "Freelance", parent_id: 2, dre_group: "outras_receitas", expense_classification: null },
   { id: 19, type: "income", name: "Comissão / Bônus", parent_id: 2, dre_group: "outras_receitas", expense_classification: null },
-  { id: 20, type: "income", name: "Investimentos", parent_id: 3, dre_group: "receitas_financeiras", expense_classification: null },
-  { id: 21, type: "income", name: "Aluguel", parent_id: 3, dre_group: "receitas_financeiras", expense_classification: null },
+  { id: 20, type: "income", name: "Investimentos", parent_id: 3, dre_group: "outras_receitas", expense_classification: null },
+  { id: 21, type: "income", name: "Aluguel", parent_id: 3, dre_group: "outras_receitas", expense_classification: null },
   { id: 22, type: "income", name: "Reembolsos", parent_id: 4, dre_group: "outras_receitas", expense_classification: null },
   { id: 23, type: "income", name: "Venda de bens", parent_id: 4, dre_group: "outras_receitas", expense_classification: null },
   // DESPESA - FILHA
