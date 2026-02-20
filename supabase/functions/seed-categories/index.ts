@@ -24,7 +24,7 @@ const initialCategories = [
   { id: 12, type: "expense", name: "Impostos", parent_id: null, dre_group: "impostos", expense_classification: "fixa" },
   { id: 13, type: "expense", name: "Investimentos", parent_id: null, dre_group: "outras_despesas", expense_classification: "variavel_programada" },
   { id: 14, type: "expense", name: "Outros", parent_id: null, dre_group: "outras_despesas", expense_classification: "variavel_recorrente" },
-  // RECEITA - FILHA (herdam o dre_group do pai)
+  // RECEITA - FILHA
   { id: 15, type: "income", name: "Salário", parent_id: 1, dre_group: "receita_operacional", expense_classification: null },
   { id: 16, type: "income", name: "Pró-labore", parent_id: 1, dre_group: "receita_operacional", expense_classification: null },
   { id: 17, type: "income", name: "Pensão / Aposentadoria", parent_id: 1, dre_group: "receita_operacional", expense_classification: null },
@@ -34,7 +34,7 @@ const initialCategories = [
   { id: 21, type: "income", name: "Aluguel", parent_id: 3, dre_group: "receitas_financeiras", expense_classification: null },
   { id: 22, type: "income", name: "Reembolsos", parent_id: 4, dre_group: "outras_receitas", expense_classification: null },
   { id: 23, type: "income", name: "Venda de bens", parent_id: 4, dre_group: "outras_receitas", expense_classification: null },
-  // DESPESA - FILHA (herdam classificação do pai)
+  // DESPESA - FILHA
   { id: 24, type: "expense", name: "Aluguel / Financiamento", parent_id: 5, dre_group: "despesas_operacionais", expense_classification: "fixa" },
   { id: 25, type: "expense", name: "Contas da casa", parent_id: 5, dre_group: "despesas_operacionais", expense_classification: "fixa" },
   { id: 26, type: "expense", name: "Condomínio / IPTU", parent_id: 5, dre_group: "despesas_operacionais", expense_classification: "fixa" },
@@ -63,29 +63,55 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Authorization header is required");
+    if (!authHeader?.startsWith("Bearer ")) {
+      console.error("[seed-categories] Missing or invalid Authorization header");
+      return new Response(
+        JSON.stringify({ error: "Authorization header is required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Create client with user's token for RLS
-    const supabaseUser = createClient(supabaseUrl, supabaseServiceKey, {
+    // Validate user with anon client + user token
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Get the user
-    const { data: userData, error: userError } = await supabaseUser.auth.getUser();
-    if (userError || !userData.user) {
-      throw new Error("Unauthorized");
+    const token = authHeader.replace("Bearer ", "");
+    
+    // Try getClaims first, fallback to getUser via admin client
+    let userId: string;
+    const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
+    
+    if (!claimsError && claimsData?.claims?.sub) {
+      userId = claimsData.claims.sub as string;
+      console.log("[seed-categories] Auth via getClaims OK, userId:", userId);
+    } else {
+      // Fallback: use admin client to validate
+      const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+      const { data: userData, error: userError } = await adminClient.auth.getUser(token);
+      if (userError || !userData.user) {
+        console.error("[seed-categories] Auth failed:", claimsError?.message, userError?.message);
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      userId = userData.user.id;
+      console.log("[seed-categories] Auth via getUser fallback OK, userId:", userId);
     }
 
-    const userId = userData.user.id;
     const { organization_id } = await req.json();
+    console.log("[seed-categories] org_id:", organization_id, "user_id:", userId);
 
-    // Check if categories already exist for this user/organization
-    let existingQuery = supabaseUser
+    // Use admin client for all DB operations to avoid RLS issues
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Check if categories already exist for this organization
+    let existingQuery = supabaseAdmin
       .from("categories")
       .select("id")
       .eq("user_id", userId);
@@ -94,26 +120,26 @@ serve(async (req) => {
       existingQuery = existingQuery.eq("organization_id", organization_id);
     }
 
-    const { data: existing } = await existingQuery.limit(1);
+    const { data: existing, error: existingError } = await existingQuery.limit(1);
+
+    if (existingError) {
+      console.error("[seed-categories] Error checking existing:", existingError);
+      throw existingError;
+    }
 
     if (existing && existing.length > 0) {
+      console.log("[seed-categories] Categories already exist, skipping");
       return new Response(
         JSON.stringify({ success: true, message: "Categories already exist", seeded: false }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Use service role client for inserting
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Create parent categories first (those without parent_id)
+    // Create parent categories first
     const parentCategories = initialCategories.filter(c => c.parent_id === null);
     const childCategories = initialCategories.filter(c => c.parent_id !== null);
-
-    // Map old IDs to new UUIDs
     const idMap: Record<number, string> = {};
 
-    // Insert parent categories
     for (const cat of parentCategories) {
       const { data, error } = await supabaseAdmin
         .from("categories")
@@ -129,17 +155,14 @@ serve(async (req) => {
         .single();
 
       if (error) {
-        console.error(`Error inserting parent category ${cat.name}:`, error);
+        console.error(`[seed-categories] Error inserting parent "${cat.name}":`, error);
         throw error;
       }
-
       idMap[cat.id] = data.id;
     }
 
-    // Insert child categories with correct parent references
     for (const cat of childCategories) {
       const parentUuid = idMap[cat.parent_id!];
-      
       const { error } = await supabaseAdmin
         .from("categories")
         .insert({
@@ -153,11 +176,12 @@ serve(async (req) => {
         });
 
       if (error) {
-        console.error(`Error inserting child category ${cat.name}:`, error);
+        console.error(`[seed-categories] Error inserting child "${cat.name}":`, error);
         throw error;
       }
     }
 
+    console.log(`[seed-categories] Successfully seeded ${initialCategories.length} categories`);
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -169,7 +193,7 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error("Error seeding categories:", error);
+    console.error("[seed-categories] Fatal error:", error);
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
