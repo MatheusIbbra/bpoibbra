@@ -278,7 +278,7 @@ export function useSavePluggyItem() {
         throw new Error("Você precisa estar logado");
       }
 
-      // Check if connection already exists for this item OR for this org+provider with same connector
+      // Check if connection already exists for this item
       const { data: existingByItem } = await supabase
         .from('bank_connections')
         .select('id')
@@ -294,16 +294,25 @@ export function useSavePluggyItem() {
           .update({
             status: 'active',
             sync_error: null,
+            provider_name: connectorName || undefined,
             updated_at: new Date().toISOString()
           })
           .eq('id', existingByItem.id);
 
         if (error) throw error;
+        
+        // Clean up orphan connections (same org+provider, no item)
+        await supabase
+          .from('bank_connections')
+          .delete()
+          .eq('organization_id', organizationId)
+          .eq('provider', 'pluggy')
+          .is('external_account_id', null);
+          
         return { connection_id: existingByItem.id };
       }
 
-      // Also check for orphan connections (same org, same provider name, no item or different item)
-      // This prevents duplicate entries when reconnecting
+      // Check for orphan connections (same org, same provider name, no item) - reuse them
       if (connectorName) {
         const { data: existingByName } = await supabase
           .from('bank_connections')
@@ -325,9 +334,26 @@ export function useSavePluggyItem() {
             .eq('id', existingByName.id);
 
           if (error) throw error;
+          
+          // Clean up other orphans
+          await supabase
+            .from('bank_connections')
+            .delete()
+            .eq('organization_id', organizationId)
+            .eq('provider', 'pluggy')
+            .is('external_account_id', null);
+            
           return { connection_id: existingByName.id };
         }
       }
+
+      // Before creating new, clean up any orphan connections
+      await supabase
+        .from('bank_connections')
+        .delete()
+        .eq('organization_id', organizationId)
+        .eq('provider', 'pluggy')
+        .is('external_account_id', null);
 
       // Create new connection
       const { data, error } = await supabase

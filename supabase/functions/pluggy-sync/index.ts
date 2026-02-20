@@ -431,7 +431,28 @@ Deno.serve(async (req) => {
       if (connErr || !conn) return new Response(JSON.stringify({ error: 'Conexão bancária não encontrada' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       connectionToSync = conn;
     } else {
-      const { data: existing } = await supabaseAdmin.from('bank_connections').select('*').eq('organization_id', organization_id).eq('provider', 'pluggy').eq('status', 'active').maybeSingle();
+      // Try to find existing connection: prefer one with matching item_id, then any with external_account_id
+      let existing: any = null;
+      if (item_id) {
+        const { data: byItem } = await supabaseAdmin.from('bank_connections').select('*')
+          .eq('organization_id', organization_id).eq('provider', 'pluggy').eq('external_account_id', item_id).limit(1).maybeSingle();
+        existing = byItem;
+      }
+      if (!existing) {
+        // Find any active connection with an external_account_id (real connection, not orphan)
+        const { data: byOrg } = await supabaseAdmin.from('bank_connections').select('*')
+          .eq('organization_id', organization_id).eq('provider', 'pluggy').eq('status', 'active')
+          .not('external_account_id', 'is', null)
+          .order('created_at', { ascending: false }).limit(1);
+        existing = byOrg?.[0] || null;
+      }
+      if (!existing) {
+        // Last resort: any active connection
+        const { data: anyActive } = await supabaseAdmin.from('bank_connections').select('*')
+          .eq('organization_id', organization_id).eq('provider', 'pluggy').eq('status', 'active')
+          .order('created_at', { ascending: false }).limit(1);
+        existing = anyActive?.[0] || null;
+      }
       if (existing) {
         connectionToSync = existing;
       } else {
@@ -440,6 +461,16 @@ Deno.serve(async (req) => {
         }).select().single();
         if (createErr) throw new Error('Falha ao criar conexão bancária');
         connectionToSync = newConn;
+      }
+
+      // Clean up orphan connections (same org+provider, no external_account_id, not the one we're using)
+      if (connectionToSync?.id) {
+        await supabaseAdmin.from('bank_connections')
+          .delete()
+          .eq('organization_id', organization_id)
+          .eq('provider', 'pluggy')
+          .is('external_account_id', null)
+          .neq('id', connectionToSync.id);
       }
     }
 

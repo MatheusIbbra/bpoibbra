@@ -340,9 +340,21 @@ export function BankConnectionsManager() {
     );
   }
 
-  const activeConnections = connections?.filter(c => c.status === 'active') || [];
+  // Deduplicate connections: keep only one per external_account_id (prefer the one with an item)
+  const deduplicatedConnections = (() => {
+    if (!connections) return [];
+    const seen = new Map<string, BankConnection>();
+    for (const c of connections) {
+      const key = c.external_account_id || c.id; // orphans use their own id as key
+      if (!seen.has(key) || (c.external_account_id && !seen.get(key)?.external_account_id)) {
+        seen.set(key, c);
+      }
+    }
+    return Array.from(seen.values());
+  })();
+  const activeConnections = deduplicatedConnections.filter(c => c.status === 'active');
   // Hide disconnected accounts - only show non-active that are not disconnected
-  const inactiveConnections = connections?.filter(c => c.status !== 'active' && c.status !== 'disconnected') || [];
+  const inactiveConnections = deduplicatedConnections.filter(c => c.status !== 'active' && c.status !== 'disconnected');
 
   return (
     <>
