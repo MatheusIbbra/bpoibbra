@@ -455,7 +455,11 @@ export function TransactionDialog({
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
-                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                          <PopoverContent 
+                            className="w-[--radix-popover-trigger-width] p-0" 
+                            align="start"
+                            onWheel={(e) => e.stopPropagation()}
+                          >
                             <Command filter={(value, search) => {
                               const cat = categories?.find(c => c.id === value);
                               if (!cat) return 0;
