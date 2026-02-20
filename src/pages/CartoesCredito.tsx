@@ -223,20 +223,9 @@ function CreditCardVisual({ card, onViewInvoices, onNavigate }: {
         </div>
 
         {/* Fatura Atual */}
-        <div className="flex items-center justify-between pt-2 border-t border-border/50">
-          <div>
-            <p className="text-[11px] text-muted-foreground">Fatura Atual</p>
-            <p className="text-base font-bold text-destructive">{formatCurrency(card.invoiceAmount)}</p>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs gap-1 h-7"
-            onClick={(e) => { e.stopPropagation(); onViewInvoices(); }}
-          >
-            Ver detalhes
-            <ChevronRight className="h-3 w-3" />
-          </Button>
+        <div className="pt-2 border-t border-border/50">
+          <p className="text-[11px] text-muted-foreground">Fatura Atual</p>
+          <p className="text-base font-bold text-destructive">{formatCurrency(card.invoiceAmount)}</p>
         </div>
       </div>
     </div>

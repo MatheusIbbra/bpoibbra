@@ -145,64 +145,6 @@ export default function CartaoCredito() {
           Voltar
         </Button>
 
-        {/* Card Header - Premium style */}
-        <Card className="card-executive overflow-hidden">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-              {/* Left: Card info */}
-              <div className="flex items-center gap-4">
-                {account.bankLogo ? (
-                  <img
-                    src={account.bankLogo}
-                    alt={account.bankName || ""}
-                    className="h-12 w-12 rounded-xl object-contain bg-muted p-1"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                  />
-                ) : (
-                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <CreditCard className="h-6 w-6 text-primary" />
-                  </div>
-                )}
-                <div>
-                  <h2 className="text-xl font-bold">{account.name}</h2>
-                  {account.bankName && (
-                    <p className="text-sm text-muted-foreground">{account.bankName}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Right: Balance & limit */}
-              <div className="flex flex-col items-start md:items-end gap-2">
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Fatura Atual</p>
-                  <p className="text-2xl font-bold text-destructive">{formatCurrency(debt)}</p>
-                </div>
-
-                {account.totalLimit && (
-                  <div className="w-full md:w-[220px] space-y-1.5">
-                    <div className="flex justify-between text-[11px]">
-                      <span className="text-muted-foreground">Limite utilizado</span>
-                      <span className={cn("font-semibold", status.color)}>{usagePercent}%</span>
-                    </div>
-                    <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">
-                      <div
-                        className={cn("h-full rounded-full transition-all", status.barColor)}
-                        style={{ width: `${usagePercent}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-[10px] text-muted-foreground">
-                      <span>Limite: {formatCurrency(account.totalLimit)}</span>
-                      {account.availableCredit != null && (
-                        <span>Disponível: {formatCurrency(account.availableCredit)}</span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Tabs */}
         <Tabs defaultValue="faturas" className="w-full">
           <TabsList className="w-full max-w-[300px]">
@@ -260,12 +202,6 @@ export default function CartaoCredito() {
                               </p>
                             </div>
                           )}
-                          <div>
-                            <p className="text-[10px] text-muted-foreground">Saldo</p>
-                            <p className={cn("text-sm font-bold", invoice.balance > 0 ? "text-destructive" : "text-success")}>
-                              {formatCurrency(invoice.balance)}
-                            </p>
-                          </div>
                         </div>
                       </div>
                     </AccordionTrigger>
