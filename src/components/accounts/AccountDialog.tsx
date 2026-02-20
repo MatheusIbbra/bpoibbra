@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useCreateAccount, useUpdateAccount, Account, AccountType, AccountStatus } from "@/hooks/useAccounts";
 import { cn } from "@/lib/utils";
+import { CurrencyInput } from "@/components/ui/currency-input";
 
 const CURRENCIES = [
   { value: "BRL", label: "Real (BRL)", flag: "🇧🇷" },
@@ -232,12 +233,9 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
                   <FormItem>
                     <FormLabel>Saldo Inicial</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      <CurrencyInput
+                        value={field.value}
+                        onChange={field.onChange}
                       />
                     </FormControl>
                     <FormMessage />

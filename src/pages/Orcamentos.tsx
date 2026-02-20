@@ -11,15 +11,17 @@ import {
   Wallet,
   Pencil,
   Trash2,
+  Check,
+  ChevronsUpDown,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,8 +32,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { useBudgets, useCreateBudget, useUpdateBudget, useDeleteBudget, Budget } from "@/hooks/useBudgets";
-import { useCategories } from "@/hooks/useCategories";
+import { useCategoriesHierarchy } from "@/hooks/useCategories";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
@@ -52,6 +55,7 @@ export default function Orcamentos() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
 
   const currentDate = new Date();
   const month = currentDate.getMonth() + 1;
@@ -61,9 +65,9 @@ export default function Orcamentos() {
   const endOfMonth = new Date(year, month, 0).toISOString().split("T")[0];
 
   const { data: budgets, isLoading } = useBudgets(month, year);
-  const { data: categories } = useCategories("expense");
+  // Load ALL categories in hierarchy (income + expense)
+  const { data: hierarchyCategories } = useCategoriesHierarchy();
   const { data: transactions } = useTransactions({
-    type: "expense",
     startDate: startOfMonth,
     endDate: endOfMonth,
   });
@@ -87,7 +91,7 @@ export default function Orcamentos() {
   const getSpentForCategory = (categoryId: string) => {
     return transactions
       ?.filter((t) => t.category_id === categoryId)
-      .reduce((acc, t) => acc + Number(t.amount), 0) || 0;
+      .reduce((acc, t) => acc + Math.abs(Number(t.amount)), 0) || 0;
   };
 
   const handleEdit = (budget: Budget) => {
@@ -106,8 +110,45 @@ export default function Orcamentos() {
     }
   };
 
+  // Build flat list of child categories from hierarchy for selection
+  const allChildCategories = hierarchyCategories?.flatMap(parent =>
+    (parent.children || []).map(child => ({
+      ...child,
+      parentName: parent.name,
+      parentType: parent.type,
+    }))
+  ) || [];
+
+  const usedCategoryIds = budgets?.map((b) => b.category_id) || [];
+  const availableCategories = allChildCategories.filter(
+    (c) => !usedCategoryIds.includes(c.id) || c.id === editingBudget?.category_id
+  );
+
+  // Group available categories by parent for display
+  const groupedCategories = availableCategories.reduce<Record<string, { parentName: string; parentType: string; children: typeof availableCategories }>>((acc, cat) => {
+    const key = cat.parentName;
+    if (!acc[key]) {
+      acc[key] = { parentName: cat.parentName, parentType: cat.parentType, children: [] };
+    }
+    acc[key].children.push(cat);
+    return acc;
+  }, {});
+
+  // Sort groups: income first, then expense, alphabetically within
+  const sortedGroups = Object.values(groupedCategories).sort((a, b) => {
+    if (a.parentType !== b.parentType) {
+      return a.parentType === "income" ? -1 : 1;
+    }
+    return a.parentName.localeCompare(b.parentName, "pt-BR");
+  });
+
+  const findCategoryName = (id: string) => {
+    return allChildCategories.find(c => c.id === id)?.name || 
+           budgets?.find(b => b.category_id === id)?.categories?.name || id;
+  };
+
   const onSubmit = async (data: FormData) => {
-    const validCategory = categories?.find(c => c.id === data.category_id);
+    const validCategory = allChildCategories.find(c => c.id === data.category_id);
     if (!validCategory) {
       toast.error("A categoria selecionada não existe ou não pertence a esta base");
       return;
@@ -122,11 +163,6 @@ export default function Orcamentos() {
     setEditingBudget(null);
     form.reset();
   };
-
-  const usedCategoryIds = budgets?.map((b) => b.category_id) || [];
-  const availableCategories = categories?.filter(
-    (c) => !usedCategoryIds.includes(c.id) || c.id === editingBudget?.category_id
-  );
 
   const totalBudget = budgets?.reduce((acc, b) => acc + Number(b.amount), 0) || 0;
   const totalSpent = budgets?.reduce((acc, b) => acc + getSpentForCategory(b.category_id), 0) || 0;
@@ -266,22 +302,74 @@ export default function Orcamentos() {
                 control={form.control}
                 name="category_id"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-col">
                     <FormLabel className="text-xs">Categoria</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="h-8 text-sm">
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {availableCategories?.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={categoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between bg-white dark:bg-muted font-normal h-8 text-sm",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? findCategoryName(field.value) : "Buscar categoria..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-[--radix-popover-trigger-width] p-0"
+                        align="start"
+                        onWheel={(e) => e.stopPropagation()}
+                      >
+                        <Command filter={(value, search) => {
+                          const cat = allChildCategories.find(c => c.id === value);
+                          if (!cat) return 0;
+                          return cat.name.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+                        }}>
+                          <CommandInput placeholder="Digitar para buscar..." />
+                          <CommandList className="max-h-[250px] overflow-y-auto">
+                            <CommandEmpty>Nenhuma categoria encontrada.</CommandEmpty>
+                            {sortedGroups.map((group) => (
+                              <CommandGroup
+                                key={group.parentName}
+                                heading={
+                                  <span className="flex items-center gap-1.5">
+                                    <span className={cn(
+                                      "h-2 w-2 rounded-full",
+                                      group.parentType === "income" ? "bg-primary" : "bg-destructive"
+                                    )} />
+                                    {group.parentName}
+                                  </span>
+                                }
+                              >
+                                {group.children.map((cat) => (
+                                  <CommandItem
+                                    key={cat.id}
+                                    value={cat.id}
+                                    onSelect={(val) => {
+                                      field.onChange(val);
+                                      setCategoryPopoverOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-3 w-3",
+                                        field.value === cat.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    <span className="text-sm">{cat.name}</span>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            ))}
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -293,12 +381,10 @@ export default function Orcamentos() {
                   <FormItem>
                     <FormLabel className="text-xs">Limite (R$)</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        className="h-8 text-sm"
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      <CurrencyInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        className="h-8 text-sm bg-white dark:bg-muted"
                       />
                     </FormControl>
                     <FormMessage />

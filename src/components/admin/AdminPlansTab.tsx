@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -139,7 +140,7 @@ export function AdminPlansTab() {
             </div>
             <div><Label className="text-xs">Descrição</Label><Input value={form.description || ""} onChange={e => setForm({...form, description: e.target.value})} className="h-8 text-sm" /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">Preço (R$)</Label><Input type="number" value={form.price || 0} onChange={e => setForm({...form, price: parseFloat(e.target.value)})} className="h-8 text-sm" /></div>
+              <div><Label className="text-xs">Preço (R$)</Label><CurrencyInput value={form.price || 0} onChange={(v) => setForm({...form, price: v})} className="h-8 text-sm" /></div>
               <div><Label className="text-xs">Ordem</Label><Input type="number" value={form.sort_order || 1} onChange={e => setForm({...form, sort_order: parseInt(e.target.value)})} className="h-8 text-sm" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">

@@ -4,6 +4,7 @@ import { handleSupabaseError } from "@/lib/error-handler";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarIcon, Loader2, Link2, EyeOff, Check, ChevronsUpDown } from "lucide-react";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { TransactionComments } from "@/components/transactions/TransactionComments";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -281,12 +282,9 @@ export function TransactionDialog({
                   <FormItem>
                     <FormLabel>Valor (R$)</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      <CurrencyInput
+                        value={field.value}
+                        onChange={field.onChange}
                       />
                     </FormControl>
                     <FormMessage />
