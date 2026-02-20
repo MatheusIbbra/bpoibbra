@@ -112,8 +112,14 @@ export function useDashboardStats() {
             continue;
           }
           
-          // Use current_balance from snapshot (maintained by trigger) — no full-scan RPC
-          totalAccountBalance += account.current_balance ?? account.initial_balance ?? 0;
+          // Prefer official_balance (from Open Finance API) when available
+          // to avoid double-counting initial_balance + imported transactions
+          if (account.official_balance !== null && account.official_balance !== undefined) {
+            totalAccountBalance += Number(account.official_balance);
+          } else {
+            // Fallback: Use current_balance from snapshot (maintained by trigger)
+            totalAccountBalance += account.current_balance ?? account.initial_balance ?? 0;
+          }
         }
       }
       
