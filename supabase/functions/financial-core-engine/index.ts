@@ -227,10 +227,10 @@ Deno.serve(async (req) => {
         }
       }
 
-      // STEP 3: AI Classification via Lovable AI Gateway
+      // STEP 3: AI Classification via Gemini 2.5 Flash
       if (!categoryId) {
-        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-        if (LOVABLE_API_KEY) {
+        const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+        if (GEMINI_API_KEY) {
           try {
             const { data: categories } = await supabaseAdmin
               .from('categories').select('id, name, type')
@@ -244,33 +244,47 @@ Deno.serve(async (req) => {
             const categoryList = categories?.map((c: any) => `- ${c.name} (ID: ${c.id})`).join("\n") || "Nenhuma";
             const costCenterList = costCenters?.map((cc: any) => `- ${cc.name} (ID: ${cc.id})`).join("\n") || "Nenhum";
 
-            const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-              method: "POST",
-              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-              body: JSON.stringify({
-                model: "google/gemini-3-flash-preview",
-                messages: [
-                  { role: "system", content: `Classifique transações. APENAS JSON. Categorias (${txType}):\n${categoryList}\nCentros de Custo:\n${costCenterList}\nFormato: {"category_id":"uuid|null","cost_center_id":"uuid|null","confidence":0-1}` },
-                  { role: "user", content: `"${description}" R$${amount.toFixed(2)} ${txType === "income" ? "Receita" : "Despesa"}` }
-                ],
-                temperature: 0.3, max_tokens: 200,
-              }),
-            });
+            const fullPrompt = `Classifique transações. APENAS JSON. Categorias (${txType}):\n${categoryList}\nCentros de Custo:\n${costCenterList}\nFormato: {"category_id":"uuid|null","cost_center_id":"uuid|null","confidence":0-1}\n\n"${description}" R$${amount.toFixed(2)} ${txType === "income" ? "Receita" : "Despesa"}`;
+            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
-            if (aiResponse.ok) {
-              const aiData = await aiResponse.json();
-              const content = aiData.choices?.[0]?.message?.content || "";
-              const jsonMatch = content.match(/\{[\s\S]*\}/);
-              if (jsonMatch) {
-                const result = JSON.parse(jsonMatch[0]);
-                if (result.category_id && categories?.some((c: any) => c.id === result.category_id)) {
-                  categoryId = result.category_id;
-                  if (result.cost_center_id && costCenters?.some((cc: any) => cc.id === result.cost_center_id)) {
-                    costCenterId = result.cost_center_id;
+            for (let attempt = 0; attempt <= 1; attempt++) {
+              try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 30000);
+                const aiResponse = await fetch(geminiUrl, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    contents: [{ parts: [{ text: fullPrompt }] }],
+                    generationConfig: { temperature: 0.3, maxOutputTokens: 200 },
+                  }),
+                  signal: controller.signal,
+                });
+                clearTimeout(timeout);
+
+                if (aiResponse.ok) {
+                  const aiData = await aiResponse.json();
+                  const content = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                  const jsonMatch = content.match(/\{[\s\S]*\}/);
+                  if (jsonMatch) {
+                    const result = JSON.parse(jsonMatch[0]);
+                    if (result.category_id && categories?.some((c: any) => c.id === result.category_id)) {
+                      categoryId = result.category_id;
+                      if (result.cost_center_id && costCenters?.some((cc: any) => cc.id === result.cost_center_id)) {
+                        costCenterId = result.cost_center_id;
+                      }
+                      classificationSource = 'ai';
+                      console.log(`[ENGINE] AI classified: ${result.category_id}`);
+                    }
                   }
-                  classificationSource = 'ai';
-                  console.log(`[ENGINE] AI classified: ${result.category_id}`);
+                  break;
+                } else {
+                  console.warn(`[ENGINE] Gemini error ${aiResponse.status} (attempt ${attempt})`);
+                  if (attempt < 1) continue;
                 }
+              } catch (retryErr) {
+                console.warn(`[ENGINE] Gemini call failed (attempt ${attempt}):`, retryErr);
+                if (attempt < 1) continue;
               }
             }
           } catch (aiErr) {

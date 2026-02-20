@@ -169,55 +169,63 @@ Retorne APENAS um array JSON válido:
 - Receita: R$ ${metrics.total_revenue.toLocaleString("pt-BR")}
 - Despesas: R$ ${metrics.total_expenses.toLocaleString("pt-BR")}`;
 
-    // Call Lovable AI Gateway
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    // Call Gemini 2.5 Flash directly
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
       return new Response(
         JSON.stringify({ error: "AI service not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Calling Lovable AI Gateway for insights...");
+    console.log("Calling Gemini 2.5 Flash for insights...");
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.3,
-        max_tokens: 1024,
-      }),
-    });
+    const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI Gateway error:", aiResponse.status, errorText);
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    let aiContent = "[]";
+    let tokenUsage = 0;
+    for (let attempt = 0; attempt <= 1; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000);
+        const aiResponse = await fetch(geminiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: fullPrompt }] }],
+            generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (!aiResponse.ok) {
+          const errorText = await aiResponse.text();
+          console.error("Gemini error:", aiResponse.status, errorText);
+          if (attempt < 1) continue;
+          if (aiResponse.status === 429) {
+            return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
+              status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          return new Response(JSON.stringify({ error: "AI service error" }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const aiData = await aiResponse.json();
+        aiContent = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+        tokenUsage = aiData.usageMetadata?.totalTokenCount || 0;
+        break;
+      } catch (err) {
+        console.error(`Gemini call failed (attempt ${attempt}):`, err);
+        if (attempt < 1) continue;
+        return new Response(JSON.stringify({ error: "AI service timeout" }), {
+          status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ error: "AI service error" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
     }
-
-    const aiData = await aiResponse.json();
-    const aiContent = aiData.choices?.[0]?.message?.content || "[]";
-    const tokenUsage = aiData.usage?.total_tokens || 0;
 
     let insights: Insight[] = [];
     try {
@@ -241,13 +249,13 @@ Retorne APENAS um array JSON válido:
     await supabase.from("ai_strategic_insights").insert({
       organization_id, period,
       insights_json: insights, metrics_json: metrics,
-      model: "google/gemini-3-flash-preview", token_usage: tokenUsage,
+      model: "gemini-2.5-flash", token_usage: tokenUsage,
     });
 
     return new Response(
       JSON.stringify({
         insights, metrics,
-        model: "google/gemini-3-flash-preview",
+        model: "gemini-2.5-flash",
         token_usage: tokenUsage,
         created_at: new Date().toISOString(),
         cached: false,

@@ -200,9 +200,9 @@ async function classifyTransaction(supabaseAdmin: any, txId: string, description
     }
   }
 
-  // STEP 3: AI Classification via Lovable AI Gateway
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
+  // STEP 3: AI Classification via Gemini 2.5 Flash
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+  if (!GEMINI_API_KEY) {
     console.log(`[CLASSIFY] TX ${txId}: no rule/pattern match, AI not configured`);
     return;
   }
@@ -236,23 +236,37 @@ Formato: {"category_id":"uuid|null","category_name":"nome|null","cost_center_id"
 
     const userPrompt = `Classifique: "${description}" | R$ ${amount.toFixed(2)} | ${type === "income" ? "Receita" : "Despesa"}`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
-        temperature: 0.3, max_tokens: 500,
-      }),
-    });
-
-    if (!aiResponse.ok) {
-      console.warn(`[CLASSIFY-AI] TX ${txId}: AI gateway error ${aiResponse.status}`);
-      return;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+    const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+    let aiContent = "";
+    for (let attempt = 0; attempt <= 1; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000);
+        const aiResponse = await fetch(geminiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: fullPrompt }] }],
+            generationConfig: { temperature: 0.3, maxOutputTokens: 500 },
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        if (!aiResponse.ok) {
+          console.warn(`[CLASSIFY-AI] TX ${txId}: Gemini error ${aiResponse.status} (attempt ${attempt})`);
+          if (attempt < 1) continue;
+          return;
+        }
+        const aiData = await aiResponse.json();
+        aiContent = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        break;
+      } catch (err) {
+        console.warn(`[CLASSIFY-AI] TX ${txId}: Gemini call failed (attempt ${attempt}):`, err);
+        if (attempt < 1) continue;
+        return;
+      }
     }
-
-    const aiData = await aiResponse.json();
-    const aiContent = aiData.choices?.[0]?.message?.content || "";
     const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
     if (!jsonMatch) { console.warn(`[CLASSIFY-AI] TX ${txId}: no JSON in AI response`); return; }
 
@@ -284,7 +298,7 @@ Formato: {"category_id":"uuid|null","category_name":"nome|null","cost_center_id"
         suggested_type: type,
         confidence_score: Math.min(aiResult.confidence || 0, 0.75),
         reasoning: aiResult.reasoning || "Classificado pela IA",
-        model_version: "lovable-ai-sync-v1",
+        model_version: "gemini-2.5-flash",
       });
 
       console.log(`[CLASSIFY-AI] TX ${txId}: AI classified → ${aiResult.category_name} (${((aiResult.confidence || 0) * 100).toFixed(0)}%)`);
