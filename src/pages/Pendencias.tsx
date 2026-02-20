@@ -30,7 +30,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 
-const ITEMS_PER_PAGE = 10;
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 500] as const;
 
 // Component for displaying transaction type with appropriate styling
 function TransactionTypeBadge({ type }: { type: TransactionType }) {
@@ -74,6 +74,7 @@ function TransactionTypeBadge({ type }: { type: TransactionType }) {
 
 export default function Pendencias() {
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [accountFilter, setAccountFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -133,9 +134,9 @@ export default function Pendencias() {
   }, [allTransactions, searchTerm, accountFilter, typeFilter, dateRange]);
   
   // Pagination
-  const totalPages = Math.ceil(pendingTransactions.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedTransactions = pendingTransactions.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(pendingTransactions.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedTransactions = pendingTransactions.slice(startIndex, startIndex + itemsPerPage);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", { 
@@ -521,36 +522,48 @@ export default function Pendencias() {
             ))}
             
             {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between pt-3 border-t border-border/50">
-                <p className="text-[11px] text-muted-foreground">
-                  {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, pendingTransactions.length)} de {pendingTransactions.length}
+            <div className="flex items-center justify-between pt-3 border-t border-border/50 flex-wrap gap-2">
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  {currentPage}/{totalPages || 1}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages || 1, p + 1))}
+                  disabled={currentPage >= totalPages}
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+                <p className="text-[11px] text-muted-foreground ml-2">
+                  {startIndex + 1}–{Math.min(startIndex + itemsPerPage, pendingTransactions.length)} de {pendingTransactions.length}
                 </p>
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                  </Button>
-                  <span className="text-xs text-muted-foreground">
-                    {currentPage}/{totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
               </div>
-            )}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground">Exibir:</span>
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <Button
+                    key={size}
+                    variant={itemsPerPage === size ? "default" : "outline"}
+                    size="sm"
+                    className="h-6 px-2 text-[11px] min-w-[32px]"
+                    onClick={() => { setItemsPerPage(size); setCurrentPage(1); }}
+                  >
+                    {size}
+                  </Button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
