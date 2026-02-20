@@ -97,10 +97,22 @@ function getIconBg(type: string) {
 export function FintechTransactionsList() {
   const navigate = useNavigate();
   const { data: transactions, isLoading } = useTransactions({});
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(() => {
+    try {
+      return localStorage.getItem("dashboard-transactions-expanded") === "true";
+    } catch { return false; }
+  });
+
+  const toggleExpanded = () => {
+    setIsExpanded(prev => {
+      const next = !prev;
+      try { localStorage.setItem("dashboard-transactions-expanded", String(next)); } catch {}
+      return next;
+    });
+  };
 
   const recentTransactions = useMemo(
-    () => (transactions || []).slice(0, 5),
+    () => (transactions || []).slice(0, 10),
     [transactions]
   );
 
@@ -130,7 +142,7 @@ export function FintechTransactionsList() {
     <Card className="flex flex-col">
       <CardHeader
         className="flex flex-row items-center justify-between pb-2 cursor-pointer hover:bg-muted/30 transition-colors rounded-t-xl"
-        onClick={() => setIsExpanded(prev => !prev)}
+        onClick={toggleExpanded}
       >
         <div className="flex items-center gap-2">
           <CardTitle className="text-sm font-semibold">Últimas Movimentações</CardTitle>

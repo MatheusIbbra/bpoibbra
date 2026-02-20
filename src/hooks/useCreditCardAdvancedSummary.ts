@@ -243,12 +243,8 @@ export function useCreditCardAdvancedSummary() {
           });
         });
 
-        // Current month invoice amount
-        const currentKey = format(now, "yyyy-MM");
-        const currentInvoice = monthMap.get(currentKey);
-        const invoiceAmount = currentInvoice
-          ? Math.max(0, currentInvoice.purchases - currentInvoice.payments)
-          : debt;
+        // Current invoice amount = actual bank-reported debt (most accurate)
+        const invoiceAmount = used;
 
         return {
           id: account.id,
