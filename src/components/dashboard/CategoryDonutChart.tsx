@@ -59,15 +59,19 @@ export function CategoryDonutChart() {
       map.set(catKey, existing);
     });
 
-    const buildData = (map: Map<string, { total: number; txs: { id: string; description: string; amount: number; date: string }[] }>): DonutData[] => {
+  const buildData = (map: Map<string, { total: number; txs: { id: string; description: string; amount: number; date: string }[] }>): DonutData[] => {
       const total = Array.from(map.values()).reduce((s, v) => s + v.total, 0);
+      let colorIndex = 0;
       return Array.from(map.entries())
-        .map(([catId, data], i) => {
+        .map(([catId, data]) => {
           const cat = categories.find((c) => c.id === catId);
+          const isUncategorized = catId === "__sem_categoria__";
+          // Use a consistent neutral gray for "Sem categoria" to avoid confusion
+          const color = isUncategorized ? "#9ca3af" : DISTINCT_COLORS[colorIndex++ % DISTINCT_COLORS.length];
           return {
             name: cat?.name || "Sem categoria",
             value: data.total,
-            color: DISTINCT_COLORS[i % DISTINCT_COLORS.length],
+            color,
             percentage: total > 0 ? (data.total / total) * 100 : 0,
             transactions: data.txs.sort((a, b) => b.amount - a.amount).slice(0, 5),
           };
