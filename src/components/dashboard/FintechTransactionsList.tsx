@@ -14,6 +14,7 @@ import { format, isToday, isYesterday, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { useTransactions, Transaction } from "@/hooks/useTransactions";
+import { TransactionDialog } from "@/components/transactions/TransactionDialog";
 import { formatCurrency } from "@/lib/formatters";
 import { parseLocalDate } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
@@ -102,6 +103,8 @@ export function FintechTransactionsList() {
       return localStorage.getItem("dashboard-transactions-expanded") === "true";
     } catch { return false; }
   });
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const toggleExpanded = () => {
     setIsExpanded(prev => {
@@ -109,6 +112,16 @@ export function FintechTransactionsList() {
       try { localStorage.setItem("dashboard-transactions-expanded", String(next)); } catch {}
       return next;
     });
+  };
+
+  const handleTransactionClick = (tx: Transaction) => {
+    setEditingTransaction(tx);
+    setDialogOpen(true);
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) setEditingTransaction(null);
   };
 
   const recentTransactions = useMemo(
@@ -180,7 +193,7 @@ export function FintechTransactionsList() {
                         "flex items-center gap-2 px-1.5 py-1.5 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer",
                         tx.is_ignored && "opacity-50"
                       )}
-                      onClick={() => navigate("/relatorios?tab=movimentacoes")}
+                      onClick={() => handleTransactionClick(tx)}
                     >
                       <div
                         className={cn(
@@ -222,6 +235,13 @@ export function FintechTransactionsList() {
           </div>
         )}
       </CardContent>}
+
+      <TransactionDialog
+        open={dialogOpen}
+        onOpenChange={handleDialogClose}
+        transaction={editingTransaction}
+        defaultType="expense"
+      />
     </Card>
   );
 }

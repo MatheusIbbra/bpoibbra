@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Plus,
@@ -10,11 +10,14 @@ import {
   Loader2,
   AlertCircle,
   RefreshCw,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
   EyeOff,
   Eye,
+  ArrowUpRight,
+  ArrowDownLeft,
+  ArrowLeftRight,
+  TrendingUp,
+  TrendingDown,
+  CalendarIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,14 +46,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { TransactionDialog } from "@/components/transactions/TransactionDialog";
 import { useTransactions, useDeleteTransaction, Transaction } from "@/hooks/useTransactions";
 import { useToggleIgnoreTransaction } from "@/hooks/useToggleIgnore";
@@ -61,9 +56,67 @@ import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
 import { cn } from "@/lib/utils";
 import { formatCurrency, parseLocalDate } from "@/lib/formatters";
+import { getAutoIcon } from "@/lib/category-icons";
+import { MaskedValue } from "@/contexts/ValuesVisibilityContext";
+import * as LucideIcons from "lucide-react";
 
-type SortField = "date" | "amount" | "category";
-type SortDirection = "asc" | "desc";
+function getTransactionIcon(type: string, categoryIcon?: string | null) {
+  if (categoryIcon) {
+    const iconName = getAutoIcon(categoryIcon);
+    const PascalName = iconName.charAt(0).toUpperCase() + iconName.slice(1).replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+    const IconComp = (LucideIcons as any)[PascalName];
+    if (IconComp) return <IconComp className="h-4 w-4" />;
+  }
+  switch (type) {
+    case "income": return <ArrowUpRight className="h-4 w-4" />;
+    case "expense": return <ArrowDownLeft className="h-4 w-4" />;
+    case "transfer": return <ArrowLeftRight className="h-4 w-4" />;
+    case "investment": return <TrendingDown className="h-4 w-4" />;
+    case "redemption": return <TrendingUp className="h-4 w-4" />;
+    default: return <ArrowLeftRight className="h-4 w-4" />;
+  }
+}
+
+function getIconBg(type: string) {
+  switch (type) {
+    case "income": return "bg-success/10 text-success";
+    case "expense": return "bg-destructive/10 text-destructive";
+    case "transfer": return "bg-info/10 text-info";
+    default: return "bg-muted text-muted-foreground";
+  }
+}
+
+const getTypeLabel = (type: string) => {
+  switch (type) {
+    case "income": return "Receita";
+    case "expense": return "Despesa";
+    case "transfer": return "Transf.";
+    case "investment": return "Aplicação";
+    case "redemption": return "Resgate";
+    default: return type;
+  }
+};
+
+const getTypeColor = (type: string) => {
+  switch (type) {
+    case "income": case "redemption": return "text-success";
+    case "expense": case "investment": return "text-destructive";
+    default: return "text-muted-foreground";
+  }
+};
+
+type PeriodPreset = "this_month" | "last_month" | "last_3" | "this_year" | "all";
+
+function getPeriodRange(preset: PeriodPreset): { start: Date; end: Date } | null {
+  const now = new Date();
+  switch (preset) {
+    case "this_month": return { start: startOfMonth(now), end: endOfMonth(now) };
+    case "last_month": { const lm = subMonths(now, 1); return { start: startOfMonth(lm), end: endOfMonth(lm) }; }
+    case "last_3": return { start: startOfMonth(subMonths(now, 2)), end: endOfMonth(now) };
+    case "this_year": return { start: startOfYear(now), end: endOfYear(now) };
+    case "all": return null;
+  }
+}
 
 export function MovimentacoesReportContent() {
   const { requiresBaseSelection } = useBaseFilter();
@@ -73,8 +126,7 @@ export function MovimentacoesReportContent() {
   const [costCenterFilter, setCostCenterFilter] = useState<string>("all");
   const [accountFilter, setAccountFilter] = useState<string>("all");
   const [classificationFilter, setClassificationFilter] = useState<string>("all");
-  const [sortField, setSortField] = useState<SortField>("date");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [periodFilter, setPeriodFilter] = useState<PeriodPreset>("this_month");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -86,7 +138,8 @@ export function MovimentacoesReportContent() {
   const deleteTransaction = useDeleteTransaction();
   const toggleIgnore = useToggleIgnoreTransaction();
 
-  // Show ALL transactions (classified or not) - no mandatory classification filter
+  const periodRange = useMemo(() => getPeriodRange(periodFilter), [periodFilter]);
+
   const transactions = useMemo(() => {
     return (allTransactions || [])
       .filter(t => {
@@ -96,24 +149,36 @@ export function MovimentacoesReportContent() {
         if (accountFilter !== "all" && t.account_id !== accountFilter) return false;
         if (classificationFilter === "classified" && !t.category_id) return false;
         if (classificationFilter === "unclassified" && t.category_id) return false;
+        if (periodRange) {
+          const txDate = parseLocalDate(t.date);
+          if (!isWithinInterval(txDate, { start: periodRange.start, end: periodRange.end })) return false;
+        }
         return true;
       })
       .sort((a, b) => {
-        let cmp = 0;
-        switch (sortField) {
-          case "date":
-            cmp = parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime();
-            break;
-          case "amount":
-            cmp = Number(a.amount) - Number(b.amount);
-            break;
-          case "category":
-            cmp = (a.categories?.name || "").localeCompare(b.categories?.name || "");
-            break;
-        }
-        return sortDirection === "desc" ? -cmp : cmp;
+        return parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime();
       });
-  }, [allTransactions, typeFilter, categoryFilter, costCenterFilter, accountFilter, classificationFilter, sortField, sortDirection]);
+  }, [allTransactions, typeFilter, categoryFilter, costCenterFilter, accountFilter, classificationFilter, periodRange]);
+
+  // Group by date label
+  const grouped = useMemo(() => {
+    const groups: { label: string; transactions: Transaction[] }[] = [];
+    const map = new Map<string, Transaction[]>();
+    const order: string[] = [];
+    for (const tx of transactions) {
+      const txDate = parseLocalDate(tx.date);
+      const label = format(txDate, "dd 'de' MMMM, yyyy", { locale: ptBR });
+      if (!map.has(label)) {
+        map.set(label, []);
+        order.push(label);
+      }
+      map.get(label)!.push(tx);
+    }
+    for (const label of order) {
+      groups.push({ label, transactions: map.get(label)! });
+    }
+    return groups;
+  }, [transactions]);
 
   const handleEdit = (transaction: Transaction) => {
     setEditingTransaction(transaction);
@@ -130,51 +195,6 @@ export function MovimentacoesReportContent() {
   const handleDialogClose = (open: boolean) => {
     setDialogOpen(open);
     if (!open) setEditingTransaction(null);
-  };
-
-  const toggleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(d => d === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortDirection("desc");
-    }
-  };
-
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-30" />;
-    return sortDirection === "asc"
-      ? <ArrowUp className="h-3 w-3 ml-1 text-primary" />
-      : <ArrowDown className="h-3 w-3 ml-1 text-primary" />;
-  };
-
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case "income": return "Receita";
-      case "expense": return "Despesa";
-      case "transfer": return "Transf.";
-      case "investment": return "Aplicação";
-      case "redemption": return "Resgate";
-      default: return type;
-    }
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "income":
-      case "redemption":
-        return "text-success";
-      case "expense":
-      case "investment":
-        return "text-destructive";
-      default:
-        return "text-muted-foreground";
-    }
-  };
-
-  const formatAmount = (type: string, amount: number) => {
-    const prefix = ["income", "redemption"].includes(type) ? "+ " : ["expense", "investment"].includes(type) ? "- " : "";
-    return prefix + formatCurrency(amount);
   };
 
   if (requiresBaseSelection) {
@@ -206,6 +226,19 @@ export function MovimentacoesReportContent() {
               className="pl-8 h-8 text-xs"
             />
           </div>
+          <Select value={periodFilter} onValueChange={(v) => setPeriodFilter(v as PeriodPreset)}>
+            <SelectTrigger className="w-[120px] h-8 text-xs">
+              <CalendarIcon className="h-3 w-3 mr-1 shrink-0" />
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="this_month">Mês atual</SelectItem>
+              <SelectItem value="last_month">Mês anterior</SelectItem>
+              <SelectItem value="last_3">Últimos 3 meses</SelectItem>
+              <SelectItem value="this_year">Ano atual</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
             <SelectTrigger className="w-[100px] h-8 text-xs">
               <SelectValue placeholder="Tipo" />
@@ -264,7 +297,7 @@ export function MovimentacoesReportContent() {
             {isLoading ? "Carregando..." : `${transactions.length} movimentações`}
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-2">
           {isLoading ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -275,104 +308,97 @@ export function MovimentacoesReportContent() {
               <p className="text-xs text-muted-foreground">Nenhuma movimentação encontrada</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="text-[11px]">
-                    <TableHead className="w-20 cursor-pointer" onClick={() => toggleSort("date")}>
-                      <span className="flex items-center">Data <SortIcon field="date" /></span>
-                    </TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead className="w-24 cursor-pointer" onClick={() => toggleSort("category")}>
-                      <span className="flex items-center">Categoria <SortIcon field="category" /></span>
-                    </TableHead>
-                    <TableHead className="w-24">Conta</TableHead>
-                    <TableHead className="w-20 hidden md:table-cell">Centro Custo</TableHead>
-                    <TableHead className="w-16 text-center">Tipo</TableHead>
-                    <TableHead className="w-20 text-center">Status</TableHead>
-                    <TableHead className="w-28 text-right cursor-pointer" onClick={() => toggleSort("amount")}>
-                      <span className="flex items-center justify-end">Valor <SortIcon field="amount" /></span>
-                    </TableHead>
-                    <TableHead className="w-10"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.map((transaction) => (
-                    <TableRow key={transaction.id} className={cn("text-xs", transaction.is_ignored && "opacity-40")}>
-                      <TableCell className="font-medium py-1.5">
-                        {format(parseLocalDate(transaction.date), "dd/MM/yy", { locale: ptBR })}
-                      </TableCell>
-                      <TableCell className="max-w-[180px] truncate py-1.5">
-                        {transaction.description || "-"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground truncate max-w-[90px] py-1.5">
-                        {transaction.categories?.name || (
-                          <span className="text-warning italic">Sem categoria</span>
+            <div className="space-y-0">
+              {grouped.map((group) => (
+                <div key={group.label}>
+                  <div className="pt-2 pb-1 px-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-widest">
+                      {group.label}
+                    </p>
+                  </div>
+                  <div className="space-y-px">
+                    {group.transactions.map((tx) => (
+                      <div
+                        key={tx.id}
+                        className={cn(
+                          "flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer group",
+                          tx.is_ignored && "opacity-40"
                         )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground truncate max-w-[90px] py-1.5">
-                        {transaction.accounts?.name || "-"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground truncate max-w-[80px] py-1.5 hidden md:table-cell">
-                        {transaction.cost_centers?.name || "-"}
-                      </TableCell>
-                      <TableCell className="text-center py-1.5">
-                        <Badge variant="outline" className="text-[9px] px-1 py-0">
-                          {getTypeLabel(transaction.type)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center py-1.5">
-                        {transaction.is_ignored ? (
-                          <Badge variant="secondary" className="text-[9px] px-1 py-0">Ignorada</Badge>
-                        ) : transaction.category_id ? (
-                          <Badge variant="outline" className="text-[9px] px-1 py-0 bg-success/10 text-success border-success/20">Classificada</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[9px] px-1 py-0 bg-warning/10 text-warning border-warning/20">Pendente</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className={cn("text-right font-medium py-1.5", getTypeColor(transaction.type))}>
-                        {formatAmount(transaction.type, Number(transaction.amount))}
-                      </TableCell>
-                      <TableCell className="py-1.5">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6">
-                              <MoreHorizontal className="h-3.5 w-3.5" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(transaction)}>
-                              <Pencil className="h-3.5 w-3.5 mr-2" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                toggleIgnore.mutate({
-                                  id: transaction.id,
-                                  is_ignored: !transaction.is_ignored,
-                                })
-                              }
-                            >
-                              {transaction.is_ignored ? (
-                                <><Eye className="h-3.5 w-3.5 mr-2" />Não Ignorar</>
-                              ) : (
-                                <><EyeOff className="h-3.5 w-3.5 mr-2" />Ignorar</>
-                              )}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setDeleteId(transaction.id)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-3.5 w-3.5 mr-2" />
-                              Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                        onClick={() => handleEdit(tx)}
+                      >
+                        {/* Icon */}
+                        <div className={cn("flex h-7 w-7 items-center justify-center rounded-full shrink-0", getIconBg(tx.type))}>
+                          {getTransactionIcon(tx.type, tx.categories?.icon)}
+                        </div>
+
+                        {/* Main info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-medium truncate leading-tight">
+                              {tx.description || "Movimentação"}
+                            </p>
+                            <Badge variant="outline" className="text-[8px] px-1 py-0 shrink-0 hidden sm:inline-flex">
+                              {getTypeLabel(tx.type)}
+                            </Badge>
+                            {!tx.category_id && (
+                              <Badge variant="outline" className="text-[8px] px-1 py-0 shrink-0 bg-warning/10 text-warning border-warning/20">
+                                Pendente
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {format(parseLocalDate(tx.date), "dd/MM", { locale: ptBR })}
+                            {tx.categories?.name && ` · ${tx.categories.name}`}
+                            {tx.accounts?.name && ` · ${tx.accounts.name}`}
+                            {tx.cost_centers?.name && ` · ${tx.cost_centers.name}`}
+                          </p>
+                        </div>
+
+                        {/* Amount */}
+                        <p className={cn("text-xs font-semibold tabular-nums shrink-0", getTypeColor(tx.type))}>
+                          <MaskedValue>
+                            {["income", "redemption"].includes(tx.type) ? "+" : ["expense", "investment"].includes(tx.type) ? "−" : ""}
+                            {formatCurrency(tx.amount)}
+                          </MaskedValue>
+                        </p>
+
+                        {/* Actions */}
+                        <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <MoreHorizontal className="h-3.5 w-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEdit(tx)}>
+                                <Pencil className="h-3.5 w-3.5 mr-2" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => toggleIgnore.mutate({ id: tx.id, is_ignored: !tx.is_ignored })}
+                              >
+                                {tx.is_ignored ? (
+                                  <><Eye className="h-3.5 w-3.5 mr-2" />Não Ignorar</>
+                                ) : (
+                                  <><EyeOff className="h-3.5 w-3.5 mr-2" />Ignorar</>
+                                )}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setDeleteId(tx.id)}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
