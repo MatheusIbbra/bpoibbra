@@ -67,6 +67,7 @@ export function TransactionDialog({
   onSaved,
 }: TransactionDialogProps) {
   const [showLinkOption, setShowLinkOption] = useState(false);
+  const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(transactionSchema),
@@ -437,7 +438,7 @@ export function TransactionDialog({
                     return (
                       <FormItem className="flex flex-col">
                         <FormLabel>Categoria</FormLabel>
-                        <Popover>
+                        <Popover open={categoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
                           <PopoverTrigger asChild>
                             <FormControl>
                               <Button
@@ -473,6 +474,7 @@ export function TransactionDialog({
                                       value={cat.id}
                                       onSelect={(val) => {
                                         field.onChange(val);
+                                        setCategoryPopoverOpen(false);
                                       }}
                                     >
                                       <Check
