@@ -38,7 +38,7 @@ export function StepClientQuestion({ isIbbraClient, onAnswer, slideVariants }: S
           }`}
         >
           <UserCheck className="h-8 w-8 text-primary/70 group-hover:text-primary transition-colors" />
-          <span className="text-sm font-medium">Sim, sou cliente</span>
+          <span className="text-sm font-medium">Sim</span>
         </button>
 
         <button
@@ -50,7 +50,7 @@ export function StepClientQuestion({ isIbbraClient, onAnswer, slideVariants }: S
           }`}
         >
           <UserPlus className="h-8 w-8 text-primary/70 group-hover:text-primary transition-colors" />
-          <span className="text-sm font-medium">Não, quero me cadastrar</span>
+          <span className="text-sm font-medium">Não</span>
         </button>
       </div>
     </motion.div>
