@@ -68,3 +68,9 @@ verify_jwt = false
 
 [functions.send-push-notification]
 verify_jwt = false
+
+[functions.check-cpf-duplicate]
+verify_jwt = false
+
+[functions.delete-client]
+verify_jwt = false

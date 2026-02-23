@@ -196,17 +196,19 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
     }
   };
   
-  // Check CPF duplicate when leaving CPF field in standard form
+  // Check CPF duplicate when leaving CPF field
   const handleCpfBlur = async () => {
     const cleanCpf = cpf.replace(/\D/g, "");
     if (cleanCpf.length !== 11 || !isValidCPF(cleanCpf)) return;
     
     try {
-      const { data } = await supabase.functions.invoke("get-user-emails", {
+      const { data } = await supabase.functions.invoke("check-cpf-duplicate", {
         body: { cpf: cleanCpf },
       });
-      if (data?.email) {
+      if (data?.exists && data?.email) {
         setCpfDuplicateEmail(data.email);
+      } else {
+        setCpfDuplicateEmail(null);
       }
     } catch {
       // Silently fail - not critical
