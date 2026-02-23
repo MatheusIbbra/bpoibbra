@@ -67,7 +67,10 @@ export default function Onboarding() {
   const [fullName, setFullName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
+  const [gender, setGender] = useState("");
+
+  // CPF duplicate check
+  const [cpfDuplicateEmail, setCpfDuplicateEmail] = useState<string | null>(null);
 
   // Family members
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([emptyFamilyMember()]);
@@ -99,7 +102,6 @@ export default function Onboarding() {
             if (regData.full_name) setFullName(regData.full_name);
             if (regData.birth_date) setBirthDate(regData.birth_date);
             if (regData.phone) setPhone(regData.phone);
-            if (regData.address) setAddress(regData.address);
             if (regData.validated) {
               setValidationResult({ found: true, full_name: regData.full_name || "", birth_date: regData.birth_date || "" });
             }
@@ -187,6 +189,32 @@ export default function Onboarding() {
     setCpf(formatCPF(value));
     setValidationError("");
     setValidationResult(null);
+    setCpfDuplicateEmail(null);
+  };
+
+  // Mask email helper
+  const maskEmail = (email: string): string => {
+    const [local, domain] = email.split("@");
+    if (!domain) return "***@***";
+    return `${local.slice(0, 1)}${"*".repeat(Math.max(local.length - 1, 3))}@${domain}`;
+  };
+
+  // CPF duplicate check on blur
+  const handleCpfBlur = async () => {
+    const cleanCpf = cpf.replace(/\D/g, "");
+    if (cleanCpf.length !== 11 || !isValidCPF(cleanCpf)) return;
+    try {
+      const { data } = await supabase.functions.invoke("check-cpf-duplicate", {
+        body: { cpf: cleanCpf },
+      });
+      if (data?.exists && data?.email) {
+        setCpfDuplicateEmail(data.email);
+      } else {
+        setCpfDuplicateEmail(null);
+      }
+    } catch {
+      // Silently fail
+    }
   };
 
   const handleValidateCpf = async () => {
@@ -265,13 +293,25 @@ export default function Onboarding() {
         p_cpf: cleanCpf || null,
         p_birth_date: birthDate || null,
         p_phone: phone || null,
-        p_address: address || null,
+        p_address: null,
         p_is_ibbra_client: isIbbraClient || false,
         p_external_client_validated: validationResult?.found || false,
         p_family_members: validMembers,
+        p_gender: gender || null,
       });
 
-      if (rpcError) throw rpcError;
+      if (rpcError) {
+        // Handle CPF duplicate error
+        if (rpcError.message?.includes('CPF_ALREADY_REGISTERED:')) {
+          const maskedEmail = rpcError.message.split('CPF_ALREADY_REGISTERED:')[1];
+          setCpfDuplicateEmail(maskedEmail);
+          toast.error("Este CPF já está cadastrado.");
+          setStep("profile_form");
+          setIsLoading(false);
+          return;
+        }
+        throw rpcError;
+      }
 
       // Now save consents (separate from onboarding RPC for auditability)
       // Fetch current legal document versions
@@ -585,6 +625,7 @@ export default function Onboarding() {
                       <Input
                         value={cpf}
                         onChange={(e) => handleCpfChange(e.target.value)}
+                        onBlur={handleCpfBlur}
                         placeholder="000.000.000-00"
                         className="h-11 text-sm input-executive"
                         inputMode="numeric"
@@ -592,6 +633,29 @@ export default function Onboarding() {
                       />
                     </FieldGroup>
                   )}
+
+                  {/* CPF Duplicate Warning */}
+                  {cpfDuplicateEmail && (
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                      <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                      <div className="text-xs">
+                        <p className="font-medium text-destructive">CPF já cadastrado</p>
+                        <p className="text-muted-foreground mt-0.5">
+                          E-mail vinculado: <span className="font-mono">{maskEmail(cpfDuplicateEmail)}</span>
+                        </p>
+                        <button 
+                          onClick={async () => {
+                            await signOut();
+                            navigate("/auth", { replace: true });
+                          }}
+                          className="text-primary underline mt-1 hover:text-primary/80"
+                        >
+                          Recuperar senha
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <FieldGroup label="Telefone">
                     <Input
                       value={phone}
@@ -608,13 +672,18 @@ export default function Onboarding() {
                       maxLength={15}
                     />
                   </FieldGroup>
-                  <FieldGroup label="Endereço">
-                    <Input
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Rua, número, cidade"
-                      className="h-11 text-sm input-executive"
-                    />
+
+                  <FieldGroup label="Gênero">
+                    <Select value={gender} onValueChange={setGender}>
+                      <SelectTrigger className="h-11 text-sm input-executive">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="masculino">Masculino</SelectItem>
+                        <SelectItem value="feminino">Feminino</SelectItem>
+                        <SelectItem value="nao_informar">Prefiro não informar</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </FieldGroup>
 
                   {/* Legal consent checkbox */}

@@ -1682,10 +1682,13 @@ export type Database = {
           birth_date: string | null
           blocked_at: string | null
           blocked_reason: string | null
+          city: string | null
+          complement: string | null
           cpf: string | null
           created_at: string
           external_client_validated: boolean | null
           full_name: string | null
+          gender: string | null
           id: string
           is_blocked: boolean | null
           is_ibbra_client: boolean | null
@@ -1694,9 +1697,14 @@ export type Database = {
           legal_accepted_version: string | null
           phone: string | null
           registration_completed: boolean
+          rg: string | null
+          state: string | null
+          street: string | null
+          street_number: string | null
           updated_at: string
           user_id: string
           validated_at: string | null
+          zip_code: string | null
         }
         Insert: {
           address?: string | null
@@ -1704,10 +1712,13 @@ export type Database = {
           birth_date?: string | null
           blocked_at?: string | null
           blocked_reason?: string | null
+          city?: string | null
+          complement?: string | null
           cpf?: string | null
           created_at?: string
           external_client_validated?: boolean | null
           full_name?: string | null
+          gender?: string | null
           id?: string
           is_blocked?: boolean | null
           is_ibbra_client?: boolean | null
@@ -1716,9 +1727,14 @@ export type Database = {
           legal_accepted_version?: string | null
           phone?: string | null
           registration_completed?: boolean
+          rg?: string | null
+          state?: string | null
+          street?: string | null
+          street_number?: string | null
           updated_at?: string
           user_id: string
           validated_at?: string | null
+          zip_code?: string | null
         }
         Update: {
           address?: string | null
@@ -1726,10 +1742,13 @@ export type Database = {
           birth_date?: string | null
           blocked_at?: string | null
           blocked_reason?: string | null
+          city?: string | null
+          complement?: string | null
           cpf?: string | null
           created_at?: string
           external_client_validated?: boolean | null
           full_name?: string | null
+          gender?: string | null
           id?: string
           is_blocked?: boolean | null
           is_ibbra_client?: boolean | null
@@ -1738,9 +1757,14 @@ export type Database = {
           legal_accepted_version?: string | null
           phone?: string | null
           registration_completed?: boolean
+          rg?: string | null
+          state?: string | null
+          street?: string | null
+          street_number?: string | null
           updated_at?: string
           user_id?: string
           validated_at?: string | null
+          zip_code?: string | null
         }
         Relationships: []
       }
@@ -2672,19 +2696,41 @@ export type Database = {
       }
       cleanup_expired_oauth_states: { Args: never; Returns: number }
       cleanup_expired_pending_registrations: { Args: never; Returns: undefined }
-      complete_onboarding: {
-        Args: {
-          p_address?: string
-          p_birth_date?: string
-          p_cpf?: string
-          p_external_client_validated?: boolean
-          p_family_members?: Json
-          p_full_name: string
-          p_is_ibbra_client?: boolean
-          p_phone?: string
-        }
-        Returns: Json
-      }
+      complete_onboarding:
+        | {
+            Args: {
+              p_address?: string
+              p_birth_date?: string
+              p_cpf?: string
+              p_external_client_validated?: boolean
+              p_family_members?: Json
+              p_full_name: string
+              p_is_ibbra_client?: boolean
+              p_phone?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_address?: string
+              p_birth_date?: string
+              p_city?: string
+              p_complement?: string
+              p_cpf?: string
+              p_external_client_validated?: boolean
+              p_family_members?: Json
+              p_full_name: string
+              p_gender?: string
+              p_is_ibbra_client?: boolean
+              p_phone?: string
+              p_rg?: string
+              p_state?: string
+              p_street?: string
+              p_street_number?: string
+              p_zip_code?: string
+            }
+            Returns: Json
+          }
       convert_currency: {
         Args: {
           p_amount: number
