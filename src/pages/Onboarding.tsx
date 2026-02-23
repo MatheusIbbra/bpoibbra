@@ -436,7 +436,7 @@ export default function Onboarding() {
                       }`}
                     >
                       <UserCheck className="h-8 w-8 text-primary/70 group-hover:text-primary transition-colors" />
-                      <span className="text-sm font-medium">Sim, sou cliente</span>
+                      <span className="text-sm font-medium">Sim</span>
                     </button>
                     <button
                       onClick={() => handleClientAnswer(false)}
@@ -447,7 +447,7 @@ export default function Onboarding() {
                       }`}
                     >
                       <UserPlus className="h-8 w-8 text-primary/70 group-hover:text-primary transition-colors" />
-                      <span className="text-sm font-medium">Não, quero me cadastrar</span>
+                      <span className="text-sm font-medium">Não</span>
                     </button>
                   </div>
                   <Button
@@ -553,10 +553,30 @@ export default function Onboarding() {
                   </FieldGroup>
                   <FieldGroup label="Data de nascimento">
                     <Input
-                      type="date"
-                      value={birthDate}
-                      onChange={(e) => setBirthDate(e.target.value)}
+                      value={(() => {
+                        // Display as DD/MM/YYYY if stored as ISO
+                        if (birthDate && birthDate.includes("-")) {
+                          const [y, m, d] = birthDate.split("-");
+                          return `${d}/${m}/${y}`;
+                        }
+                        return birthDate;
+                      })()}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 8);
+                        let formatted = digits;
+                        if (digits.length > 2) formatted = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+                        if (digits.length > 4) formatted = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+                        // Store as ISO when complete
+                        if (digits.length === 8) {
+                          setBirthDate(`${digits.slice(4, 8)}-${digits.slice(2, 4)}-${digits.slice(0, 2)}`);
+                        } else {
+                          setBirthDate(formatted);
+                        }
+                      }}
+                      placeholder="DD/MM/AAAA"
                       className="h-11 text-sm input-executive"
+                      inputMode="numeric"
+                      maxLength={10}
                       readOnly={!!(isIbbraClient && validationResult?.found)}
                     />
                   </FieldGroup>
@@ -575,10 +595,17 @@ export default function Onboarding() {
                   <FieldGroup label="Telefone">
                     <Input
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
+                        let formatted = digits;
+                        if (digits.length > 2) formatted = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+                        if (digits.length > 7) formatted = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+                        setPhone(formatted);
+                      }}
                       placeholder="(11) 99999-0000"
                       className="h-11 text-sm input-executive"
                       inputMode="tel"
+                      maxLength={15}
                     />
                   </FieldGroup>
                   <FieldGroup label="Endereço">
@@ -589,6 +616,31 @@ export default function Onboarding() {
                       className="h-11 text-sm input-executive"
                     />
                   </FieldGroup>
+
+                  {/* Legal consent checkbox */}
+                  {!isIbbraClient && (
+                    <div className="flex items-start gap-2 pt-2">
+                      <Checkbox
+                        id="onboarding-consent"
+                        checked={acceptTerms && acceptPrivacy && acceptLgpd}
+                        onCheckedChange={(v) => {
+                          const checked = v === true;
+                          setAcceptTerms(checked);
+                          setAcceptPrivacy(checked);
+                          setAcceptLgpd(checked);
+                        }}
+                        className="mt-0.5"
+                      />
+                      <label htmlFor="onboarding-consent" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
+                        Aceito os{" "}
+                        <a href="/termos-de-uso" target="_blank" className="text-primary underline">Termos de Uso</a>,{" "}
+                        a{" "}
+                        <a href="/politica-de-privacidade" target="_blank" className="text-primary underline">Política de Privacidade</a>{" "}
+                        e o tratamento dos meus dados conforme a{" "}
+                        <a href="/lgpd" target="_blank" className="text-primary underline">LGPD</a>.
+                      </label>
+                    </div>
+                  )}
 
                   <div className="flex gap-3 pt-2">
                     <Button

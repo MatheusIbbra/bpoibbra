@@ -14,6 +14,7 @@ import { useBudgetAnalysis } from "@/hooks/useBudgetAnalysis";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { BudgetVsActualChart } from "@/components/budget/BudgetVsActualChart";
 import { BudgetAnalysisCard } from "@/components/budget/BudgetAnalysisCard";
+import { BudgetTransactionsDialog } from "@/components/budget/BudgetTransactionsDialog";
 import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
 import {
@@ -27,6 +28,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { BudgetAnalysisItem } from "@/hooks/useBudgetAnalysis";
 
 const MONTHS = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -47,6 +49,7 @@ export function AnaliseOrcamentoContent() {
   const [month, setMonth] = useState(currentDate.getMonth() + 1);
   const [year, setYear] = useState(currentDate.getFullYear());
   const [costCenterId, setCostCenterId] = useState<string | undefined>(undefined);
+  const [selectedBudgetItem, setSelectedBudgetItem] = useState<BudgetAnalysisItem | null>(null);
 
   const { data: costCenters } = useCostCenters();
   const { data, isLoading } = useBudgetAnalysis(month, year, costCenterId);
@@ -219,7 +222,9 @@ export function AnaliseOrcamentoContent() {
             {data?.items && data.items.length > 0 ? (
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {data.items.map((item) => (
-                  <BudgetAnalysisCard key={item.category_id} item={item} />
+                  <div key={item.category_id} className="cursor-pointer" onClick={() => setSelectedBudgetItem(item)}>
+                    <BudgetAnalysisCard item={item} />
+                  </div>
                 ))}
               </div>
             ) : (
@@ -243,6 +248,16 @@ export function AnaliseOrcamentoContent() {
             )}
           </div>
         </>
+      )}
+
+      {selectedBudgetItem && (
+        <BudgetTransactionsDialog
+          open={!!selectedBudgetItem}
+          onOpenChange={(open) => { if (!open) setSelectedBudgetItem(null); }}
+          item={selectedBudgetItem}
+          month={month}
+          year={year}
+        />
       )}
     </div>
   );

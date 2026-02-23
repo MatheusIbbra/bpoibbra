@@ -334,7 +334,7 @@ export default function Orcamentos() {
                           return cat.name.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
                         }}>
                           <CommandInput placeholder="Digitar para buscar..." />
-                          <CommandList className="max-h-[200px] overflow-y-auto overscroll-contain">
+                          <CommandList className="max-h-[200px] overflow-y-auto overscroll-contain" onTouchMove={(e) => e.stopPropagation()}>
                             <CommandEmpty>Nenhuma categoria encontrada.</CommandEmpty>
                             {sortedGroups.map((group) => (
                               <CommandGroup

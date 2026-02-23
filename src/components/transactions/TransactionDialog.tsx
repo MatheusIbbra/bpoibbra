@@ -241,7 +241,7 @@ export function TransactionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto [&_input]:bg-white [&_input]:dark:bg-muted [&_textarea]:bg-white [&_textarea]:dark:bg-muted">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto w-[calc(100vw-1.5rem)] sm:w-full [&_input]:bg-white [&_input]:dark:bg-muted [&_textarea]:bg-white [&_textarea]:dark:bg-muted">
         <DialogHeader>
           <DialogTitle>
             {transaction ? "Editar Transação" : "Nova Transação"}
@@ -457,7 +457,9 @@ export function TransactionDialog({
                           <PopoverContent 
                             className="w-[--radix-popover-trigger-width] p-0" 
                             align="start"
+                            style={{ maxHeight: "min(300px, 50vh)" }}
                             onWheel={(e) => e.stopPropagation()}
+                            onTouchMove={(e) => e.stopPropagation()}
                           >
                             <Command filter={(value, search) => {
                               const cat = categories?.find(c => c.id === value);
@@ -465,7 +467,7 @@ export function TransactionDialog({
                               return cat.name.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
                             }}>
                               <CommandInput placeholder="Digitar para buscar..." />
-                              <CommandList className="max-h-[200px] overflow-y-auto">
+                              <CommandList className="max-h-[200px] overflow-y-auto overscroll-contain" onTouchMove={(e) => e.stopPropagation()}>
                                 <CommandEmpty>Nenhuma categoria encontrada.</CommandEmpty>
                                 <CommandGroup>
                                   {categories?.map((cat) => (

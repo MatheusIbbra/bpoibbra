@@ -148,10 +148,10 @@ const Index = () => {
 
         {/* Accounts breakdown dialog (mobile click) */}
         <Dialog open={showAccountsDialog} onOpenChange={setShowAccountsDialog}>
-          <DialogContent className="max-w-sm">
+          <DialogContent className="max-w-sm w-[calc(100vw-2rem)] sm:w-full">
             <DialogHeader>
-              <DialogTitle className="text-base flex items-center gap-2">
-                <Wallet className="h-4 w-4" />
+              <DialogTitle className="text-sm flex items-center gap-2">
+                <Wallet className="h-4 w-4 text-muted-foreground" />
                 Composição da Posição Financeira
               </DialogTitle>
             </DialogHeader>
@@ -509,9 +509,9 @@ function TransactionsListDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[70vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-md max-h-[70vh] overflow-hidden flex flex-col w-[calc(100vw-2rem)] sm:w-full">
         <DialogHeader>
-          <DialogTitle className="text-base flex items-center gap-2">
+          <DialogTitle className="text-sm flex items-center gap-2">
             {variant === "success" ? <ArrowUpRight className="h-4 w-4 text-success" /> : <ArrowDownRight className="h-4 w-4 text-destructive" />}
             {title}
           </DialogTitle>

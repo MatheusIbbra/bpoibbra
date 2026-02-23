@@ -222,9 +222,15 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
   const handleChooseGoogle = async () => {
     try {
       const addressFull = [street, streetNumber, complement, city, state, zipCode].filter(Boolean).join(", ");
-      const { data, error } = await (supabase as any)
+      
+      // Generate session token client-side to avoid needing SELECT after INSERT
+      // (anon users can INSERT but can't SELECT due to RLS)
+      const sessionToken = crypto.randomUUID();
+      
+      const { error } = await (supabase as any)
         .from("pending_registrations")
         .insert({
+          session_token: sessionToken,
           is_ibbra_client: isIbbraClient || false,
           cpf: cpf.replace(/\D/g, "") || null,
           full_name: validationResult?.found ? fullName : null,
@@ -236,12 +242,10 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
           zip_code: zipCode || null,
           street_number: streetNumber || null,
           complement: complement || null,
-        })
-        .select("session_token")
-        .single();
+        });
 
       if (error) throw error;
-      localStorage.setItem("ibbra_reg_token", data.session_token);
+      localStorage.setItem("ibbra_reg_token", sessionToken);
       onGoogleSignUp?.();
     } catch (err) {
       console.error("Error saving pending registration:", err);
@@ -285,9 +289,12 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
       const validMembers = familyMembers.filter(m => m.full_name.trim() && m.relationship);
       const addressFull = [street, streetNumber, complement, city, state, zipCode].filter(Boolean).join(", ");
       
-      const { data: pendingReg, error: pendingError } = await (supabase as any)
+      const sessionToken = crypto.randomUUID();
+      
+      const { error: pendingError } = await (supabase as any)
         .from("pending_registrations")
         .insert({
+          session_token: sessionToken,
           is_ibbra_client: isIbbraClient || false,
           cpf: cpf.replace(/\D/g, "") || null,
           full_name: fullName || null,
@@ -301,13 +308,11 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
           complement: complement || null,
           validated: validationResult?.found || false,
           family_members: validMembers.length > 0 ? validMembers : null,
-        })
-        .select("session_token")
-        .single();
+        });
 
       if (pendingError) throw pendingError;
 
-      localStorage.setItem("ibbra_reg_token", pendingReg.session_token);
+      localStorage.setItem("ibbra_reg_token", sessionToken);
 
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -412,7 +417,7 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
                 }`}
               >
                 <UserCheck className="h-8 w-8 text-primary/70 group-hover:text-primary transition-colors" />
-                <span className="text-sm font-medium">Sim, sou cliente</span>
+                <span className="text-sm font-medium">Sim</span>
               </button>
 
               <button
@@ -424,7 +429,7 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
                 }`}
               >
                 <UserPlus className="h-8 w-8 text-primary/70 group-hover:text-primary transition-colors" />
-                <span className="text-sm font-medium">Não, quero me cadastrar</span>
+                <span className="text-sm font-medium">Não</span>
               </button>
             </div>
           </motion.div>
