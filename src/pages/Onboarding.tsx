@@ -15,6 +15,7 @@ import {
   Trash2,
   FileText,
   ExternalLink,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +34,7 @@ import {
 import ibbraLogoFullWhite from "@/assets/ibbra-logo-full-white.png";
 import ibbraLogoIcon from "@/assets/ibbra-logo-icon.png";
 
-type Step = "client_question" | "cpf_validation" | "profile_form" | "family_question" | "family_form" | "consent" | "completing";
+type Step = "client_question" | "cpf_validation" | "profile_form" | "family_question" | "family_form" | "consent" | "set_password" | "completing";
 
 interface FamilyMember {
   relationship: string;
@@ -68,6 +69,12 @@ export default function Onboarding() {
   const [birthDate, setBirthDate] = useState("");
   const [phone, setPhone] = useState("");
   const [gender, setGender] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Check if user is Google OAuth (no password set)
+  const isGoogleUser = user?.app_metadata?.provider === "google" || 
+    (user?.identities?.some(i => i.provider === "google") ?? false);
 
   // CPF duplicate check
   const [cpfDuplicateEmail, setCpfDuplicateEmail] = useState<string | null>(null);
@@ -438,6 +445,7 @@ export default function Onboarding() {
     family_question: "Deseja cadastrar membros da família?",
     family_form: "Adicione os dados dos seus familiares.",
     consent: "Aceite os termos para finalizar seu cadastro.",
+    set_password: "Defina uma senha para acessar via email.",
     completing: "Finalizando seu cadastro...",
   };
 
@@ -456,7 +464,7 @@ export default function Onboarding() {
                 className="text-2xl font-semibold tracking-tight"
                 style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
               >
-                {step === "consent" ? "Consentimentos e Termos" : "Complete seu cadastro"}
+                {step === "consent" ? "Consentimentos e Termos" : step === "set_password" ? "Definir Senha" : "Complete seu cadastro"}
               </h1>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {stepDescriptions[step]}
@@ -1012,8 +1020,105 @@ export default function Onboarding() {
                     </Button>
                     <Button
                       className="flex-1 h-12 text-sm font-semibold"
-                      onClick={handleCompleteOnboarding}
+                      onClick={() => {
+                        if (isGoogleUser) {
+                          setStep("set_password");
+                        } else {
+                          handleCompleteOnboarding();
+                        }
+                      }}
                       disabled={!allConsentsAccepted || isLoading}
+                    >
+                      {isLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <ArrowRight className="h-4 w-4 mr-2" />
+                      )}
+                      {isGoogleUser ? "Continuar" : (isLoading ? "Finalizando..." : "Finalizar Cadastro")}
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* STEP: Set Password (Google OAuth users) */}
+              {step === "set_password" && (
+                <motion.div
+                  key="set_password"
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.25 }}
+                  className="space-y-5"
+                >
+                  <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                    <div className="flex items-start gap-3">
+                      <Lock className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Defina uma senha de acesso</p>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                          Você se cadastrou com Google. Defina uma senha para também poder acessar via email e senha.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <FieldGroup label="Senha">
+                    <Input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Mínimo 6 caracteres"
+                      className="h-11 text-sm input-executive"
+                    />
+                  </FieldGroup>
+
+                  <FieldGroup label="Confirmar senha">
+                    <Input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Repita a senha"
+                      className="h-11 text-sm input-executive"
+                    />
+                  </FieldGroup>
+
+                  {password && confirmPassword && password !== confirmPassword && (
+                    <p className="text-xs text-destructive">As senhas não coincidem.</p>
+                  )}
+
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                      variant="outline"
+                      className="h-12"
+                      onClick={() => setStep("consent")}
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      className="flex-1 h-12 text-sm font-semibold"
+                      onClick={async () => {
+                        if (password.length < 6) {
+                          toast.error("A senha deve ter pelo menos 6 caracteres.");
+                          return;
+                        }
+                        if (password !== confirmPassword) {
+                          toast.error("As senhas não coincidem.");
+                          return;
+                        }
+                        // Set password for Google user
+                        setIsLoading(true);
+                        try {
+                          const { error } = await supabase.auth.updateUser({ password });
+                          if (error) throw error;
+                          toast.success("Senha definida com sucesso!");
+                          await handleCompleteOnboarding();
+                        } catch (err: any) {
+                          toast.error("Erro ao definir senha: " + (err.message || "Tente novamente."));
+                          setIsLoading(false);
+                        }
+                      }}
+                      disabled={!password || password.length < 6 || password !== confirmPassword || isLoading}
                     >
                       {isLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />

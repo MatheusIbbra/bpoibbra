@@ -582,6 +582,18 @@ Deno.serve(async (req) => {
       const apiBalance = acc.balance ?? 0;
       const now = new Date().toISOString();
 
+      // PRIORITY: Check if this pluggy account is already mapped via open_finance_accounts
+      const { data: ofAccount } = await supabaseAdmin.from('open_finance_accounts').select('local_account_id')
+        .eq('pluggy_account_id', acc.id).eq('organization_id', connectionToSync.organization_id).maybeSingle();
+      
+      if (ofAccount?.local_account_id) {
+        // Already mapped - just update balance
+        await supabaseAdmin.from('accounts').update({ official_balance: apiBalance, last_official_balance_at: now, current_balance: apiBalance, updated_at: now, name: accountName }).eq('id', ofAccount.local_account_id);
+        pluggyAccountToLocal[acc.id] = ofAccount.local_account_id;
+        console.log(`[ACC] Reused via OF mapping ${ofAccount.local_account_id}: ${accountName} balance=${apiBalance}`);
+        continue;
+      }
+
       // Search by org + bank_name + account_type + exact name for accurate matching
       let { data: existing } = await supabaseAdmin.from('accounts').select('id, name')
         .eq('organization_id', connectionToSync.organization_id).eq('bank_name', connectorName).eq('account_type', accountType).eq('name', accountName).maybeSingle();
