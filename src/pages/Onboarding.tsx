@@ -225,7 +225,19 @@ export default function Onboarding() {
     }
     setIsLoading(true);
     setValidationError("");
+    setCpfDuplicateEmail(null);
     try {
+      // Check for duplicate CPF first
+      const { data: dupData } = await supabase.functions.invoke("check-cpf-duplicate", {
+        body: { cpf: cleanCpf },
+      });
+      if (dupData?.exists && dupData?.email) {
+        setCpfDuplicateEmail(dupData.email);
+        setValidationError("Este CPF já possui uma conta cadastrada.");
+        setIsLoading(false);
+        return;
+      }
+
       const result = await validateClientByCPF(cleanCpf);
       setValidationResult(result);
       if (result.found) {
@@ -544,6 +556,28 @@ export default function Onboarding() {
                         </div>
                       </div>
                     )}
+
+                    {/* CPF Duplicate Warning */}
+                    {cpfDuplicateEmail && (
+                      <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5 border border-destructive/20">
+                        <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                        <div className="text-sm">
+                          <p className="font-medium text-destructive">CPF já cadastrado</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            E-mail vinculado: <span className="font-mono">{maskEmail(cpfDuplicateEmail)}</span>
+                          </p>
+                          <button 
+                            onClick={async () => {
+                              await signOut();
+                              navigate("/auth", { replace: true });
+                            }}
+                            className="text-primary underline mt-1 text-xs hover:text-primary/80"
+                          >
+                            Recuperar senha
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-3">
                     <Button variant="outline" className="h-12" onClick={() => setStep("client_question")}>
@@ -725,7 +759,7 @@ export default function Onboarding() {
                     <Button
                       className="flex-1 h-12 text-sm font-semibold"
                       onClick={handleProfileNext}
-                      disabled={!fullName.trim()}
+                      disabled={!fullName.trim() || !!cpfDuplicateEmail}
                     >
                       Continuar
                       <ArrowRight className="h-4 w-4 ml-2" />

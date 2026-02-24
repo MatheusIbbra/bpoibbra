@@ -174,6 +174,17 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
     setValidationError("");
     setCpfDuplicateEmail(null);
     try {
+      // Check for duplicate CPF first
+      const { data: dupData } = await supabase.functions.invoke("check-cpf-duplicate", {
+        body: { cpf: cleanCpf },
+      });
+      if (dupData?.exists && dupData?.email) {
+        setCpfDuplicateEmail(dupData.email);
+        setValidationError("Este CPF já possui uma conta cadastrada.");
+        setIsLoading(false);
+        return;
+      }
+
       const result = await validateClientByCPF(cleanCpf);
       setValidationResult(result);
       if (result.found) {
@@ -487,6 +498,29 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
                   </div>
                 </motion.div>
               )}
+
+              {/* CPF Duplicate Warning in validation step */}
+              {cpfDuplicateEmail && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5 border border-destructive/20"
+                >
+                  <Mail className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-destructive">CPF já cadastrado</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      E-mail vinculado: <span className="font-mono">{maskEmail(cpfDuplicateEmail)}</span>
+                    </p>
+                    <button 
+                      onClick={onBack} 
+                      className="text-primary underline mt-1 text-xs hover:text-primary/80"
+                    >
+                      Recuperar senha
+                    </button>
+                  </div>
+                </motion.div>
+              )}
             </div>
 
             <div className="flex gap-3">
@@ -706,7 +740,7 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
               <Button 
                 className="flex-1 h-12 text-sm font-semibold" 
                 onClick={() => setStep("family_question")} 
-                disabled={!email.trim() || !password || password.length < 6 || password !== confirmPassword || !fullName.trim() || !consentAccepted}
+                disabled={!email.trim() || !password || password.length < 6 || password !== confirmPassword || !fullName.trim() || !consentAccepted || !!cpfDuplicateEmail}
               >
                 Continuar
                 <ArrowRight className="h-4 w-4 ml-2" />
