@@ -7,14 +7,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-/**
- * Convert a bytea-like value to a readable string.
- * The Supabase JS client returns bytea columns as hex strings (\\xHEX).
- */
 function byteaToString(value: unknown): string | null {
   if (!value) return null;
   if (typeof value === "string") {
-    // Hex-encoded bytea: \x48656c6c6f
     if (value.startsWith("\\x") || value.startsWith("\\X")) {
       const hex = value.slice(2);
       try {
@@ -29,13 +24,53 @@ function byteaToString(value: unknown): string | null {
   return String(value);
 }
 
+function getMatrixClient() {
+  const matrixUrl = Deno.env.get("IBBRA_MATRIX_SUPABASE_URL");
+  const matrixKey = Deno.env.get("IBBRA_MATRIX_SERVICE_ROLE_KEY");
+
+  if (!matrixUrl || !matrixKey) {
+    throw new Error("Missing IBBRA matrix credentials");
+  }
+
+  return createClient(matrixUrl, matrixKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
+async function findClientByCpf(cleanCpf: string) {
+  const matrixClient = getMatrixClient();
+
+  const { data, error } = await matrixClient
+    .from("c_cliente")
+    .select(
+      "nome_completo, email, telefone, data_nascimento, genero, perfil_comportamental, comunidade, operacional"
+    )
+    .eq("cpf", cleanCpf)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Matrix query error:", error);
+    throw new Error("Erro ao consultar base de dados");
+  }
+
+  return data;
+}
+
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!domain) return "***@***";
+  return `${local.slice(0, 1)}${"*".repeat(Math.max(local.length - 1, 3))}@${domain}`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { cpf } = await req.json();
+    const body = await req.json();
+    const { cpf, action, email: userEmail } = body;
 
     if (!cpf || typeof cpf !== "string") {
       return new Response(JSON.stringify({ found: false, error: "CPF inválido" }), {
@@ -44,7 +79,6 @@ serve(async (req) => {
       });
     }
 
-    // Normalize CPF (digits only)
     const cleanCpf = cpf.replace(/\D/g, "");
     if (cleanCpf.length !== 11) {
       return new Response(JSON.stringify({ found: false, error: "CPF deve ter 11 dígitos" }), {
@@ -53,39 +87,44 @@ serve(async (req) => {
       });
     }
 
-    // Connect to Supabase B (matriz) using service_role - READ ONLY
-    const matrixUrl = Deno.env.get("IBBRA_MATRIX_SUPABASE_URL");
-    const matrixKey = Deno.env.get("IBBRA_MATRIX_SERVICE_ROLE_KEY");
+    // ACTION: verify_email - check if user-typed email matches the one in c_cliente
+    if (action === "verify_email") {
+      if (!userEmail || typeof userEmail !== "string") {
+        return new Response(JSON.stringify({ match: false, error: "E-mail não informado" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
-    if (!matrixUrl || !matrixKey) {
-      console.error("Missing IBBRA matrix credentials");
+      const data = await findClientByCpf(cleanCpf);
+      if (!data) {
+        return new Response(JSON.stringify({ match: false, error: "Cliente não encontrado" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const rawEmail = byteaToString(data.email) || String(data.email || "");
+      const normalizedStored = rawEmail.trim().toLowerCase();
+      const normalizedUser = userEmail.trim().toLowerCase();
+
+      const match = normalizedStored === normalizedUser;
+
       return new Response(
-        JSON.stringify({ found: false, error: "Configuração do servidor incompleta" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          match,
+          // Only return the real email if it matches (for signUp flow)
+          email: match ? rawEmail : null,
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
-    const matrixClient = createClient(matrixUrl, matrixKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
-    // Query c_cliente table - limit(1) for performance, SELECT only needed fields
-    const { data, error } = await matrixClient
-      .from("c_cliente")
-      .select(
-        "nome_completo, email, telefone, data_nascimento, genero, perfil_comportamental, comunidade, operacional"
-      )
-      .eq("cpf", cleanCpf)
-      .limit(1)
-      .maybeSingle();
-
-    if (error) {
-      console.error("Matrix query error:", error);
-      return new Response(
-        JSON.stringify({ found: false, error: "Erro ao consultar base de dados" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // DEFAULT ACTION: validate CPF and return client data
+    const data = await findClientByCpf(cleanCpf);
 
     if (!data) {
       return new Response(JSON.stringify({ found: false }), {
@@ -94,7 +133,6 @@ serve(async (req) => {
       });
     }
 
-    // Decode bytea fields (genero, perfil_comportamental may be stored as bytea)
     const genero = byteaToString(data.genero);
     const perfil_comportamental = byteaToString(data.perfil_comportamental);
     const comunidade = byteaToString(data.comunidade);
@@ -103,16 +141,8 @@ serve(async (req) => {
     const email = byteaToString(data.email) || String(data.email || "");
     const telefone = byteaToString(data.telefone) || String(data.telefone || "");
 
-    // Mask email for display
-    let maskedEmail: string | null = null;
-    if (email) {
-      const [local, domain] = email.split("@");
-      if (domain) {
-        maskedEmail = `${local.slice(0, 1)}${"*".repeat(Math.max(local.length - 1, 3))}@${domain}`;
-      }
-    }
+    const maskedEmail = email ? maskEmail(email) : null;
 
-    // Format birth_date to ISO (YYYY-MM-DD) if it's a Date or string
     let birth_date: string | null = null;
     if (data.data_nascimento) {
       const d = new Date(data.data_nascimento);
@@ -128,8 +158,6 @@ serve(async (req) => {
         found: true,
         nome_completo,
         email_masked: maskedEmail,
-        // email_raw is intentionally NOT returned - security measure
-        // The Edge Function will use it only to call inviteUserByEmail
         email_hash: email ? btoa(encodeURIComponent(email)).slice(0, 16) : null,
         telefone,
         data_nascimento: birth_date,
@@ -137,7 +165,6 @@ serve(async (req) => {
         perfil_comportamental,
         comunidade,
         operacional,
-        // Return full_name and birth_date aliases for compatibility with existing frontend
         full_name: nome_completo,
         birth_date,
       }),
