@@ -87,14 +87,13 @@ export function AppSidebar() {
   // Build nav items based on role
   const navItems = [
     { title: "Consolidação", url: "/", icon: Home },
-    { title: "Open Finance", url: "/open-finance", icon: Building2 },
+    { title: "Open Finance", url: "/cadastros", icon: Building2 },
     { title: "Cartões de Crédito", url: "/cartoes", icon: CreditCard },
     { title: "Orçamentos", url: "/orcamentos", icon: Wallet },
   ];
 
   // "Relatórios" is handled separately as submenu
   const postReportItems = [
-    { title: "Pendências", url: "/pendencias", icon: AlertCircle },
     { title: "Importar Extratos", url: "/importacoes", icon: Upload },
     { title: "Cadastros", url: "/cadastros", icon: Settings2 },
   ];
@@ -193,6 +192,7 @@ export function AppSidebar() {
         {isAdmin && <>
           <SidebarSeparator className="my-3 bg-sidebar-border/40" />
           <SidebarMenu>
+            {renderNavItem({ title: "Pendências", url: "/pendencias", icon: AlertCircle })}
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={isActive("/admin")} tooltip={collapsed ? "Gerenciar Acessos" : undefined}>
                 <NavLink to="/admin" className={`flex items-center transition-all duration-200 text-sm py-2.5 rounded-xl ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${isActive("/admin") ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">

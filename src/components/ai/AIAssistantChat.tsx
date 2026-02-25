@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Loader2, Lock, Sparkles } from "lucide-react";
+import { Plus, X, Send, Loader2, Lock, Sparkles, ArrowUpRight, ArrowDownLeft, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -7,7 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { TransactionDialog } from "@/components/transactions/TransactionDialog";
 
 interface Message {
   id: string;
@@ -120,7 +123,10 @@ async function streamChat({
 }
 
 export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [txDialogOpen, setTxDialogOpen] = useState(false);
+  const [txDialogType, setTxDialogType] = useState<"income" | "expense">("expense");
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -134,6 +140,7 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { selectedOrganizationId } = useBaseFilter();
   const { openUpgradeModal } = useUpgradeModal();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -199,21 +206,80 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
     }
   };
 
-  if (!isOpen) {
+  const quickActions = [
+    {
+      label: "Nova Receita",
+      icon: ArrowUpRight,
+      className: "text-success",
+      action: () => { setTxDialogType("income"); setTxDialogOpen(true); setIsMenuOpen(false); },
+    },
+    {
+      label: "Nova Despesa",
+      icon: ArrowDownLeft,
+      className: "text-destructive",
+      action: () => { setTxDialogType("expense"); setTxDialogOpen(true); setIsMenuOpen(false); },
+    },
+    {
+      label: "Novo Orçamento",
+      icon: Wallet,
+      className: "text-primary",
+      action: () => { navigate("/orcamentos"); setIsMenuOpen(false); },
+    },
+    {
+      label: "Inteligência Artificial Financeira",
+      icon: Sparkles,
+      className: "text-primary",
+      action: () => { openUpgradeModal("ai"); setIsMenuOpen(false); },
+    },
+  ];
+
+  // FAB with menu
+  if (!isChatOpen) {
     return (
-      <Button
-        onClick={() => {
-          if (!isPaidUser) {
-            openUpgradeModal("ai");
-          } else {
-            setIsOpen(true);
-          }
-        }}
-        className="fixed bottom-4 right-4 md:bottom-6 md:right-6 h-14 w-14 rounded-full shadow-lg z-50"
-        size="icon"
-      >
-        <MessageCircle className="h-6 w-6" />
-      </Button>
+      <>
+        {/* Quick actions menu */}
+        {isMenuOpen && (
+          <div className="fixed bottom-20 right-4 md:bottom-[5.5rem] md:right-6 z-50 flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            {quickActions.map((action) => (
+              <button
+                key={action.label}
+                onClick={action.action}
+                className="flex items-center gap-3 bg-card border border-border shadow-lg rounded-xl px-4 py-3 hover:bg-muted/60 transition-colors text-left"
+              >
+                <action.icon className={cn("h-4 w-4 shrink-0", action.className)} />
+                <span className="text-sm font-medium whitespace-nowrap">{action.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Overlay */}
+        {isMenuOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/20"
+            onClick={() => setIsMenuOpen(false)}
+          />
+        )}
+
+        {/* FAB */}
+        <Button
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className={cn(
+            "fixed bottom-4 right-4 md:bottom-6 md:right-6 h-14 w-14 rounded-full shadow-lg z-50 transition-transform",
+            isMenuOpen && "rotate-45"
+          )}
+          size="icon"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+
+        {/* Transaction Dialog */}
+        <TransactionDialog
+          open={txDialogOpen}
+          onOpenChange={setTxDialogOpen}
+          defaultType={txDialogType}
+        />
+      </>
     );
   }
 
@@ -224,7 +290,7 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
           <Sparkles className="h-5 w-5 text-primary" />
           <CardTitle className="text-lg">Wealth Advisor IA</CardTitle>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
+        <Button variant="ghost" size="icon" onClick={() => setIsChatOpen(false)}>
           <X className="h-4 w-4" />
         </Button>
       </CardHeader>

@@ -120,12 +120,17 @@ function getPeriodRange(preset: PeriodPreset): { start: Date; end: Date } | null
 
 export function MovimentacoesReportContent() {
   const { requiresBaseSelection } = useBaseFilter();
+
+  // Check URL params for pre-set filters
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlFilter = urlParams.get("filter");
+
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [costCenterFilter, setCostCenterFilter] = useState<string>("all");
   const [accountFilter, setAccountFilter] = useState<string>("all");
-  const [classificationFilter, setClassificationFilter] = useState<string>("all");
+  const [classificationFilter, setClassificationFilter] = useState<string>(urlFilter === "sem-categoria" ? "unclassified" : "all");
   const [periodFilter, setPeriodFilter] = useState<PeriodPreset>("this_month");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);

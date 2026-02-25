@@ -96,6 +96,9 @@ export function TransactionDialog({
   const type = form.watch("type");
   const isTransferType = TRANSFER_TYPES.includes(type);
   const accountId = form.watch("account_id");
+
+  // Detect if this transaction was imported via Open Finance
+  const isOpenFinanceImported = !!transaction?.bank_connection_id;
   
   // Map type to category filter
   const getCategoryType = (): CategoryType | CategoryType[] | undefined => {
@@ -190,17 +193,17 @@ export function TransactionDialog({
   const onSubmit = async (data: FormData) => {
     try {
       const payload = {
-        description: data.description,
-        amount: data.amount,
+        description: isOpenFinanceImported ? transaction!.description : data.description,
+        amount: isOpenFinanceImported ? Number(transaction!.amount) : data.amount,
         paid_amount: data.paid_amount || null,
         type: data.type as TransactionType,
         category_id: isTransferType ? null : (data.category_id || null),
-        account_id: data.account_id,
+        account_id: isOpenFinanceImported ? transaction!.account_id : data.account_id,
         destination_account_id: data.destination_account_id,
         cost_center_id: isTransferType ? null : (data.cost_center_id || null),
         financial_type: isTransferType ? null : (categories?.find(c => c.id === data.category_id)?.expense_classification || null),
-        date: format(data.date, "yyyy-MM-dd"),
-        accrual_date: data.accrual_date ? format(data.accrual_date, "yyyy-MM-dd") : format(data.date, "yyyy-MM-dd"),
+        date: isOpenFinanceImported ? transaction!.date : format(data.date, "yyyy-MM-dd"),
+        accrual_date: data.accrual_date ? format(data.accrual_date, "yyyy-MM-dd") : (isOpenFinanceImported ? transaction!.date : format(data.date, "yyyy-MM-dd")),
         due_date: data.due_date ? format(data.due_date, "yyyy-MM-dd") : null,
         payment_date: data.payment_date ? format(data.payment_date, "yyyy-MM-dd") : null,
         payment_method: data.payment_method || null,
@@ -209,9 +212,19 @@ export function TransactionDialog({
         is_ignored: data.is_ignored || false,
         linked_existing_id: data.linked_existing_id,
       };
-      
+
+      // Auto-validate: if category was set and transaction was pending, mark as validated
+      const shouldAutoValidate = transaction
+        && transaction.validation_status === "pending_validation"
+        && data.category_id;
+
       if (transaction) {
-        await updateTransaction.mutateAsync({ id: transaction.id, ...payload });
+        const updatePayload: any = { id: transaction.id, ...payload };
+        if (shouldAutoValidate) {
+          updatePayload.validation_status = "validated";
+          updatePayload.validated_at = new Date().toISOString();
+        }
+        await updateTransaction.mutateAsync(updatePayload);
       } else {
         await createTransaction.mutateAsync(payload);
       }
@@ -286,8 +299,10 @@ export function TransactionDialog({
                       <CurrencyInput
                         value={field.value}
                         onChange={field.onChange}
+                        disabled={isOpenFinanceImported}
                       />
                     </FormControl>
+                    {isOpenFinanceImported && <p className="text-[10px] text-muted-foreground">🔒 Importado via Open Finance</p>}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -301,8 +316,9 @@ export function TransactionDialog({
                 <FormItem>
                   <FormLabel>Descrição</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Salário" {...field} />
+                    <Input placeholder="Ex: Salário" {...field} readOnly={isOpenFinanceImported} className={cn(isOpenFinanceImported && "bg-muted/50 cursor-not-allowed")} />
                   </FormControl>
+                  {isOpenFinanceImported && <p className="text-[10px] text-muted-foreground">🔒 Importado via Open Finance</p>}
                   <FormMessage />
                 </FormItem>
               )}
@@ -315,9 +331,9 @@ export function TransactionDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{getAccountLabel()}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isOpenFinanceImported}>
                       <FormControl>
-                        <SelectTrigger className="bg-white dark:bg-muted">
+                        <SelectTrigger className={cn("bg-white dark:bg-muted", isOpenFinanceImported && "opacity-60 cursor-not-allowed")}>
                           <SelectValue placeholder="Selecione..." />
                         </SelectTrigger>
                       </FormControl>
@@ -534,35 +550,48 @@ export function TransactionDialog({
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>Data Caixa</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "dd/MM/yyyy", { locale: ptBR })
-                            ) : (
-                              <span>Selecione</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          locale={ptBR}
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    {isOpenFinanceImported ? (
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          disabled
+                          className="w-full pl-3 text-left font-normal opacity-60 cursor-not-allowed"
+                        >
+                          {field.value ? format(field.value, "dd/MM/yyyy", { locale: ptBR }) : "—"}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    ) : (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "dd/MM/yyyy", { locale: ptBR })
+                              ) : (
+                                <span>Selecione</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            locale={ptBR}
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
