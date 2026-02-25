@@ -13,8 +13,6 @@ import {
   Users,
   Plus,
   Trash2,
-  FileText,
-  ExternalLink,
   Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -90,12 +88,8 @@ export default function Onboarding() {
   // Family members
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([emptyFamilyMember()]);
 
-  // Consent
-  const [acceptTerms, setAcceptTerms] = useState(false);
-  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
-  const [acceptLgpd, setAcceptLgpd] = useState(false);
-
-  const allConsentsAccepted = acceptTerms && acceptPrivacy && acceptLgpd;
+  // Consent - single checkbox
+  const [consentAccepted, setConsentAccepted] = useState(false);
 
   // Load existing data from pending_registrations table (replaces localStorage for security)
   useEffect(() => {
@@ -302,8 +296,8 @@ export default function Onboarding() {
     setFamilyMembers(prev => prev.map((m, i) => (i === index ? { ...m, [field]: value } : m)));
 
   const handleCompleteOnboarding = async () => {
-    if (!allConsentsAccepted) {
-      toast.error("Aceite todos os termos para continuar.");
+    if (!consentAccepted) {
+      toast.error("Aceite os termos para continuar.");
       return;
     }
 
@@ -652,81 +646,69 @@ export default function Onboarding() {
                   transition={{ duration: 0.25 }}
                   className="space-y-4"
                 >
-                  <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
-                    <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Cliente IBBRA confirmado</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Dados importados da base IBBRA. Campos marcados com 🔒 não podem ser alterados.
-                      </p>
-                    </div>
-                  </div>
+                   <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                     <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                     <div>
+                       <p className="text-sm font-medium text-foreground">Cliente IBBRA confirmado</p>
+                       <p className="text-xs text-muted-foreground mt-0.5">
+                         Dados importados da base IBBRA. Campos marcados com 🔒 não podem ser alterados.
+                       </p>
+                     </div>
+                   </div>
 
-                  <div className="space-y-3 rounded-lg border border-border p-4 bg-muted/20">
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Nome 🔒</p>
-                        <p className="font-medium mt-0.5 truncate">{fullName}</p>
-                      </div>
-                      {birthDate && (
-                        <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wider">Nascimento 🔒</p>
-                          <p className="font-medium mt-0.5">
-                            {birthDate.includes("-")
-                              ? birthDate.split("-").reverse().join("/")
-                              : birthDate}
-                          </p>
-                        </div>
-                      )}
-                      {ibbraEmailMasked && (
-                        <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wider">E-mail 🔒</p>
-                          <p className="font-medium mt-0.5 font-mono text-xs">{ibbraEmailMasked}</p>
-                        </div>
-                      )}
-                      {ibbra_telefone && (
-                        <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wider">Telefone 🔒</p>
-                          <p className="font-medium mt-0.5">{ibbra_telefone}</p>
-                        </div>
-                      )}
-                      {comunidade && (
-                        <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wider">Comunidade</p>
-                          <p className="font-medium mt-0.5">{comunidade}</p>
-                        </div>
-                      )}
-                      {operacional && (
-                        <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wider">Operacional</p>
-                          <p className="font-medium mt-0.5">{operacional}</p>
-                        </div>
-                      )}
-                    </div>
-                    {perfil_comportamental && (
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Perfil Comportamental</p>
-                        <p className="text-sm font-medium mt-0.5">{perfil_comportamental}</p>
-                      </div>
-                    )}
-                  </div>
+                   {ibbraEmailMasked && (
+                     <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border border-border">
+                       <AlertCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                       <div>
+                         <p className="text-sm font-medium text-foreground">Confirmação por e-mail</p>
+                         <p className="text-xs text-muted-foreground mt-1">
+                           O convite será enviado para: <span className="font-mono font-medium text-foreground">{ibbraEmailMasked}</span>
+                         </p>
+                       </div>
+                     </div>
+                   )}
 
-                  <div className="flex gap-3 pt-2">
-                    <Button
-                      variant="outline"
-                      className="h-12"
-                      onClick={() => setStep("cpf_validation")}
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      className="flex-1 h-12 text-sm font-semibold"
-                      onClick={() => setStep("profile_form")}
-                    >
-                      Confirmar e continuar
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </div>
+                   <div className="space-y-3 rounded-lg border border-border p-4 bg-muted/20">
+                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                       <div>
+                         <p className="text-xs text-muted-foreground uppercase tracking-wider">Nome 🔒</p>
+                         <p className="font-medium mt-0.5 truncate">{fullName}</p>
+                       </div>
+                       {birthDate && (
+                         <div>
+                           <p className="text-xs text-muted-foreground uppercase tracking-wider">Nascimento 🔒</p>
+                           <p className="font-medium mt-0.5">
+                             {birthDate.includes("-")
+                               ? birthDate.split("-").reverse().join("/")
+                               : birthDate}
+                           </p>
+                         </div>
+                       )}
+                       {ibbra_telefone && (
+                         <div>
+                           <p className="text-xs text-muted-foreground uppercase tracking-wider">Telefone 🔒</p>
+                           <p className="font-medium mt-0.5">{ibbra_telefone}</p>
+                         </div>
+                       )}
+                     </div>
+                   </div>
+
+                   <div className="flex gap-3 pt-2">
+                     <Button
+                       variant="outline"
+                       className="h-12"
+                       onClick={() => setStep("cpf_validation")}
+                     >
+                       <ArrowLeft className="h-4 w-4" />
+                     </Button>
+                     <Button
+                       className="flex-1 h-12 text-sm font-semibold"
+                       onClick={() => setStep("profile_form")}
+                     >
+                       Confirmar e continuar
+                       <ArrowRight className="h-4 w-4 ml-2" />
+                     </Button>
+                   </div>
                 </motion.div>
               )}
 
@@ -845,30 +827,8 @@ export default function Onboarding() {
                     </Select>
                   </FieldGroup>
 
-                  {/* Legal consent checkbox */}
-                  {!isIbbraClient && (
-                    <div className="flex items-start gap-2 pt-2">
-                      <Checkbox
-                        id="onboarding-consent"
-                        checked={acceptTerms && acceptPrivacy && acceptLgpd}
-                        onCheckedChange={(v) => {
-                          const checked = v === true;
-                          setAcceptTerms(checked);
-                          setAcceptPrivacy(checked);
-                          setAcceptLgpd(checked);
-                        }}
-                        className="mt-0.5"
-                      />
-                      <label htmlFor="onboarding-consent" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
-                        Aceito os{" "}
-                        <a href="/termos-de-uso" target="_blank" className="text-primary underline">Termos de Uso</a>,{" "}
-                        a{" "}
-                        <a href="/politica-de-privacidade" target="_blank" className="text-primary underline">Política de Privacidade</a>{" "}
-                        e o tratamento dos meus dados conforme a{" "}
-                        <a href="/lgpd" target="_blank" className="text-primary underline">LGPD</a>.
-                      </label>
-                    </div>
-                  )}
+                  {/* Legal consent checkbox - removed isIbbraClient condition, always show */}
+                  
 
                   <div className="flex gap-3 pt-2">
                     <Button
@@ -1059,73 +1019,45 @@ export default function Onboarding() {
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/30 transition-colors">
+                  <div className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/30 transition-colors">
                       <Checkbox
-                        id="terms"
-                        checked={acceptTerms}
-                        onCheckedChange={(checked) => setAcceptTerms(checked === true)}
+                        id="consent-single"
+                        checked={consentAccepted}
+                        onCheckedChange={(checked) => setConsentAccepted(checked === true)}
                         className="mt-0.5"
                       />
-                      <label htmlFor="terms" className="text-sm leading-relaxed cursor-pointer">
-                        Li e aceito os{" "}
+                      <label htmlFor="consent-single" className="text-sm leading-relaxed cursor-pointer">
+                        Aceito os{" "}
                         <a
                           href="/termos-de-uso"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-primary font-medium hover:underline inline-flex items-center gap-1"
+                          className="text-primary font-medium hover:underline"
                           onClick={(e) => e.stopPropagation()}
                         >
                           Termos de Uso
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </label>
-                    </div>
-
-                    <div className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/30 transition-colors">
-                      <Checkbox
-                        id="privacy"
-                        checked={acceptPrivacy}
-                        onCheckedChange={(checked) => setAcceptPrivacy(checked === true)}
-                        className="mt-0.5"
-                      />
-                      <label htmlFor="privacy" className="text-sm leading-relaxed cursor-pointer">
-                        Li e aceito a{" "}
+                        </a>, a{" "}
                         <a
                           href="/politica-de-privacidade"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-primary font-medium hover:underline inline-flex items-center gap-1"
+                          className="text-primary font-medium hover:underline"
                           onClick={(e) => e.stopPropagation()}
                         >
                           Política de Privacidade
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </label>
-                    </div>
-
-                    <div className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/30 transition-colors">
-                      <Checkbox
-                        id="lgpd"
-                        checked={acceptLgpd}
-                        onCheckedChange={(checked) => setAcceptLgpd(checked === true)}
-                        className="mt-0.5"
-                      />
-                      <label htmlFor="lgpd" className="text-sm leading-relaxed cursor-pointer">
-                        Autorizo o tratamento dos meus dados pessoais conforme a{" "}
+                        </a>{" "}
+                        e o tratamento dos meus dados conforme a{" "}
                         <a
                           href="/lgpd"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-primary font-medium hover:underline inline-flex items-center gap-1"
+                          className="text-primary font-medium hover:underline"
                           onClick={(e) => e.stopPropagation()}
                         >
                           LGPD
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
+                        </a>.
                       </label>
                     </div>
-                  </div>
 
                   <div className="flex gap-3 pt-2">
                     <Button
@@ -1144,7 +1076,7 @@ export default function Onboarding() {
                           handleCompleteOnboarding();
                         }
                       }}
-                      disabled={!allConsentsAccepted || isLoading}
+                      disabled={!consentAccepted || isLoading}
                     >
                       {isLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
