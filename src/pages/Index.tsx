@@ -250,9 +250,9 @@ const Index = () => {
                     </Link>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <UnclassifiedTransactionsAlert />
                     <InteractiveBudgetList />
                     <BudgetAlerts showNotifications={true} compact />
+                    <UnclassifiedTransactionsAlert />
                   </CardContent>
                 </Card>
               </AnimatedCard>
@@ -283,12 +283,12 @@ const Index = () => {
                     </Link>
                   </CardHeader>
                   <CardContent className="px-4 pb-4 space-y-4">
-                    <UnclassifiedTransactionsAlert />
                     <InteractiveBudgetList />
                     <div className="border-t pt-3">
                       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Alertas</p>
                       <BudgetAlerts showNotifications={false} compact />
                     </div>
+                    <UnclassifiedTransactionsAlert />
                   </CardContent>
                 </Card>
               </AnimatedCard>
