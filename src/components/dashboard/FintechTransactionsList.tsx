@@ -125,7 +125,7 @@ export function FintechTransactionsList() {
   };
 
   const recentTransactions = useMemo(
-    () => (transactions || []).slice(0, 10),
+    () => (transactions || []).slice(0, 5),
     [transactions]
   );
 

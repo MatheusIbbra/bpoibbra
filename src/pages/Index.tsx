@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
 import { CategoryDonutChart } from "@/components/dashboard/CategoryDonutChart";
 import { MultiCurrencyBalanceSection } from "@/components/dashboard/MultiCurrencyBalanceSection";
+import { CreditCardsAdvancedSummary } from "@/components/dashboard/CreditCardsAdvancedSummary";
+import { UnclassifiedTransactionsAlert } from "@/components/dashboard/UnclassifiedTransactionsAlert";
 
 import { StatCard } from "@/components/dashboard/StatCard";
 import { StatCardHoverTransactions } from "@/components/dashboard/StatCardHoverTransactions";
@@ -234,7 +236,15 @@ const Index = () => {
           defaultType="expense"
         />
 
-        {/* 2. Main content with budget sidebar on desktop */}
+        {/* 2. Credit Cards Advanced Summary */}
+        <AnimatedCard delay={0.08}>
+          <CreditCardsAdvancedSummary />
+        </AnimatedCard>
+
+        {/* Unclassified transactions alert */}
+        <UnclassifiedTransactionsAlert />
+
+        {/* 3. Main content with budget sidebar on desktop */}
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-[1fr_320px]">
           {/* Left: main content */}
           <div className="space-y-6 min-w-0">
