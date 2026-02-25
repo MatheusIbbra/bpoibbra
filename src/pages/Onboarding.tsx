@@ -14,6 +14,7 @@ import {
   Plus,
   Trash2,
   Lock,
+  Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   validateClientByCPF,
+  verifyIbbraEmail,
   isValidCPF,
   formatCPF,
   type IbbraClientValidationResult,
@@ -74,6 +76,9 @@ export default function Onboarding() {
   const [ibbraEmail, setIbbraEmail] = useState("");
   const [ibbraEmailMasked, setIbbraEmailMasked] = useState("");
   const [ibbra_telefone, setIbbraTelefone] = useState("");
+  const [ibbraEmailInput, setIbbraEmailInput] = useState("");
+  const [ibbraVerifiedEmail, setIbbraVerifiedEmail] = useState("");
+  const [emailVerifyError, setEmailVerifyError] = useState("");
   const [perfil_comportamental, setPerfilComportamental] = useState("");
   const [comunidade, setComunidade] = useState("");
   const [operacional, setOperacional] = useState("");
@@ -635,7 +640,7 @@ export default function Onboarding() {
                 </motion.div>
               )}
 
-              {/* STEP: IBBRA Confirm - show imported data from matriz */}
+              {/* STEP: IBBRA Confirm - email verification */}
               {step === "ibbra_confirm" && (
                 <motion.div
                   key="ibbra_confirm"
@@ -650,48 +655,41 @@ export default function Onboarding() {
                      <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                      <div>
                        <p className="text-sm font-medium text-foreground">Cliente IBBRA confirmado</p>
-                       <p className="text-xs text-muted-foreground mt-0.5">
-                         Dados importados da base IBBRA. Campos marcados com 🔒 não podem ser alterados.
-                       </p>
+                       <p className="text-xs text-muted-foreground mt-0.5">{fullName}</p>
                      </div>
                    </div>
 
                    {ibbraEmailMasked && (
                      <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border border-border">
-                       <AlertCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                       <Mail className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                        <div>
-                         <p className="text-sm font-medium text-foreground">Confirmação por e-mail</p>
+                         <p className="text-sm font-medium text-foreground">E-mail cadastrado</p>
                          <p className="text-xs text-muted-foreground mt-1">
-                           O convite será enviado para: <span className="font-mono font-medium text-foreground">{ibbraEmailMasked}</span>
+                           Identificamos o e-mail: <span className="font-mono font-medium text-foreground">{ibbraEmailMasked}</span>
+                         </p>
+                         <p className="text-xs text-muted-foreground mt-0.5">
+                           Digite seu e-mail completo para confirmar.
                          </p>
                        </div>
                      </div>
                    )}
 
-                   <div className="space-y-3 rounded-lg border border-border p-4 bg-muted/20">
-                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                       <div>
-                         <p className="text-xs text-muted-foreground uppercase tracking-wider">Nome 🔒</p>
-                         <p className="font-medium mt-0.5 truncate">{fullName}</p>
-                       </div>
-                       {birthDate && (
-                         <div>
-                           <p className="text-xs text-muted-foreground uppercase tracking-wider">Nascimento 🔒</p>
-                           <p className="font-medium mt-0.5">
-                             {birthDate.includes("-")
-                               ? birthDate.split("-").reverse().join("/")
-                               : birthDate}
-                           </p>
-                         </div>
-                       )}
-                       {ibbra_telefone && (
-                         <div>
-                           <p className="text-xs text-muted-foreground uppercase tracking-wider">Telefone 🔒</p>
-                           <p className="font-medium mt-0.5">{ibbra_telefone}</p>
-                         </div>
-                       )}
+                   <FieldGroup label="Confirme seu e-mail">
+                     <Input
+                       type="email"
+                       value={ibbraEmailInput}
+                       onChange={(e) => { setIbbraEmailInput(e.target.value); setEmailVerifyError(""); }}
+                       placeholder="Digite seu e-mail completo"
+                       className="h-12 text-sm input-executive"
+                     />
+                   </FieldGroup>
+
+                   {emailVerifyError && (
+                     <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5 border border-destructive/20">
+                       <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                       <p className="text-sm text-destructive/90">{emailVerifyError}</p>
                      </div>
-                   </div>
+                   )}
 
                    <div className="flex gap-3 pt-2">
                      <Button
@@ -703,10 +701,33 @@ export default function Onboarding() {
                      </Button>
                      <Button
                        className="flex-1 h-12 text-sm font-semibold"
-                       onClick={() => setStep("profile_form")}
+                       onClick={async () => {
+                         if (!ibbraEmailInput.trim()) {
+                           setEmailVerifyError("Digite seu e-mail.");
+                           return;
+                         }
+                         setIsLoading(true);
+                         setEmailVerifyError("");
+                         try {
+                           const result = await verifyIbbraEmail(cpf, ibbraEmailInput.trim());
+                           if (result.match && result.email) {
+                             setIbbraVerifiedEmail(result.email);
+                             setIbbraEmail(result.email);
+                             toast.success("E-mail verificado com sucesso!");
+                             setStep("profile_form");
+                           } else {
+                             setEmailVerifyError("O e-mail informado não corresponde ao cadastro IBBRA.");
+                           }
+                         } catch {
+                           setEmailVerifyError("Erro ao verificar e-mail. Tente novamente.");
+                         } finally {
+                           setIsLoading(false);
+                         }
+                       }}
+                       disabled={isLoading || !ibbraEmailInput.trim()}
                      >
-                       Confirmar e continuar
-                       <ArrowRight className="h-4 w-4 ml-2" />
+                       {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Mail className="h-4 w-4 mr-2" />}
+                       {isLoading ? "Verificando..." : "Verificar E-mail"}
                      </Button>
                    </div>
                 </motion.div>
@@ -1189,10 +1210,25 @@ export default function Onboarding() {
                   animate="center"
                   exit="exit"
                   transition={{ duration: 0.25 }}
-                  className="flex flex-col items-center justify-center py-12 space-y-4"
+                  className="flex flex-col items-center justify-center py-16 space-y-6"
                 >
-                  <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">Configurando sua plataforma...</p>
+                  <div className="relative">
+                    <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  </div>
+                  <div className="text-center space-y-2">
+                    <h3 className="text-lg font-semibold text-foreground" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                      Preparando sua plataforma
+                    </h3>
+                    <p className="text-sm text-muted-foreground max-w-xs">
+                      Estamos configurando seu ambiente financeiro personalizado. Isso levará apenas alguns segundos.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground/60">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                    <span>Criando organização e categorias...</span>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

@@ -27,7 +27,7 @@ import { Loader2, RefreshCw, Wallet, ArrowUpRight, ArrowDownRight, TrendingUp, B
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, differenceInDays, eachDayOfInterval, isWeekend } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useBaseFilter } from "@/contexts/BaseFilterContext";
+import { useBaseFilter, useBaseFilterState } from "@/contexts/BaseFilterContext";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -49,6 +49,8 @@ const Index = () => {
     return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
   }) || [];
 
+  const { isLoading: baseLoading, availableOrganizations, userRole } = useBaseFilterState();
+
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
@@ -64,6 +66,51 @@ const Index = () => {
   }
 
   if (!user) return null;
+
+  // Show provisioning screen for non-staff users with no organizations yet
+  const isStaffRole = userRole && ["admin", "supervisor", "fa", "kam", "projetista"].includes(userRole);
+  if (!baseLoading && !isStaffRole && availableOrganizations.length === 0) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-6 text-center max-w-sm px-6">
+          <div className="relative">
+            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold text-foreground" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+              Configurando sua plataforma
+            </h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Estamos preparando seu ambiente financeiro personalizado. Isso pode levar alguns instantes.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground/60">
+            <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+            <span>Finalizando configuração...</span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={() => window.location.reload()}
+          >
+            <RefreshCw className="h-3.5 w-3.5 mr-2" />
+            Recarregar
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (baseLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (error) {
     return (

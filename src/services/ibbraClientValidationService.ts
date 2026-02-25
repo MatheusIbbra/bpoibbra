@@ -42,6 +42,25 @@ export async function validateClientByCPF(cpf: string): Promise<IbbraClientValid
 }
 
 /**
+ * Verifies if user-typed email matches the one stored in the IBBRA matrix database.
+ * Returns the real email if it matches (for signUp flow).
+ */
+export async function verifyIbbraEmail(cpf: string, email: string): Promise<{ match: boolean; email?: string; error?: string }> {
+  const cleanCpf = cpf.replace(/\D/g, "");
+
+  const { data, error } = await supabase.functions.invoke("validate-ibbra-client", {
+    body: { cpf: cleanCpf, action: "verify_email", email },
+  });
+
+  if (error) {
+    console.error("verify-ibbra-email error:", error);
+    return { match: false, error: error.message || "Erro ao verificar e-mail" };
+  }
+
+  return data as { match: boolean; email?: string; error?: string };
+}
+
+/**
  * Validates CPF format and check digits.
  */
 export function isValidCPF(cpf: string): boolean {
