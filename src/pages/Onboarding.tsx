@@ -34,7 +34,7 @@ import {
 import ibbraLogoFullWhite from "@/assets/ibbra-logo-full-white.png";
 import ibbraLogoIcon from "@/assets/ibbra-logo-icon.png";
 
-type Step = "client_question" | "cpf_validation" | "profile_form" | "family_question" | "family_form" | "consent" | "set_password" | "completing";
+type Step = "client_question" | "cpf_validation" | "ibbra_confirm" | "profile_form" | "family_question" | "family_form" | "consent" | "set_password" | "completing";
 
 interface FamilyMember {
   relationship: string;
@@ -71,6 +71,14 @@ export default function Onboarding() {
   const [gender, setGender] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  // IBBRA enriched fields (from matriz)
+  const [ibbraEmail, setIbbraEmail] = useState("");
+  const [ibbraEmailMasked, setIbbraEmailMasked] = useState("");
+  const [ibbra_telefone, setIbbraTelefone] = useState("");
+  const [perfil_comportamental, setPerfilComportamental] = useState("");
+  const [comunidade, setComunidade] = useState("");
+  const [operacional, setOperacional] = useState("");
 
   // Check if user is Google OAuth (no password set)
   const isGoogleUser = user?.app_metadata?.provider === "google" || 
@@ -245,14 +253,23 @@ export default function Onboarding() {
         return;
       }
 
+      // Validate against Supabase B (matriz) via Edge Function
       const result = await validateClientByCPF(cleanCpf);
       setValidationResult(result);
       if (result.found) {
-        setFullName(result.full_name || "");
-        setBirthDate(result.birth_date || "");
-        toast.success("Cliente IBBRA confirmado!");
+        // Populate all fields from matriz
+        setFullName(result.nome_completo || result.full_name || "");
+        setBirthDate(result.data_nascimento || result.birth_date || "");
+        if (result.telefone) setPhone(result.telefone);
+        if (result.genero) setGender(result.genero);
+        if (result.email_masked) setIbbraEmailMasked(result.email_masked);
+        if (result.perfil_comportamental) setPerfilComportamental(result.perfil_comportamental);
+        if (result.comunidade) setComunidade(result.comunidade);
+        if (result.operacional) setOperacional(result.operacional);
+        // Advance to confirmation step to show imported data to user
+        setStep("ibbra_confirm");
       } else {
-        setValidationError("Cliente não encontrado na base IBBRA.");
+        setValidationError("Cliente não encontrado na base IBBRA. Verifique o CPF ou entre em contato com nosso atendimento.");
       }
     } catch {
       setValidationError("Erro ao validar. Tente novamente.");
@@ -320,7 +337,6 @@ export default function Onboarding() {
       });
 
       if (rpcError) {
-        // Handle CPF duplicate error
         if (rpcError.message?.includes('CPF_ALREADY_REGISTERED:')) {
           const maskedEmail = rpcError.message.split('CPF_ALREADY_REGISTERED:')[1];
           setCpfDuplicateEmail(maskedEmail);
@@ -332,8 +348,23 @@ export default function Onboarding() {
         throw rpcError;
       }
 
-      // Now save consents (separate from onboarding RPC for auditability)
-      // Fetch current legal document versions
+      // Enrich profile with IBBRA matriz fields if client is validated
+      if (validationResult?.found && isIbbraClient) {
+        await supabase
+          .from("profiles")
+          .update({
+            comunidade: comunidade || null,
+            operacional: operacional || null,
+            perfil_comportamental: perfil_comportamental || null,
+            ibbra_email: ibbraEmail || null,
+            ibbra_telefone: ibbra_telefone || null,
+            origem: "ibbra",
+            ibbra_locked: true,
+          })
+          .eq("user_id", user.id);
+      }
+
+      // Save consents
       const { data: legalDocs } = await supabase
         .from("legal_documents")
         .select("id, document_type, version")
@@ -343,7 +374,6 @@ export default function Onboarding() {
       const privacyDoc = legalDocs?.find(d => d.document_type === "privacy");
       const lgpdDoc = legalDocs?.find(d => d.document_type === "lgpd");
 
-      // Insert consent record
       const { error: consentError } = await supabase
         .from("user_consents")
         .insert({
@@ -360,10 +390,8 @@ export default function Onboarding() {
 
       if (consentError) {
         console.error("Consent save error:", consentError);
-        // Don't block onboarding for consent save failure, but log it
       }
 
-      // Update profile legal_accepted
       await supabase
         .from("profiles")
         .update({
@@ -373,7 +401,6 @@ export default function Onboarding() {
         })
         .eq("user_id", user.id);
 
-      // Clean up localStorage (both new token and legacy key)
       localStorage.removeItem("ibbra_reg_token");
       localStorage.removeItem("ibbra_registration");
 
@@ -441,6 +468,7 @@ export default function Onboarding() {
   const stepDescriptions: Record<Step, string> = {
     client_question: "Responda para personalizarmos seu acesso.",
     cpf_validation: "Valide seu cadastro como cliente IBBRA.",
+    ibbra_confirm: "Confirme seus dados importados da base IBBRA.",
     profile_form: "Preencha seus dados para continuar.",
     family_question: "Deseja cadastrar membros da família?",
     family_form: "Adicione os dados dos seus familiares.",
@@ -464,7 +492,7 @@ export default function Onboarding() {
                 className="text-2xl font-semibold tracking-tight"
                 style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
               >
-                {step === "consent" ? "Consentimentos e Termos" : step === "set_password" ? "Definir Senha" : "Complete seu cadastro"}
+                {step === "consent" ? "Consentimentos e Termos" : step === "set_password" ? "Definir Senha" : step === "ibbra_confirm" ? "Dados da Base IBBRA" : "Complete seu cadastro"}
               </h1>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {stepDescriptions[step]}
@@ -609,6 +637,95 @@ export default function Onboarding() {
                         <ArrowRight className="h-4 w-4 ml-2" />
                       </Button>
                     )}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* STEP: IBBRA Confirm - show imported data from matriz */}
+              {step === "ibbra_confirm" && (
+                <motion.div
+                  key="ibbra_confirm"
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.25 }}
+                  className="space-y-4"
+                >
+                  <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                    <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Cliente IBBRA confirmado</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Dados importados da base IBBRA. Campos marcados com 🔒 não podem ser alterados.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 rounded-lg border border-border p-4 bg-muted/20">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Nome 🔒</p>
+                        <p className="font-medium mt-0.5 truncate">{fullName}</p>
+                      </div>
+                      {birthDate && (
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wider">Nascimento 🔒</p>
+                          <p className="font-medium mt-0.5">
+                            {birthDate.includes("-")
+                              ? birthDate.split("-").reverse().join("/")
+                              : birthDate}
+                          </p>
+                        </div>
+                      )}
+                      {ibbraEmailMasked && (
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wider">E-mail 🔒</p>
+                          <p className="font-medium mt-0.5 font-mono text-xs">{ibbraEmailMasked}</p>
+                        </div>
+                      )}
+                      {ibbra_telefone && (
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wider">Telefone 🔒</p>
+                          <p className="font-medium mt-0.5">{ibbra_telefone}</p>
+                        </div>
+                      )}
+                      {comunidade && (
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wider">Comunidade</p>
+                          <p className="font-medium mt-0.5">{comunidade}</p>
+                        </div>
+                      )}
+                      {operacional && (
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wider">Operacional</p>
+                          <p className="font-medium mt-0.5">{operacional}</p>
+                        </div>
+                      )}
+                    </div>
+                    {perfil_comportamental && (
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Perfil Comportamental</p>
+                        <p className="text-sm font-medium mt-0.5">{perfil_comportamental}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                      variant="outline"
+                      className="h-12"
+                      onClick={() => setStep("cpf_validation")}
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      className="flex-1 h-12 text-sm font-semibold"
+                      onClick={() => setStep("profile_form")}
+                    >
+                      Confirmar e continuar
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
                   </div>
                 </motion.div>
               )}

@@ -1684,17 +1684,24 @@ export type Database = {
           blocked_reason: string | null
           city: string | null
           complement: string | null
+          comunidade: string | null
           cpf: string | null
           created_at: string
           external_client_validated: boolean | null
           full_name: string | null
           gender: string | null
+          ibbra_email: string | null
+          ibbra_locked: boolean | null
+          ibbra_telefone: string | null
           id: string
           is_blocked: boolean | null
           is_ibbra_client: boolean | null
           legal_accepted: boolean
           legal_accepted_at: string | null
           legal_accepted_version: string | null
+          operacional: string | null
+          origem: string | null
+          perfil_comportamental: string | null
           phone: string | null
           registration_completed: boolean
           rg: string | null
@@ -1714,17 +1721,24 @@ export type Database = {
           blocked_reason?: string | null
           city?: string | null
           complement?: string | null
+          comunidade?: string | null
           cpf?: string | null
           created_at?: string
           external_client_validated?: boolean | null
           full_name?: string | null
           gender?: string | null
+          ibbra_email?: string | null
+          ibbra_locked?: boolean | null
+          ibbra_telefone?: string | null
           id?: string
           is_blocked?: boolean | null
           is_ibbra_client?: boolean | null
           legal_accepted?: boolean
           legal_accepted_at?: string | null
           legal_accepted_version?: string | null
+          operacional?: string | null
+          origem?: string | null
+          perfil_comportamental?: string | null
           phone?: string | null
           registration_completed?: boolean
           rg?: string | null
@@ -1744,17 +1758,24 @@ export type Database = {
           blocked_reason?: string | null
           city?: string | null
           complement?: string | null
+          comunidade?: string | null
           cpf?: string | null
           created_at?: string
           external_client_validated?: boolean | null
           full_name?: string | null
           gender?: string | null
+          ibbra_email?: string | null
+          ibbra_locked?: boolean | null
+          ibbra_telefone?: string | null
           id?: string
           is_blocked?: boolean | null
           is_ibbra_client?: boolean | null
           legal_accepted?: boolean
           legal_accepted_at?: string | null
           legal_accepted_version?: string | null
+          operacional?: string | null
+          origem?: string | null
+          perfil_comportamental?: string | null
           phone?: string | null
           registration_completed?: boolean
           rg?: string | null
