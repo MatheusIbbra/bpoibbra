@@ -188,12 +188,23 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
       const result = await validateClientByCPF(cleanCpf);
       setValidationResult(result);
       if (result.found) {
-        setFullName(result.full_name || "");
+        setFullName(result.nome_completo || result.full_name || "");
         // Convert ISO date to DD/MM/YYYY for display
-        if (result.birth_date) {
-          const [y, m, d] = result.birth_date.split("-");
-          setBirthDate(`${d}/${m}/${y}`);
+        if (result.data_nascimento || result.birth_date) {
+          const bd = result.data_nascimento || result.birth_date || "";
+          if (bd.includes("-")) {
+            const [y, m, d] = bd.split("-");
+            setBirthDate(`${d}/${m}/${y}`);
+          } else {
+            setBirthDate(bd);
+          }
         }
+        if (result.telefone) {
+          setPhone(result.telefone);
+          setIbbraTelefone(result.telefone);
+        }
+        if (result.email_masked) setIbbraEmailMasked(result.email_masked);
+        if (result.email_masked) setEmail(""); // will be filled by invite flow
         toast.success("Cliente IBBRA confirmado!");
       } else {
         setValidationError(
@@ -225,6 +236,10 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
       // Silently fail - not critical
     }
   };
+
+  // IBBRA enriched fields
+  const [ibbraEmailMasked, setIbbraEmailMasked] = useState("");
+  const [ibbra_telefone, setIbbraTelefone] = useState("");
 
   const handleProceedToForm = () => {
     if (validationResult?.found) {
@@ -489,13 +504,29 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20"
+                  className="space-y-3"
                 >
-                  <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Cliente confirmado</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{validationResult.full_name}</p>
+                  <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                    <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Cliente confirmado</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{validationResult.full_name || validationResult.nome_completo}</p>
+                    </div>
                   </div>
+                  {ibbraEmailMasked && (
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border border-border">
+                      <Mail className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Confirmação por e-mail</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Um convite será enviado para: <span className="font-mono font-medium text-foreground">{ibbraEmailMasked}</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Confirme para prosseguir com o cadastro.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               )}
 
@@ -770,15 +801,20 @@ export default function RegistrationFlow({ onBack, onGoogleSignUp }: Registratio
               <FieldGroup label="Telefone">
                 <Input 
                   value={phone} 
+                  readOnly={!!ibbra_telefone}
                   onChange={(e) => setPhone(formatPhone(e.target.value))} 
                   placeholder="(11) 99999-0000" 
-                  className="h-11 text-sm input-executive" 
+                  className={`h-11 text-sm input-executive ${ibbra_telefone ? 'bg-muted/50 cursor-not-allowed' : ''}`}
                   inputMode="tel"
                   maxLength={15}
                 />
               </FieldGroup>
               <FieldGroup label="Email">
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className="h-11 text-sm input-executive" />
+                {ibbraEmailMasked ? (
+                  <Input value={ibbraEmailMasked} readOnly className="h-11 text-sm input-executive bg-muted/50 cursor-not-allowed font-mono" />
+                ) : (
+                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className="h-11 text-sm input-executive" />
+                )}
               </FieldGroup>
             </div>
             <div className="grid grid-cols-2 gap-3">
