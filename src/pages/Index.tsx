@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
 import { CategoryDonutChart } from "@/components/dashboard/CategoryDonutChart";
 import { MultiCurrencyBalanceSection } from "@/components/dashboard/MultiCurrencyBalanceSection";
-import { CreditCardsAdvancedSummary } from "@/components/dashboard/CreditCardsAdvancedSummary";
 import { UnclassifiedTransactionsAlert } from "@/components/dashboard/UnclassifiedTransactionsAlert";
 
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -18,7 +17,7 @@ import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useBudgets } from "@/hooks/useBudgets";
 import { useTransactions, Transaction } from "@/hooks/useTransactions";
-import { formatCurrency, parseLocalDate } from "@/lib/formatters";
+import { formatCurrency, parseLocalDate, shortenAccountName } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
@@ -133,7 +132,7 @@ const Index = () => {
     );
   }
 
-  // Filter accounts for "Posição Financeira" - exclude credit cards and investments
+  // Filter accounts for "Saldo Total" - exclude credit cards and investments
   const financialAccounts = accounts?.filter(a => a.account_type !== 'credit_card' && a.account_type !== 'investment' && a.status === 'active') || [];
 
   return (
@@ -154,7 +153,7 @@ const Index = () => {
               <>
                 <StaggerItem>
                   <StatCard
-                    title="Posição Financeira"
+                    title="Saldo Total"
                     value={formatCurrency(stats?.totalBalance ?? 0)}
                     icon={<Wallet className="h-5 w-5" />}
                     variant="default"
@@ -201,7 +200,7 @@ const Index = () => {
             <DialogHeader>
               <DialogTitle className="text-sm flex items-center gap-2">
                 <Wallet className="h-4 w-4 text-muted-foreground" />
-                Composição da Posição Financeira
+                Composição do Saldo Total
               </DialogTitle>
             </DialogHeader>
             <AccountsBreakdown accounts={financialAccounts} />
@@ -235,11 +234,6 @@ const Index = () => {
           transaction={editingTransaction}
           defaultType="expense"
         />
-
-        {/* 2. Credit Cards Advanced Summary */}
-        <AnimatedCard delay={0.08}>
-          <CreditCardsAdvancedSummary />
-        </AnimatedCard>
 
         {/* Unclassified transactions alert */}
         <UnclassifiedTransactionsAlert />
@@ -524,7 +518,7 @@ function AccountsBreakdown({ accounts }: { accounts: Array<{ id: string; name: s
               <Building2 className="h-3 w-3 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-medium truncate">{acc.name}</p>
+              <p className="text-xs font-medium truncate">{shortenAccountName(acc.name, acc.account_type)}</p>
               <p className="text-[10px] text-muted-foreground truncate">
                 {acc.bank_name || typeLabel(acc.account_type)}
               </p>
