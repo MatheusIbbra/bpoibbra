@@ -23,8 +23,12 @@ export function UnclassifiedTransactionsAlert() {
     }).length;
   }, [transactions]);
 
-  // Show only for "cliente" role users
-  if (roleLoading || txLoading || (role && role !== "cliente") || unclassifiedCount === 0) return null;
+  // Show only while loading or for non-cliente roles
+  if (roleLoading || txLoading) return null;
+  // Hide for assessor/admin roles — only show for clientes
+  if (role && role !== "cliente") return null;
+  // Hide if no unclassified transactions
+  if (unclassifiedCount === 0) return null;
 
   return (
     <button
