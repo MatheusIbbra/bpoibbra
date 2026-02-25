@@ -17,6 +17,7 @@ interface CategoryDetail {
     amount: number;
     date: string;
     account_name: string | null;
+    [key: string]: any;
   }>;
 }
 
@@ -44,10 +45,14 @@ export function useCategoryAnalysisReport(
       let query = supabase
         .from("transactions")
         .select(`
-          id, description, amount, type, date,
+          id, description, amount, type, date, status, notes,
+          category_id, account_id, cost_center_id,
+          bank_connection_id, is_ignored, validation_status,
+          accrual_date, due_date, payment_date, payment_method,
+          paid_amount, raw_description, linked_transaction_id,
           category_id,
           categories (name, color),
-          accounts (name)
+          accounts (id, name, bank_name)
         `)
         .gte("date", startStr)
         .lte("date", endStr)
@@ -85,10 +90,8 @@ export function useCategoryAnalysisReport(
 
         const existing = map.get(tx.category_id);
         const txDetail = {
-          id: tx.id,
-          description: tx.description,
+          ...tx,
           amount,
-          date: tx.date,
           account_name: tx.accounts?.name || null,
         };
 
