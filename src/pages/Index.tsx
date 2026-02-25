@@ -235,9 +235,6 @@ const Index = () => {
           defaultType="expense"
         />
 
-        {/* Unclassified transactions alert */}
-        <UnclassifiedTransactionsAlert />
-
         {/* 3. Main content with budget sidebar on desktop */}
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-[1fr_320px]">
           {/* Left: main content */}
@@ -253,6 +250,7 @@ const Index = () => {
                     </Link>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <UnclassifiedTransactionsAlert />
                     <InteractiveBudgetList />
                     <BudgetAlerts showNotifications={true} compact />
                   </CardContent>
@@ -285,6 +283,7 @@ const Index = () => {
                     </Link>
                   </CardHeader>
                   <CardContent className="px-4 pb-4 space-y-4">
+                    <UnclassifiedTransactionsAlert />
                     <InteractiveBudgetList />
                     <div className="border-t pt-3">
                       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Alertas</p>
