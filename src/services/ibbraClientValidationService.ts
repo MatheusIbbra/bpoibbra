@@ -1,62 +1,44 @@
 /**
  * IBBRA Client Validation Service
- * 
- * Validates CPF against the external IBBRA client database.
- * Currently in MOCK mode until the real API is available.
- * 
- * When the real API is ready:
- * 1. Set USE_MOCK_VALIDATION = false
- * 2. Implement the real validation via Edge Function
- * 3. No UI changes needed
+ *
+ * Validates CPF against the external IBBRA client database (Supabase B - matriz).
+ * Calls the Edge Function validate-ibbra-client which reads from c_cliente table.
  */
 
-const USE_MOCK_VALIDATION = true;
+import { supabase } from "@/integrations/supabase/client";
 
 export interface IbbraClientValidationResult {
   found: boolean;
   full_name?: string;
   birth_date?: string;
+  nome_completo?: string;
+  email_masked?: string;
+  telefone?: string;
+  data_nascimento?: string;
+  genero?: string;
+  perfil_comportamental?: string;
+  comunidade?: string;
+  operacional?: string;
+  error?: string;
 }
 
 /**
- * Mock validation for development.
- * CPF "00000000000" returns a found client.
- * Any other CPF returns not found.
- */
-async function mockValidation(cpf: string): Promise<IbbraClientValidationResult> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 1500));
-
-  const cleanCpf = cpf.replace(/\D/g, "");
-
-  if (cleanCpf === "00000000000") {
-    return {
-      found: true,
-      full_name: "Maria Helena de Souza",
-      birth_date: "1985-03-15",
-    };
-  }
-
-  return { found: false };
-}
-
-/**
- * Real validation via Edge Function (future implementation).
- */
-async function realValidation(_cpf: string): Promise<IbbraClientValidationResult> {
-  // Future: call edge function validate-ibbra-client
-  // const { data, error } = await supabase.functions.invoke('validate-ibbra-client', { body: { cpf } });
-  throw new Error("Real validation not yet implemented. Set USE_MOCK_VALIDATION = true.");
-}
-
-/**
- * Validates a CPF against the IBBRA client database.
+ * Validates a CPF against the IBBRA client database via Edge Function.
+ * The Edge Function connects to Supabase B (matriz) and reads c_cliente.
  */
 export async function validateClientByCPF(cpf: string): Promise<IbbraClientValidationResult> {
-  if (USE_MOCK_VALIDATION) {
-    return mockValidation(cpf);
+  const cleanCpf = cpf.replace(/\D/g, "");
+
+  const { data, error } = await supabase.functions.invoke("validate-ibbra-client", {
+    body: { cpf: cleanCpf },
+  });
+
+  if (error) {
+    console.error("validate-ibbra-client error:", error);
+    return { found: false, error: error.message || "Erro ao validar CPF" };
   }
-  return realValidation(cpf);
+
+  return data as IbbraClientValidationResult;
 }
 
 /**

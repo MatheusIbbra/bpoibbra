@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.delete-client]
 verify_jwt = false
+
+[functions.validate-ibbra-client]
+verify_jwt = false
