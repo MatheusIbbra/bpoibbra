@@ -15,7 +15,7 @@ import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { useTransactions, Transaction } from "@/hooks/useTransactions";
 import { TransactionDialog } from "@/components/transactions/TransactionDialog";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, shortenAccountName } from "@/lib/formatters";
 import { parseLocalDate } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { getAutoIcon } from "@/lib/category-icons";
@@ -210,7 +210,7 @@ export function FintechTransactionsList() {
                       <p className="text-[10px] text-muted-foreground truncate">
                           {format(parseLocalDate(tx.date), "dd/MM", { locale: ptBR })}
                           {tx.categories?.name && ` · ${tx.categories.name}`}
-                          {tx.accounts?.name && ` · ${tx.accounts.name}`}
+                          {tx.accounts?.name && ` · ${shortenAccountName(tx.accounts.name)}`}
                           {tx.cost_centers?.name && ` · ${tx.cost_centers.name}`}
                         </p>
                       </div>

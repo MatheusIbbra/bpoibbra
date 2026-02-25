@@ -87,7 +87,7 @@ export function AppSidebar() {
   // Build nav items based on role
   const navItems = [
     { title: "Consolidação", url: "/", icon: Home },
-    { title: "Open Finance", url: "/cadastros", icon: Building2 },
+    
     { title: "Cartões de Crédito", url: "/cartoes", icon: CreditCard },
     { title: "Orçamentos", url: "/orcamentos", icon: Wallet },
   ];

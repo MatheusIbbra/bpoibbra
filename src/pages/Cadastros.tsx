@@ -47,6 +47,7 @@ import { CategoriesDialog } from "@/components/categories/CategoriesDialog";
 import { CostCenterDialog } from "@/components/cost-centers/CostCenterDialog";
 import { TransferDialog } from "@/components/transfers/TransferDialog";
 import { RuleDialog } from "@/components/rules/RuleDialog";
+import { BankConnectionsManager } from "@/components/open-finance/BankConnectionsManager";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { cn } from "@/lib/utils";
@@ -233,10 +234,11 @@ export default function Cadastros() {
       <div className="space-y-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <TabsList className={`grid w-full sm:w-auto ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'}`}>
+            <TabsList className={`grid w-full sm:w-auto ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'}`}>
               <TabsTrigger value="contas" className="text-xs sm:text-sm">Contas</TabsTrigger>
               <TabsTrigger value="categorias" className="text-xs sm:text-sm">Categorias</TabsTrigger>
               <TabsTrigger value="centros" className="text-xs sm:text-sm">Centros</TabsTrigger>
+              <TabsTrigger value="openfinance" className="text-xs sm:text-sm">Open Finance</TabsTrigger>
               {isAdmin && <TabsTrigger value="regras" className="text-xs sm:text-sm">Regras</TabsTrigger>}
             </TabsList>
             
@@ -321,17 +323,6 @@ export default function Cadastros() {
 
           {/* Contas Tab */}
           <TabsContent value="contas" className="mt-4 space-y-4">
-            <Card>
-              <CardContent className="py-4">
-                <div className="text-center">
-                  <p className="text-xs text-muted-foreground">Saldo Total</p>
-                  <p className={cn("text-xl font-bold", totalBalance >= 0 ? "text-success" : "text-destructive")}>
-                    {formatCurrency(totalBalance)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
             <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {loadingAccounts ? (
                 <div className="col-span-full flex justify-center py-8">
@@ -457,6 +448,11 @@ export default function Cadastros() {
                 );
               })()
             )}
+          </TabsContent>
+
+          {/* Open Finance Tab */}
+          <TabsContent value="openfinance" className="mt-4">
+            <BankConnectionsManager />
           </TabsContent>
 
           {/* Centros de Custo Tab */}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Pencil, Trash2, Building2, CreditCard, PiggyBank, TrendingUp, ArrowRightLeft, Wallet } from "lucide-react";
+import { shortenAccountName } from "@/lib/formatters";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -231,7 +232,7 @@ export default function Contas() {
                         </div>
                       )}
                       <div>
-                        <CardTitle className="text-base">{account.name}</CardTitle>
+                        <CardTitle className="text-base">{shortenAccountName(account.name, account.account_type)}</CardTitle>
                         <p className="text-sm text-muted-foreground">{account.bank_name}</p>
                       </div>
                     </div>

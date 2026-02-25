@@ -15,7 +15,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useCreditCardAdvancedSummary, CreditCardAdvanced, CreditCardInvoiceMonth } from "@/hooks/useCreditCardAdvancedSummary";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, shortenAccountName } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { AccountDialog } from "@/components/accounts/AccountDialog";
 
@@ -29,7 +29,7 @@ const BANK_COLORS: Record<string, string> = {
   c6bank: "#1A1A1A",
   c6: "#1A1A1A",
   picpay: "#21C25E",
-  neon: "#00D964",
+  neon: "#00BFFF",
   next: "#00AB63",
   original: "#7FD321",
   pan: "#006AB3",
@@ -170,7 +170,7 @@ function CreditCardVisual({ card, onViewInvoices, onNavigate }: {
             {card.bankName || "Cartão"}
           </p>
           <p className={`text-sm font-bold ${textLight ? "text-white" : "text-foreground"}`}>
-            {card.name}
+            {shortenAccountName(card.name, "credit_card")}
           </p>
         </div>
 
