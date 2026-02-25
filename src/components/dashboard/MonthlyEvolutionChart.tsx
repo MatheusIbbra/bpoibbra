@@ -222,34 +222,33 @@ export function MonthlyEvolutionChart() {
 
       {/* Month Detail Modal */}
       <Dialog open={!!selectedMonth} onOpenChange={(open) => !open && setSelectedMonth(null)}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto w-[calc(100vw-2rem)] sm:w-full">
-          <DialogHeader>
-            <DialogTitle className="capitalize">{selectedMonth?.label}</DialogTitle>
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto w-[calc(100vw-1rem)] sm:w-full p-4 sm:p-6">
+          <DialogHeader className="pb-1">
+            <DialogTitle className="capitalize text-base">{selectedMonth?.label}</DialogTitle>
+            <p className="text-xs text-muted-foreground">{monthTransactions?.length || 0} movimentações</p>
           </DialogHeader>
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {monthTransactions && monthTransactions.length > 0 ? (
               monthTransactions.slice(0, 50).map((tx) => (
-                <div 
+                <button 
                   key={tx.id} 
-                  className="flex flex-col sm:flex-row sm:items-center justify-between py-2 px-2 rounded-md hover:bg-muted/50 cursor-pointer transition-colors gap-1"
+                  className="w-full flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-colors text-left"
                   onClick={() => setEditingTransaction(tx)}
                 >
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 mr-3">
                     <p className="text-sm font-medium truncate">{tx.description || tx.raw_description}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{format(parseLocalDate(tx.date), "dd/MM/yyyy", { locale: ptBR })}</span>
-                      <Badge variant={tx.type === "income" ? "default" : "destructive"} className="text-[10px] h-4 px-1.5">
-                        {tx.type === "income" ? "Receita" : "Despesa"}
-                      </Badge>
-                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {format(parseLocalDate(tx.date), "dd/MM", { locale: ptBR })}
+                      {tx.categories?.name ? ` · ${tx.categories.name}` : ""}
+                    </p>
                   </div>
-                  <span className={`text-sm font-semibold tabular-nums shrink-0 ${tx.type === "income" ? "text-success" : "text-destructive"}`}>
-                    {formatCurrency(Math.abs(Number(tx.amount)))}
+                  <span className={`text-sm font-semibold tabular-nums ${tx.type === "income" ? "text-success" : "text-destructive"}`}>
+                    {tx.type === "income" ? "+" : "-"}{formatCurrency(Math.abs(Number(tx.amount)))}
                   </span>
-                </div>
+                </button>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">Nenhuma movimentação</p>
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhuma movimentação</p>
             )}
           </div>
         </DialogContent>

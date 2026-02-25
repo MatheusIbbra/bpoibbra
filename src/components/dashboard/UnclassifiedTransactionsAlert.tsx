@@ -1,14 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { useTransactions } from "@/hooks/useTransactions";
-import { useIsAdmin } from "@/hooks/useUserRoles";
+import { useCurrentUserRole } from "@/hooks/useUserRoles";
 import { useMemo } from "react";
 import { parseLocalDate } from "@/lib/formatters";
 import { Tag } from "lucide-react";
 
 export function UnclassifiedTransactionsAlert() {
   const navigate = useNavigate();
-  const { isAdmin } = useIsAdmin();
-  const { data: transactions } = useTransactions({});
+  const { data: role, isLoading: roleLoading } = useCurrentUserRole();
+  const { data: transactions, isLoading: txLoading } = useTransactions({});
 
   const unclassifiedCount = useMemo(() => {
     if (!transactions) return 0;
@@ -23,15 +23,15 @@ export function UnclassifiedTransactionsAlert() {
     }).length;
   }, [transactions]);
 
-  // Only show for non-admin (client) users
-  if (isAdmin || unclassifiedCount === 0) return null;
+  // Show only for "cliente" role users
+  if (roleLoading || txLoading || (role && role !== "cliente") || unclassifiedCount === 0) return null;
 
   return (
     <button
       onClick={() => navigate("/relatorios?tab=movimentacoes&filter=sem-categoria")}
-      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-border/60 bg-card hover:bg-muted/40 transition-colors text-left group"
+      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-warning/30 bg-warning/5 hover:bg-warning/10 transition-colors text-left group"
     >
-      <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+      <div className="h-8 w-8 rounded-lg bg-warning/15 flex items-center justify-center shrink-0">
         <Tag className="h-4 w-4 text-warning" />
       </div>
       <div className="flex-1 min-w-0">
@@ -42,7 +42,7 @@ export function UnclassifiedTransactionsAlert() {
           Toque para classificar
         </p>
       </div>
-      <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors">→</span>
+      <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">→</span>
     </button>
   );
 }

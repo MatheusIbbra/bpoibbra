@@ -3,7 +3,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { User, Mail, Save, Loader2, Camera } from "lucide-react";
+import { User, Mail, Save, Loader2, Camera, Phone, MapPin, Calendar, KeyRound, Users } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PrivacySection } from "@/components/profile/PrivacySection";
 import { PushNotificationSettings } from "@/components/profile/PushNotificationSettings";
+import { Separator } from "@/components/ui/separator";
+import { format } from "date-fns";
 
 export default function Perfil() {
   const { user } = useAuth();
@@ -24,7 +26,7 @@ export default function Perfil() {
       if (!user?.id) return null;
       const { data, error } = await supabase
         .from("profiles")
-        .select("full_name, avatar_url")
+        .select("full_name, avatar_url, phone, cpf, birth_date, gender, address")
         .eq("user_id", user.id)
         .single();
       if (error) throw error;
@@ -34,19 +36,22 @@ export default function Perfil() {
   });
 
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
 
   useEffect(() => {
-    if (profile?.full_name) {
-      setFullName(profile.full_name);
+    if (profile) {
+      if (profile.full_name) setFullName(profile.full_name);
+      if (profile.phone) setPhone(profile.phone);
     }
-  }, [profile?.full_name]);
+  }, [profile]);
 
   const updateProfile = useMutation({
-    mutationFn: async (data: { fullName: string }) => {
+    mutationFn: async (data: { fullName: string; phone: string }) => {
       const { error } = await supabase
         .from("profiles")
-        .update({ full_name: data.fullName })
+        .update({ full_name: data.fullName, phone: data.phone })
         .eq("user_id", user!.id);
       if (error) throw error;
     },
@@ -108,14 +113,36 @@ export default function Perfil() {
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!user?.email) return;
+    setResettingPassword(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+      if (error) throw error;
+      toast.success("E-mail de redefinição de senha enviado! Verifique sua caixa de entrada.");
+    } catch (err: any) {
+      toast.error("Erro ao enviar e-mail: " + err.message);
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfile.mutate({ fullName });
+    updateProfile.mutate({ fullName, phone });
   };
 
   const getInitial = (name: string | null | undefined): string => {
     if (!name) return "U";
     return name.trim().charAt(0).toUpperCase();
+  };
+
+  const genderLabel = (g: string | null | undefined) => {
+    if (!g) return "—";
+    const map: Record<string, string> = { male: "Masculino", female: "Feminino", other: "Outro", prefer_not_say: "Prefiro não informar" };
+    return map[g] || g;
   };
 
   if (isLoading) {
@@ -133,7 +160,7 @@ export default function Perfil() {
       <div className="max-w-2xl mx-auto space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-base">
               <User className="h-5 w-5" />
               Meu Perfil
             </CardTitle>
@@ -184,40 +211,113 @@ export default function Perfil() {
                 </div>
               </div>
 
-              {/* Full Name */}
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Nome Completo</Label>
-                <Input
-                  id="fullName"
-                  placeholder="Seu nome completo"
-                  value={fullName || profile?.full_name || ""}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
+              {/* Editable fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Nome Completo</Label>
+                  <Input
+                    id="fullName"
+                    placeholder="Seu nome completo"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Telefone</Label>
+                  <Input
+                    id="phone"
+                    placeholder="(00) 00000-0000"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                </div>
               </div>
 
-              {/* Email (read-only) */}
-              <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
-                <Input
-                  id="email"
-                  value={user?.email || ""}
-                  disabled
-                  className="bg-muted"
-                />
-                <p className="text-xs text-muted-foreground">
-                  O e-mail não pode ser alterado
-                </p>
-              </div>
-
-              <Button type="submit" disabled={updateProfile.isPending}>
-                {updateProfile.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="mr-2 h-4 w-4" />
+              {/* Read-only info */}
+              <Separator />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Mail className="h-3 w-3" /> E-mail
+                  </Label>
+                  <p className="text-sm">{user?.email || "—"}</p>
+                </div>
+                {(profile as any)?.cpf && (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">CPF</Label>
+                    <p className="text-sm">{(profile as any).cpf}</p>
+                  </div>
                 )}
-                Salvar Alterações
-              </Button>
+                {(profile as any)?.birth_date && (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Calendar className="h-3 w-3" /> Data de Nascimento
+                    </Label>
+                    <p className="text-sm">
+                      {format(new Date((profile as any).birth_date + "T12:00:00"), "dd/MM/yyyy")}
+                    </p>
+                  </div>
+                )}
+                {(profile as any)?.gender && (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Users className="h-3 w-3" /> Gênero
+                    </Label>
+                    <p className="text-sm">{genderLabel((profile as any).gender)}</p>
+                  </div>
+                )}
+                {(profile as any)?.address && (
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <MapPin className="h-3 w-3" /> Endereço
+                    </Label>
+                    <p className="text-sm">{(profile as any).address}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Button type="submit" disabled={updateProfile.isPending}>
+                  {updateProfile.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4" />
+                  )}
+                  Salvar Alterações
+                </Button>
+              </div>
             </form>
+          </CardContent>
+        </Card>
+
+        {/* Password reset */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <KeyRound className="h-5 w-5" />
+              Segurança
+            </CardTitle>
+            <CardDescription>
+              Gerencie a senha da sua conta
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Um e-mail de redefinição de senha será enviado para <strong>{user?.email}</strong>.
+              Funciona mesmo que o cadastro tenha sido feito via Google.
+            </p>
+            <Button
+              variant="outline"
+              onClick={handleResetPassword}
+              disabled={resettingPassword}
+            >
+              {resettingPassword ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <KeyRound className="mr-2 h-4 w-4" />
+              )}
+              Redefinir Senha
+            </Button>
           </CardContent>
         </Card>
 
