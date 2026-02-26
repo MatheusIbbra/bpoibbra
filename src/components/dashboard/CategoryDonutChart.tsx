@@ -195,7 +195,7 @@ function DonutSection({ title, data, type, onTxClick }: { title: string; data: D
         </p>
         <span className="text-xs font-bold tabular-nums">{formatCurrency(total)}</span>
       </div>
-      <div className="flex items-start gap-4">
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-4">
         <div className="h-[100px] w-[100px] shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -239,7 +239,7 @@ function DonutSection({ title, data, type, onTxClick }: { title: string; data: D
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <div className="space-y-1 flex-1 min-w-0 pt-0.5">
+        <div className="space-y-1 flex-1 min-w-0 w-full pt-0.5">
           {data.slice(0, 6).map((item, i) => (
             <div
               key={i}
