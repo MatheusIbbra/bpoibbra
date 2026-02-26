@@ -8,6 +8,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useBankConnections, useSyncBankConnection, BankConnection } from "@/hooks/useBankConnections";
+import { useAutoIgnoreTransfers } from "@/hooks/useAutoIgnoreTransfers";
 import { cn } from "@/lib/utils";
 
 const BANK_LOGO_FALLBACKS: Record<string, string> = {
@@ -46,6 +47,7 @@ interface ConnectionMetadata {
 export function ConnectedAccountsSection({ compact = false }: { compact?: boolean }) {
   const { data: connections, isLoading } = useBankConnections();
   const syncConnection = useSyncBankConnection();
+  const autoIgnoreTransfers = useAutoIgnoreTransfers();
   const [syncingAll, setSyncingAll] = useState(false);
 
   const activeConnections = useMemo(() => {
@@ -76,6 +78,15 @@ export function ConnectedAccountsSection({ compact = false }: { compact?: boolea
           bankConnectionId: conn.id,
           itemId: conn.external_account_id || undefined,
         });
+      }
+      // After all syncs, detect internal transfers
+      if (activeConnections.length > 0) {
+        const orgId = activeConnections[0].organization_id;
+        try {
+          await autoIgnoreTransfers.mutateAsync(orgId);
+        } catch (e) {
+          console.warn('Auto-ignore transfers failed:', e);
+        }
       }
     } finally {
       setSyncingAll(false);

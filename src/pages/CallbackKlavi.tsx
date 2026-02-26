@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSavePluggyItem, useSyncBankConnection } from "@/hooks/useBankConnections";
+import { useAutoIgnoreTransfers } from "@/hooks/useAutoIgnoreTransfers";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ export default function CallbackKlavi() {
   const navigate = useNavigate();
   const savePluggyItem = useSavePluggyItem();
   const syncConnection = useSyncBankConnection();
+  const autoIgnoreTransfers = useAutoIgnoreTransfers();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
@@ -60,6 +62,12 @@ export default function CallbackKlavi() {
               organizationId: pendingOrgId,
               itemId
             });
+            // After sync, reprocess all transactions to detect internal transfers
+            try {
+              await autoIgnoreTransfers.mutateAsync(pendingOrgId);
+            } catch (ignoreError) {
+              console.warn('Auto-ignore transfers failed:', ignoreError);
+            }
           } catch (syncError) {
             console.warn('Auto-sync failed, user can sync manually:', syncError);
           }
