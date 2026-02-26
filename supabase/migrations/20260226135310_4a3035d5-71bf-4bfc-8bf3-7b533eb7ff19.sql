@@ -1,0 +1,1 @@
+UPDATE public.categories SET name = 'Receitas Diversas', updated_at = now() WHERE LOWER(name) = 'venda de bens';
