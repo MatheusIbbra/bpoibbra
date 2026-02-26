@@ -214,9 +214,10 @@ async function classifyTransaction(supabaseAdmin: any, txId: string, description
 
     // Fetch categories and cost centers for AI context
     const { data: categories } = await supabaseAdmin
-      .from("categories").select("id, name, type")
+      .from("categories").select("id, name, type, parent_id")
       .or(`organization_id.eq.${organizationId},is_system_template.eq.true`)
-      .eq("type", type);
+      .eq("type", type)
+      .not("parent_id", "is", null);
 
     const { data: costCenters } = await supabaseAdmin
       .from("cost_centers").select("id, name")

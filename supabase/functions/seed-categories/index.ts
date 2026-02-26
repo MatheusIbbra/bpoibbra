@@ -33,7 +33,7 @@ const initialCategories = [
   { id: 20, type: "income", name: "Investimentos", parent_id: 3, dre_group: "outras_receitas", expense_classification: null },
   { id: 21, type: "income", name: "Aluguel", parent_id: 3, dre_group: "outras_receitas", expense_classification: null },
   { id: 22, type: "income", name: "Reembolsos", parent_id: 4, dre_group: "outras_receitas", expense_classification: null },
-  { id: 23, type: "income", name: "Venda de bens", parent_id: 4, dre_group: "outras_receitas", expense_classification: null },
+  { id: 23, type: "income", name: "Receitas Diversas", parent_id: 4, dre_group: "outras_receitas", expense_classification: null },
   // DESPESA - FILHA
   { id: 24, type: "expense", name: "Aluguel / Financiamento", parent_id: 5, dre_group: "despesas_operacionais", expense_classification: "fixa" },
   { id: 25, type: "expense", name: "Contas da casa", parent_id: 5, dre_group: "despesas_operacionais", expense_classification: "fixa" },

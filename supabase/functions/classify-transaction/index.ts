@@ -236,7 +236,7 @@ serve(async (req) => {
     console.log("[IA] Fallback to Lovable AI Gateway...");
 
     const { data: categories, error: catError } = await supabaseClient
-      .from("categories").select("id, name, type").eq("type", type);
+      .from("categories").select("id, name, type, parent_id").eq("type", type).not("parent_id", "is", null);
     if (catError) throw catError;
 
     const { data: costCenters, error: ccError } = await supabaseClient
