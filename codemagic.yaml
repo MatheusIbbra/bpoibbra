@@ -1,0 +1,39 @@
+workflows:
+  ios-release:
+    name: iOS Release
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: codemagic
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.ibbra.bpo
+      vars:
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
+        XCODE_SCHEME: "App"
+    scripts:
+      - name: Install dependencies
+        script: npm install
+      - name: Build web assets
+        script: npm run build
+      - name: Sync Capacitor
+        script: npx cap sync ios
+      - name: Set bundle identifier
+        script: |
+          cd ios/App
+          xcrun agvtool new-marketing-version 1.0.0
+      - name: Build iOS
+        script: |
+          xcodebuild -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -archivePath build/App.xcarchive \
+            archive
+    artifacts:
+      - build/App.xcarchive
+      - "**/*.ipa"
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
