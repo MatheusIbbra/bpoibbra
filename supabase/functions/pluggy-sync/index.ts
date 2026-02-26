@@ -201,9 +201,10 @@ async function classifyTransaction(supabaseAdmin: any, txId: string, description
     }
   }
 
-  // STEP 3: AI Classification via Lovable AI Gateway
+  // STEP 3: AI Classification via Gemini (primary) or Lovable AI Gateway (fallback)
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
+  if (!GEMINI_API_KEY && !LOVABLE_API_KEY) {
     console.log(`[CLASSIFY] TX ${txId}: no rule/pattern match, AI not configured`);
     return;
   }
@@ -237,23 +238,61 @@ Formato: {"category_id":"uuid|null","category_name":"nome|null","cost_center_id"
 
     const userPrompt = `Classifique: "${description}" | R$ ${amount.toFixed(2)} | ${type === "income" ? "Receita" : "Despesa"}`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
-        temperature: 0.3, max_tokens: 500,
-      }),
-    });
+    let aiContent = "";
 
-    if (!aiResponse.ok) {
-      console.warn(`[CLASSIFY-AI] TX ${txId}: AI gateway error ${aiResponse.status}`);
+    // Try Gemini directly first (more reliable)
+    if (GEMINI_API_KEY) {
+      try {
+        const geminiResp = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
+              generationConfig: { temperature: 0.3, maxOutputTokens: 500 },
+            }),
+          }
+        );
+        if (geminiResp.ok) {
+          const geminiData = await geminiResp.json();
+          aiContent = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        } else {
+          console.warn(`[CLASSIFY-AI] TX ${txId}: Gemini error ${geminiResp.status}`);
+        }
+      } catch (geminiErr) {
+        console.warn(`[CLASSIFY-AI] TX ${txId}: Gemini exception`, geminiErr);
+      }
+    }
+
+    // Fallback to Lovable AI Gateway
+    if (!aiContent && LOVABLE_API_KEY) {
+      try {
+        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
+            temperature: 0.3, max_tokens: 500,
+          }),
+        });
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          aiContent = aiData.choices?.[0]?.message?.content || "";
+        } else {
+          console.warn(`[CLASSIFY-AI] TX ${txId}: AI gateway error ${aiResponse.status}`);
+        }
+      } catch (gatewayErr) {
+        console.warn(`[CLASSIFY-AI] TX ${txId}: AI gateway exception`, gatewayErr);
+      }
+    }
+
+    if (!aiContent) {
+      console.log(`[CLASSIFY-AI] TX ${txId}: no AI response from any provider`);
       return;
     }
 
-    const aiData = await aiResponse.json();
-    const aiContent = aiData.choices?.[0]?.message?.content || "";
     const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
     if (!jsonMatch) { console.warn(`[CLASSIFY-AI] TX ${txId}: no JSON in AI response`); return; }
 
@@ -285,7 +324,7 @@ Formato: {"category_id":"uuid|null","category_name":"nome|null","cost_center_id"
         suggested_type: type,
         confidence_score: Math.min(aiResult.confidence || 0, 0.75),
         reasoning: aiResult.reasoning || "Classificado pela IA",
-        model_version: "lovable-ai-sync-v1",
+        model_version: "gemini-sync-v2",
       });
 
       console.log(`[CLASSIFY-AI] TX ${txId}: AI classified → ${aiResult.category_name} (${((aiResult.confidence || 0) * 100).toFixed(0)}%)`);

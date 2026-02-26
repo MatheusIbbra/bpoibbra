@@ -310,6 +310,21 @@ export default function Onboarding() {
     setIsLoading(true);
 
     try {
+      // Refresh session to avoid "Not authenticated" errors if JWT expired during form filling
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.warn("Session refresh failed:", refreshError.message);
+        // If refresh fails completely, redirect to auth
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (!currentSession) {
+          toast.error("Sua sessão expirou. Faça login novamente.");
+          setStep("consent");
+          setIsLoading(false);
+          navigate("/auth", { replace: true });
+          return;
+        }
+      }
+
       const cleanCpf = cpf.replace(/\D/g, "");
 
       const validMembers = familyMembers
