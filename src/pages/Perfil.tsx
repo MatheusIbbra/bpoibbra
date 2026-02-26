@@ -3,7 +3,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { User, Mail, Save, Loader2, Camera, Phone, MapPin, Calendar, KeyRound, Users } from "lucide-react";
+import { User, Mail, Save, Loader2, Camera, Phone, MapPin, Calendar, Users } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PrivacySection } from "@/components/profile/PrivacySection";
+import { ChangePasswordCard } from "@/components/profile/ChangePasswordCard";
 import { PushNotificationSettings } from "@/components/profile/PushNotificationSettings";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
@@ -38,7 +39,6 @@ export default function Perfil() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [resettingPassword, setResettingPassword] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -113,21 +113,7 @@ export default function Perfil() {
     }
   };
 
-  const handleResetPassword = async () => {
-    if (!user?.email) return;
-    setResettingPassword(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-        redirectTo: `${window.location.origin}/auth`,
-      });
-      if (error) throw error;
-      toast.success("E-mail de redefinição de senha enviado! Verifique sua caixa de entrada.");
-    } catch (err: any) {
-      toast.error("Erro ao enviar e-mail: " + err.message);
-    } finally {
-      setResettingPassword(false);
-    }
-  };
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -290,36 +276,7 @@ export default function Perfil() {
           </CardContent>
         </Card>
 
-        {/* Password reset */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <KeyRound className="h-5 w-5" />
-              Segurança
-            </CardTitle>
-            <CardDescription>
-              Gerencie a senha da sua conta
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Um e-mail de redefinição de senha será enviado para <strong>{user?.email}</strong>.
-              Funciona mesmo que o cadastro tenha sido feito via Google.
-            </p>
-            <Button
-              variant="outline"
-              onClick={handleResetPassword}
-              disabled={resettingPassword}
-            >
-              {resettingPassword ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <KeyRound className="mr-2 h-4 w-4" />
-              )}
-              Redefinir Senha
-            </Button>
-          </CardContent>
-        </Card>
+        <ChangePasswordCard />
 
         <PrivacySection />
         <PushNotificationSettings />
