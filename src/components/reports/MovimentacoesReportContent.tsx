@@ -91,7 +91,7 @@ const getTypeLabel = (type: string) => {
     case "income": return "Receita";
     case "expense": return "Despesa";
     case "transfer": return "Transf.";
-    case "investment": return "Aplicação";
+    case "investment": return "Aporte";
     case "redemption": return "Resgate";
     default: return type;
   }
@@ -253,7 +253,7 @@ export function MovimentacoesReportContent() {
               <SelectItem value="income">Receita</SelectItem>
               <SelectItem value="expense">Despesa</SelectItem>
               <SelectItem value="transfer">Transferência</SelectItem>
-              <SelectItem value="investment">Aplicação</SelectItem>
+              <SelectItem value="investment">Aporte</SelectItem>
               <SelectItem value="redemption">Resgate</SelectItem>
             </SelectContent>
           </Select>

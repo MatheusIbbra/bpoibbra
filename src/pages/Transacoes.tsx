@@ -122,7 +122,7 @@ export default function Transacoes() {
       case "transfer":
         return "Transferência";
       case "investment":
-        return "Aplicação";
+        return "Aporte";
       case "redemption":
         return "Resgate";
       default:
@@ -186,7 +186,7 @@ export default function Transacoes() {
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="transfer">Transferência</SelectItem>
-                <SelectItem value="investment">Aplicação</SelectItem>
+                <SelectItem value="investment">Aporte</SelectItem>
                 <SelectItem value="redemption">Resgate</SelectItem>
               </SelectContent>
             </Select>

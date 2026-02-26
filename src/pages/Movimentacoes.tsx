@@ -189,7 +189,7 @@ export default function Movimentacoes() {
   const getTransactionLabel = (type: string) => {
     switch (type) {
       case "transfer": return "Transferência";
-      case "investment": return "Aplicação";
+      case "investment": return "Aporte";
       case "redemption": return "Resgate";
       case "income": return "Receita";
       case "expense": return "Despesa";

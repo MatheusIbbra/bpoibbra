@@ -51,7 +51,7 @@ function TransactionTypeBadge({ type }: { type: TransactionType }) {
       icon: <ArrowLeftRight className="h-3 w-3" />
     },
     investment: { 
-      label: "Aplicação", 
+      label: "Aporte", 
       variant: "outline",
       icon: <PiggyBank className="h-3 w-3" />
     },
@@ -759,7 +759,7 @@ function TransactionPendingCard({
               <SelectItem value="income"><span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Receita</span></SelectItem>
               <SelectItem value="expense"><span className="flex items-center gap-1"><TrendingDown className="h-3 w-3" /> Despesa</span></SelectItem>
               <SelectItem value="transfer"><span className="flex items-center gap-1"><ArrowLeftRight className="h-3 w-3" /> Transf.</span></SelectItem>
-              <SelectItem value="investment"><span className="flex items-center gap-1"><PiggyBank className="h-3 w-3" /> Aplic.</span></SelectItem>
+              <SelectItem value="investment"><span className="flex items-center gap-1"><PiggyBank className="h-3 w-3" /> Aporte</span></SelectItem>
               <SelectItem value="redemption"><span className="flex items-center gap-1"><Wallet className="h-3 w-3" /> Resgate</span></SelectItem>
             </SelectContent>
           </Select>
