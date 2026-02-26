@@ -12,29 +12,40 @@ export function useAutoIgnoreTransfers() {
 
   return useMutation({
     mutationFn: async (organizationId: string) => {
-      // Get all non-ignored completed transactions
-      const { data: transactions, error } = await supabase
-        .from("transactions")
-        .select("id, amount, date, account_id, type, description, is_ignored")
-        .eq("organization_id", organizationId)
-        .eq("status", "completed")
-        .neq("is_ignored", true)
-        .in("type", ["income", "expense"])
-        .order("date", { ascending: false })
-        .limit(500);
+      // Get ALL non-ignored completed transactions (paginated to bypass 1000 limit)
+      let allTransactions: any[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      
+      while (true) {
+        const { data: batch, error } = await supabase
+          .from("transactions")
+          .select("id, amount, date, account_id, type, description, is_ignored")
+          .eq("organization_id", organizationId)
+          .eq("status", "completed")
+          .neq("is_ignored", true)
+          .in("type", ["income", "expense"])
+          .order("date", { ascending: false })
+          .range(page * pageSize, (page + 1) * pageSize - 1);
 
-      if (error) throw error;
-      if (!transactions || transactions.length === 0) return { ignored: 0 };
+        if (error) throw error;
+        if (!batch || batch.length === 0) break;
+        allTransactions = allTransactions.concat(batch);
+        if (batch.length < pageSize) break;
+        page++;
+      }
+
+      if (allTransactions.length === 0) return { ignored: 0 };
 
       const toIgnore: string[] = [];
       const processed = new Set<string>();
 
-      for (let i = 0; i < transactions.length; i++) {
-        const tx = transactions[i];
+      for (let i = 0; i < allTransactions.length; i++) {
+        const tx = allTransactions[i];
         if (processed.has(tx.id)) continue;
 
-        for (let j = i + 1; j < transactions.length; j++) {
-          const other = transactions[j];
+        for (let j = i + 1; j < allTransactions.length; j++) {
+          const other = allTransactions[j];
           if (processed.has(other.id)) continue;
 
           // Same amount, different accounts, opposite types

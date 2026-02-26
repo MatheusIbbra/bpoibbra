@@ -27,6 +27,7 @@ import {
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
 import { toast } from "sonner";
+import { useAutoIgnoreTransfers } from "@/hooks/useAutoIgnoreTransfers";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,6 +55,7 @@ export function BankConnectionsManager() {
   const syncConnection = useSyncBankConnection();
   const disconnectBank = useDisconnectBank();
   const savePluggyItem = useSavePluggyItem();
+  const autoIgnoreTransfers = useAutoIgnoreTransfers();
   
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
@@ -124,6 +126,12 @@ export function BankConnectionsManager() {
             toast.success(`Sincronização concluída: ${result.imported} transações importadas, ${result.accounts || 0} contas`);
           } else {
             toast.info(`Contas sincronizadas (${result.accounts || 0}). Use 'Sincronizar' novamente se as transações não aparecerem imediatamente.`);
+          }
+          // After sync, detect internal transfers retroactively
+          try {
+            await autoIgnoreTransfers.mutateAsync(orgId);
+          } catch (ignoreErr) {
+            console.warn('[OpenFinance] Auto-ignore transfers failed:', ignoreErr);
           }
         } catch (err: any) {
           console.warn("[OpenFinance] Sync error (connection saved):", err);
@@ -258,6 +266,15 @@ export function BankConnectionsManager() {
       } catch (err: any) {
         errors++;
         console.error(`[SyncAll] Failed to sync connection ${conn.id}:`, err);
+      }
+    }
+
+    // After all syncs, detect internal transfers retroactively
+    if (organizationId) {
+      try {
+        await autoIgnoreTransfers.mutateAsync(organizationId);
+      } catch (ignoreErr) {
+        console.warn('[SyncAll] Auto-ignore transfers failed:', ignoreErr);
       }
     }
 
