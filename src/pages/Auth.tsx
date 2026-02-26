@@ -26,10 +26,11 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [view, setView] = useState<AuthView>("login");
   const [resetEmail, setResetEmail] = useState("");
-  const { user, signIn } = useAuth();
+  const { user, loading: authLoading, signIn } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) return;
 
     // Check if user has completed registration before allowing access
@@ -53,7 +54,16 @@ export default function Auth() {
     };
 
     checkRegistration();
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
+
+  // Show loading while auth state is being resolved (e.g. after Google OAuth redirect)
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
