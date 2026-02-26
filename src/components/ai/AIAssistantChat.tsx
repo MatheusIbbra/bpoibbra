@@ -11,9 +11,6 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TransactionDialog } from "@/components/transactions/TransactionDialog";
-import { AccountDialog } from "@/components/accounts/AccountDialog";
-import { useOpenPluggyConnect, useSavePluggyItem, useSyncBankConnection } from "@/hooks/useBankConnections";
-import { useAutoIgnoreTransfers } from "@/hooks/useAutoIgnoreTransfers";
 
 interface Message {
   id: string;
@@ -130,16 +127,7 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [txDialogOpen, setTxDialogOpen] = useState(false);
   const [txDialogType, setTxDialogType] = useState<"income" | "expense">("expense");
-  const [accountDialogOpen, setAccountDialogOpen] = useState(false);
   const [accountSubMenuOpen, setAccountSubMenuOpen] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const popupRef = useRef<Window | null>(null);
-  const pendingOrgIdRef = useRef<string | null>(null);
-  const handledRef = useRef(false);
-  const openPluggyConnect = useOpenPluggyConnect();
-  const savePluggyItem = useSavePluggyItem();
-  const syncConnection = useSyncBankConnection();
-  const autoIgnoreTransfers = useAutoIgnoreTransfers();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -151,73 +139,9 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { selectedOrganizationId, getRequiredOrganizationId } = useBaseFilter();
+  const { selectedOrganizationId } = useBaseFilter();
   const { openUpgradeModal } = useUpgradeModal();
   const navigate = useNavigate();
-
-  // Pluggy popup message handler
-  useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      const { type, data, error } = event.data || {};
-      if (type === 'pluggy-success' && data) {
-        if (handledRef.current) return;
-        handledRef.current = true;
-        const orgId = pendingOrgIdRef.current;
-        const itemId = data?.item?.id || data?.id || data?.itemId || (typeof data === 'string' ? data : null);
-        const connectorName = data?.item?.connector?.name || data?.connector?.name || data?.connectorName;
-        if (!itemId || !orgId) {
-          toast.error("Não foi possível identificar a conexão. Tente novamente.");
-          setIsConnecting(false); handledRef.current = false; return;
-        }
-        try {
-          toast.info("Salvando conexão bancária...");
-          await savePluggyItem.mutateAsync({ organizationId: orgId, itemId, connectorName });
-          toast.info("Sincronizando transações... Aguarde até 60 segundos.");
-          const result = await syncConnection.mutateAsync({ organizationId: orgId, itemId });
-          if (result.imported > 0) {
-            toast.success(`Sincronização concluída: ${result.imported} transações importadas`);
-          } else {
-            toast.info(`Contas sincronizadas (${result.accounts || 0}).`);
-          }
-          try { await autoIgnoreTransfers.mutateAsync(orgId); } catch { /* ignore */ }
-        } catch (err: any) {
-          toast.error("Erro ao salvar conexão: " + (err?.message || 'Erro'));
-        }
-        setIsConnecting(false); pendingOrgIdRef.current = null; handledRef.current = false;
-      } else if (type === 'pluggy-error') {
-        toast.error("Erro na conexão bancária");
-        setIsConnecting(false); pendingOrgIdRef.current = null; handledRef.current = false;
-      } else if (type === 'pluggy-close') {
-        setTimeout(() => { setIsConnecting(false); pendingOrgIdRef.current = null; handledRef.current = false; }, 2000);
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [savePluggyItem, syncConnection, autoIgnoreTransfers]);
-
-  const handleOpenFinanceConnect = async () => {
-    const organizationId = getRequiredOrganizationId();
-    if (!organizationId) return;
-    setIsConnecting(true);
-    pendingOrgIdRef.current = organizationId;
-    setIsMenuOpen(false); setAccountSubMenuOpen(false);
-    try {
-      const result = await openPluggyConnect.mutateAsync({ organizationId });
-      if (!result.accessToken) { toast.error("Token inválido."); setIsConnecting(false); return; }
-      const popup = window.open(`/pluggy-connect.html#${result.accessToken}`, 'pluggy-connect', 'width=500,height=700,scrollbars=yes,resizable=yes,left=200,top=100');
-      if (!popup) { toast.error("Popup bloqueado. Permita popups para este site."); setIsConnecting(false); return; }
-      popupRef.current = popup;
-      const checkClosed = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(checkClosed);
-          setTimeout(() => { if (!handledRef.current) { setIsConnecting(false); pendingOrgIdRef.current = null; } }, 3000);
-        }
-      }, 500);
-    } catch (error: any) {
-      toast.error("Falha ao conectar: " + (error?.message || 'Erro'));
-      setIsConnecting(false);
-    }
-  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -339,19 +263,18 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
                 {/* Sub-menu for Nova Conta */}
                 {(action as any).hasSubMenu && accountSubMenuOpen && (
                   <div className="mt-1 ml-4 flex flex-col gap-1 animate-in fade-in slide-in-from-top-1 duration-150">
-                    <button
-                      onClick={handleOpenFinanceConnect}
-                      disabled={isConnecting}
-                      className="flex items-center gap-3 bg-card/90 border border-border/70 shadow-md rounded-xl px-4 py-2.5 hover:bg-muted/60 transition-colors text-left disabled:opacity-60"
+                     <button
+                      onClick={() => { navigate("/cadastros?tab=open-finance"); setIsMenuOpen(false); setAccountSubMenuOpen(false); }}
+                      className="flex items-center gap-3 bg-card/90 border border-border/70 shadow-md rounded-xl px-4 py-2.5 hover:bg-muted/60 transition-colors text-left"
                     >
-                      {isConnecting ? <Loader2 className="h-3.5 w-3.5 shrink-0 text-primary animate-spin" /> : <Unplug className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                      <Unplug className="h-3.5 w-3.5 shrink-0 text-primary" />
                       <div className="flex flex-col min-w-0">
                         <span className="text-xs font-semibold text-foreground">Conectar via Open Finance</span>
                         <span className="text-[10px] text-muted-foreground">Sincronização automática</span>
                       </div>
                     </button>
                     <button
-                      onClick={() => { setAccountDialogOpen(true); setIsMenuOpen(false); setAccountSubMenuOpen(false); }}
+                      onClick={() => { navigate("/cadastros?tab=contas"); setIsMenuOpen(false); setAccountSubMenuOpen(false); }}
                       className="flex items-center gap-3 bg-card/90 border border-border/70 shadow-md rounded-xl px-4 py-2.5 hover:bg-muted/60 transition-colors text-left"
                     >
                       <PenLine className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -392,12 +315,6 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
           open={txDialogOpen}
           onOpenChange={setTxDialogOpen}
           defaultType={txDialogType}
-        />
-
-        {/* Account Dialog */}
-        <AccountDialog
-          open={accountDialogOpen}
-          onOpenChange={setAccountDialogOpen}
         />
       </>
     );
