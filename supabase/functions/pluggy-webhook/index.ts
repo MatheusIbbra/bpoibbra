@@ -312,30 +312,63 @@ Deno.serve(async (req) => {
                     }
                   }
 
-                  // AI fallback
-                  if (!classified && LOVABLE_API_KEY) {
+                  // AI fallback - try Gemini directly first, then Lovable gateway
+                  if (!classified) {
+                    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
                     const { data: categories } = await supabaseAdmin
                       .from("categories").select("id, name, type")
                       .or(`organization_id.eq.${connection.organization_id},is_system_template.eq.true`)
                       .eq("type", tx.type);
                     const categoryList = categories?.map((c: any) => `- ${c.name} (ID: ${c.id})`).join("\n") || "Nenhuma";
 
-                    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                      method: "POST",
-                      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        model: "google/gemini-3-flash-preview",
-                        messages: [
-                          { role: "system", content: `Classifique transações. APENAS JSON. Categorias (${tx.type}):\n${categoryList}\nFormato: {"category_id":"uuid|null","confidence":0-1}` },
-                          { role: "user", content: `"${tx.description}" R$${tx.amount.toFixed(2)} ${tx.type === "income" ? "Receita" : "Despesa"}` }
-                        ],
-                        temperature: 0.3, max_tokens: 200,
-                      }),
-                    });
-                    if (aiResponse.ok) {
-                      const aiData = await aiResponse.json();
-                      const content = aiData.choices?.[0]?.message?.content || "";
-                      const jsonMatch = content.match(/\{[\s\S]*\}/);
+                    let aiContent = "";
+                    const prompt = `Você é um assistente financeiro. Classifique transações bancárias. Retorne APENAS JSON. Categorias (${tx.type}):\n${categoryList}\nFormato: {"category_id":"uuid|null","confidence":0-1}\n\nClassifique: "${tx.description}" R$${tx.amount.toFixed(2)} ${tx.type === "income" ? "Receita" : "Despesa"}`;
+
+                    // Try Gemini directly
+                    if (GEMINI_API_KEY) {
+                      try {
+                        const geminiResp = await fetch(
+                          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+                          {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              contents: [{ parts: [{ text: prompt }] }],
+                              generationConfig: { temperature: 0.3, maxOutputTokens: 200 },
+                            }),
+                          }
+                        );
+                        if (geminiResp.ok) {
+                          const geminiData = await geminiResp.json();
+                          aiContent = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                        }
+                      } catch (_e) { /* fallback below */ }
+                    }
+
+                    // Fallback to Lovable gateway
+                    if (!aiContent && LOVABLE_API_KEY) {
+                      try {
+                        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                          method: "POST",
+                          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            model: "google/gemini-3-flash-preview",
+                            messages: [
+                              { role: "system", content: `Classifique transações. APENAS JSON. Categorias (${tx.type}):\n${categoryList}\nFormato: {"category_id":"uuid|null","confidence":0-1}` },
+                              { role: "user", content: `"${tx.description}" R$${tx.amount.toFixed(2)} ${tx.type === "income" ? "Receita" : "Despesa"}` }
+                            ],
+                            temperature: 0.3, max_tokens: 200,
+                          }),
+                        });
+                        if (aiResponse.ok) {
+                          const aiData = await aiResponse.json();
+                          aiContent = aiData.choices?.[0]?.message?.content || "";
+                        }
+                      } catch (_e) { /* silent */ }
+                    }
+
+                    if (aiContent) {
+                      const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
                       if (jsonMatch) {
                         const result = JSON.parse(jsonMatch[0]);
                         if (result.category_id && categories?.some((c: any) => c.id === result.category_id)) {
