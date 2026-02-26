@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, X, Send, Loader2, Lock, Sparkles, ArrowUpRight, ArrowDownLeft, Wallet } from "lucide-react";
+import { Plus, X, Send, Loader2, Lock, Sparkles, ArrowUpRight, ArrowDownLeft, Wallet, Building2, PenLine, ChevronRight, Wifi } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -127,6 +127,7 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [txDialogOpen, setTxDialogOpen] = useState(false);
   const [txDialogType, setTxDialogType] = useState<"income" | "expense">("expense");
+  const [accountSubMenuOpen, setAccountSubMenuOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -211,25 +212,32 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
       label: "Nova Receita",
       icon: ArrowUpRight,
       className: "text-success",
-      action: () => { setTxDialogType("income"); setTxDialogOpen(true); setIsMenuOpen(false); },
+      action: () => { setTxDialogType("income"); setTxDialogOpen(true); setIsMenuOpen(false); setAccountSubMenuOpen(false); },
     },
     {
       label: "Nova Despesa",
       icon: ArrowDownLeft,
       className: "text-destructive",
-      action: () => { setTxDialogType("expense"); setTxDialogOpen(true); setIsMenuOpen(false); },
+      action: () => { setTxDialogType("expense"); setTxDialogOpen(true); setIsMenuOpen(false); setAccountSubMenuOpen(false); },
+    },
+    {
+      label: "Nova Conta",
+      icon: Building2,
+      className: "text-foreground",
+      action: () => { setAccountSubMenuOpen((v) => !v); },
+      hasSubMenu: true,
     },
     {
       label: "Novo Orçamento",
       icon: Wallet,
       className: "text-primary",
-      action: () => { navigate("/orcamentos"); setIsMenuOpen(false); },
+      action: () => { navigate("/orcamentos"); setIsMenuOpen(false); setAccountSubMenuOpen(false); },
     },
     {
       label: "Inteligência Artificial Financeira",
       icon: Sparkles,
       className: "text-primary",
-      action: () => { openUpgradeModal("ai"); setIsMenuOpen(false); },
+      action: () => { openUpgradeModal("ai"); setIsMenuOpen(false); setAccountSubMenuOpen(false); },
     },
   ];
 
@@ -239,16 +247,45 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
       <>
         {/* Quick actions menu */}
         {isMenuOpen && (
-          <div className="fixed bottom-20 right-4 md:bottom-[5.5rem] md:right-6 z-50 flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="fixed bottom-20 right-4 md:bottom-[5.5rem] md:right-6 z-50 flex flex-col gap-1.5 animate-in fade-in slide-in-from-bottom-2 duration-200">
             {quickActions.map((action) => (
-              <button
-                key={action.label}
-                onClick={action.action}
-                className="flex items-center gap-3 bg-card border border-border shadow-lg rounded-xl px-4 py-3 hover:bg-muted/60 transition-colors text-left"
-              >
-                <action.icon className={cn("h-4 w-4 shrink-0", action.className)} />
-                <span className="text-sm font-medium whitespace-nowrap">{action.label}</span>
-              </button>
+              <div key={action.label}>
+                <button
+                  onClick={action.action}
+                  className="flex items-center gap-3 bg-card border border-border shadow-lg rounded-xl px-4 py-3 hover:bg-muted/60 transition-colors text-left w-full"
+                >
+                  <action.icon className={cn("h-4 w-4 shrink-0", action.className)} />
+                  <span className="text-sm font-medium whitespace-nowrap flex-1">{action.label}</span>
+                  {(action as any).hasSubMenu && (
+                    <ChevronRight className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform duration-200", accountSubMenuOpen && "rotate-90")} />
+                  )}
+                </button>
+                {/* Sub-menu for Nova Conta */}
+                {(action as any).hasSubMenu && accountSubMenuOpen && (
+                  <div className="mt-1 ml-4 flex flex-col gap-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <button
+                      onClick={() => { navigate("/cadastros?tab=open-finance"); setIsMenuOpen(false); setAccountSubMenuOpen(false); }}
+                      className="flex items-center gap-3 bg-card/90 border border-border/70 shadow-md rounded-xl px-4 py-2.5 hover:bg-muted/60 transition-colors text-left"
+                    >
+                      <Wifi className="h-3.5 w-3.5 shrink-0 text-primary" />
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-semibold text-foreground">Conectar via Open Finance</span>
+                        <span className="text-[10px] text-muted-foreground">Sincronização automática</span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => { navigate("/contas"); setIsMenuOpen(false); setAccountSubMenuOpen(false); }}
+                      className="flex items-center gap-3 bg-card/90 border border-border/70 shadow-md rounded-xl px-4 py-2.5 hover:bg-muted/60 transition-colors text-left"
+                    >
+                      <PenLine className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-semibold text-foreground">Criar conta manualmente</span>
+                        <span className="text-[10px] text-muted-foreground">Lançamentos manuais</span>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}
