@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, X, Send, Loader2, Lock, Sparkles, ArrowUpRight, ArrowDownLeft, Wallet, Building2, PenLine, ChevronRight, Wifi } from "lucide-react";
+import { Plus, X, Send, Loader2, Lock, Sparkles, ArrowUpRight, ArrowDownLeft, Wallet, Building2, PenLine, ChevronRight, Unplug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -263,18 +263,18 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
                 {/* Sub-menu for Nova Conta */}
                 {(action as any).hasSubMenu && accountSubMenuOpen && (
                   <div className="mt-1 ml-4 flex flex-col gap-1 animate-in fade-in slide-in-from-top-1 duration-150">
-                    <button
+                     <button
                       onClick={() => { navigate("/cadastros?tab=open-finance"); setIsMenuOpen(false); setAccountSubMenuOpen(false); }}
                       className="flex items-center gap-3 bg-card/90 border border-border/70 shadow-md rounded-xl px-4 py-2.5 hover:bg-muted/60 transition-colors text-left"
                     >
-                      <Wifi className="h-3.5 w-3.5 shrink-0 text-primary" />
+                      <Unplug className="h-3.5 w-3.5 shrink-0 text-primary" />
                       <div className="flex flex-col min-w-0">
                         <span className="text-xs font-semibold text-foreground">Conectar via Open Finance</span>
                         <span className="text-[10px] text-muted-foreground">Sincronização automática</span>
                       </div>
                     </button>
                     <button
-                      onClick={() => { navigate("/contas"); setIsMenuOpen(false); setAccountSubMenuOpen(false); }}
+                      onClick={() => { navigate("/cadastros?tab=contas"); setIsMenuOpen(false); setAccountSubMenuOpen(false); }}
                       className="flex items-center gap-3 bg-card/90 border border-border/70 shadow-md rounded-xl px-4 py-2.5 hover:bg-muted/60 transition-colors text-left"
                     >
                       <PenLine className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
