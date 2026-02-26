@@ -87,12 +87,11 @@ export default function Auth() {
   };
 
   const handleGoogleSignIn = async () => {
-    // Use standard redirect flow (not popup) to avoid localhost redirect issues
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        // Always redirect to root - the onboarding guard will handle routing
-        redirectTo: window.location.origin + "/",
+        redirectTo: "https://ibbrawallet.lovable.app/",
+        skipBrowserRedirect: false,
       },
     });
     if (error) {
