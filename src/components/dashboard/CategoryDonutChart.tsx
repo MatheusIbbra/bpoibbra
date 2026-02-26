@@ -51,6 +51,8 @@ export function CategoryDonutChart() {
     transactions.forEach((tx) => {
       txById.set(tx.id, tx);
       if (tx.is_ignored) return;
+      // Exclude transfers, investments (aportes) and redemptions from category distribution
+      if (tx.type === "transfer" || tx.type === "investment" || tx.type === "redemption") return;
       // Only count transactions with child categories (parent_id not null)
       // Treat parent categories as uncategorized
       const cat = tx.category_id ? categories.find(c => c.id === tx.category_id) : null;
