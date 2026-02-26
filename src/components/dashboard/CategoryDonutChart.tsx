@@ -51,7 +51,11 @@ export function CategoryDonutChart() {
     transactions.forEach((tx) => {
       txById.set(tx.id, tx);
       if (tx.is_ignored) return;
-      const catKey = tx.category_id || "__sem_categoria__";
+      // Only count transactions with child categories (parent_id not null)
+      // Treat parent categories as uncategorized
+      const cat = tx.category_id ? categories.find(c => c.id === tx.category_id) : null;
+      const isParentCategory = cat && !cat.parent_id;
+      const catKey = (tx.category_id && !isParentCategory) ? tx.category_id : "__sem_categoria__";
       const map = tx.type === "income" ? incomeMap : expenseMap;
       const existing = map.get(catKey) || { total: 0, txs: [] };
       existing.total += Number(tx.amount);
