@@ -127,75 +127,77 @@ export default function Contas() {
 
   return (
     <AppLayout title="Contas Bancárias">
-      <div className="space-y-6">
+      <div className="space-y-5">
         {/* Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-lg md:text-3xl font-bold">Contas Bancárias</h1>
-            <p className="text-muted-foreground">Gerencie suas contas e transferências</p>
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Contas Bancárias</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">Gerencie suas contas e transferências</p>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2">
             <Button 
               variant="outline" 
+              size="sm"
               onClick={() => setTransferDialogOpen(true)}
               disabled={!canCreate}
+              className="text-xs"
             >
-              <ArrowRightLeft className="mr-2 h-4 w-4" />
-              Nova Transferência
+              <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" />
+              Transferência
             </Button>
             <Button 
+              size="sm"
               onClick={() => { setSelectedAccount(null); setAccountDialogOpen(true); }}
               disabled={!canCreate}
+              className="text-xs"
             >
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
               Nova Conta
             </Button>
           </div>
         </div>
 
-        {/* Summary Card */}
-        <Card className="responsive-card">
-          <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10">
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">Saldo Disponível</p>
-                <p className={`text-3xl md:text-4xl font-bold ${totalBalance >= 0 ? "text-green-600" : "text-destructive"}`}>
-                  {formatCurrency(totalBalance)}
+        {/* Summary */}
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+          <Card className="border-0 bg-gradient-to-br from-card to-muted/30">
+            <CardContent className="p-4">
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Saldo Disponível</p>
+              <p className={`text-2xl sm:text-3xl font-bold mt-1 ${totalBalance >= 0 ? "text-success" : "text-destructive"}`}>
+                {formatCurrency(totalBalance)}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{availableAccounts.length} conta(s) ativa(s)</p>
+            </CardContent>
+          </Card>
+          {creditCardAccounts.length > 0 && (
+            <Card className="border-0 bg-gradient-to-br from-card to-muted/30">
+              <CardContent className="p-4">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Cartões a Pagar</p>
+                <p className="text-2xl sm:text-3xl font-bold text-destructive mt-1">
+                  -{formatCurrency(totalCreditCardDebt)}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {availableAccounts.length} conta(s)
-                </p>
-              </div>
-              {creditCardAccounts.length > 0 && (
-                <div className="text-center border-l border-border pl-6 sm:pl-10">
-                  <p className="text-sm text-muted-foreground">Cartões a Pagar</p>
-                  <p className="text-2xl md:text-3xl font-bold text-destructive">
-                    -{formatCurrency(totalCreditCardDebt)}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {creditCardAccounts.length} cartão(ões)
-                  </p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{creditCardAccounts.length} cartão(ões)</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         {/* Accounts Grid */}
         <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {loadingAccounts ? (
-            <p className="text-muted-foreground col-span-full text-center py-8">Carregando...</p>
+            <p className="text-muted-foreground col-span-full text-center py-8 text-sm">Carregando...</p>
           ) : accounts?.length === 0 ? (
-            <Card className="col-span-full">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Nenhuma conta cadastrada</p>
+            <Card className="col-span-full border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-10">
+                <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+                  <Building2 className="h-6 w-6 text-muted-foreground/50" />
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">Nenhuma conta cadastrada</p>
                 <Button 
-                  className="mt-4" 
+                  size="sm"
                   onClick={() => setAccountDialogOpen(true)}
                   disabled={!canCreate}
                 >
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
                   Adicionar Conta
                 </Button>
               </CardContent>
@@ -205,54 +207,52 @@ export default function Contas() {
               const Icon = ACCOUNT_TYPE_ICONS[account.account_type] || Building2;
               const bankLogo = account.bank_name ? bankLogoMap.get(account.bank_name) : undefined;
               return (
-                <Card key={account.id} className="relative">
-                  <div className="absolute top-3 right-3 flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(account)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteAccountId(account.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center gap-3">
-                      {bankLogo ? (
-                        <img
-                          src={bankLogo}
-                          alt={account.bank_name || ""}
-                          className="h-10 w-10 rounded-lg object-contain bg-muted p-0.5"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                        />
-                      ) : (
-                        <div
-                          className="h-10 w-10 rounded-lg flex items-center justify-center"
-                          style={{ backgroundColor: account.color || "#3b82f6" }}
-                        >
-                          <Icon className="h-5 w-5 text-white" />
+                <Card key={account.id} className="group hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2.5">
+                        {bankLogo ? (
+                          <img
+                            src={bankLogo}
+                            alt={account.bank_name || ""}
+                            className="h-9 w-9 rounded-lg object-contain bg-muted p-0.5"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                        ) : (
+                          <div
+                            className="h-9 w-9 rounded-lg flex items-center justify-center"
+                            style={{ backgroundColor: account.color || "#3b82f6" }}
+                          >
+                            <Icon className="h-4 w-4 text-white" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-sm font-semibold leading-tight">{shortenAccountName(account.name, account.account_type)}</p>
+                          <p className="text-[11px] text-muted-foreground">{account.bank_name}</p>
                         </div>
-                      )}
-                      <div>
-                        <CardTitle className="text-base">{shortenAccountName(account.name, account.account_type)}</CardTitle>
-                        <p className="text-sm text-muted-foreground">{account.bank_name}</p>
+                      </div>
+                      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(account)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteAccountId(account.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Badge variant={account.status === "active" ? "default" : "secondary"}>
-                          {account.status === "active" ? "Ativa" : "Inativa"}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {ACCOUNT_TYPE_LABELS[account.account_type] || account.account_type}
-                        </span>
-                      </div>
-                      <div className="pt-2 border-t">
-                        <p className="text-xs text-muted-foreground">Saldo Atual</p>
-                        <p className={`text-xl font-bold ${(account.current_balance || 0) >= 0 ? "text-green-600" : "text-destructive"}`}>
-                          {formatCurrency(account.current_balance || 0)}
-                        </p>
-                      </div>
+                    <div className="flex items-center justify-between">
+                      <Badge variant={account.status === "active" ? "default" : "secondary"} className="text-[10px] h-5">
+                        {account.status === "active" ? "Ativa" : "Inativa"}
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground">
+                        {ACCOUNT_TYPE_LABELS[account.account_type] || account.account_type}
+                      </span>
+                    </div>
+                    <div className="mt-3 pt-2.5 border-t border-border/50">
+                      <p className="text-[10px] text-muted-foreground">Saldo Atual</p>
+                      <p className={`text-lg font-bold ${(account.current_balance || 0) >= 0 ? "text-success" : "text-destructive"}`}>
+                        {formatCurrency(account.current_balance || 0)}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>

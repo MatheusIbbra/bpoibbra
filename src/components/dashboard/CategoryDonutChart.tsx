@@ -28,10 +28,10 @@ interface DonutData {
   transactions: { id: string; description: string; amount: number; date: string }[];
 }
 
-export function CategoryDonutChart() {
-  const now = new Date();
-  const start = format(startOfMonth(now), "yyyy-MM-dd");
-  const end = format(endOfMonth(now), "yyyy-MM-dd");
+export function CategoryDonutChart({ selectedMonth }: { selectedMonth?: Date } = {}) {
+  const refDate = selectedMonth || new Date();
+  const start = format(startOfMonth(refDate), "yyyy-MM-dd");
+  const end = format(endOfMonth(refDate), "yyyy-MM-dd");
 
   const { data: transactions, isLoading: loadingTx } = useTransactions({
     startDate: start,
