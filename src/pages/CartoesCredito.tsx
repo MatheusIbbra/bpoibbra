@@ -138,54 +138,36 @@ function CreditCardVisual({ card, onViewInvoices, onNavigate }: {
 
   return (
     <div className="group">
-      {/* Card Visual - Estilo de Cartão Real */}
+      {/* Card Visual - Compact */}
       <div
-        className="relative rounded-2xl p-5 aspect-[1.6/1] flex flex-col justify-between overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
+        className="relative rounded-xl p-3 sm:p-4 aspect-[1.8/1] flex flex-col justify-between overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.01] hover:shadow-lg"
         style={{ background: `linear-gradient(135deg, ${bankColor}, ${bankColor}dd)` }}
         onClick={onNavigate}
       >
-        {/* Padrão decorativo */}
+        {/* Decorative */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-10" style={{ background: "white" }} />
-          <div className="absolute -bottom-16 -left-8 w-48 h-48 rounded-full opacity-5" style={{ background: "white" }} />
+          <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full opacity-10" style={{ background: "white" }} />
         </div>
 
         {/* Header */}
         <div className="relative flex items-start justify-between">
-          {card.bankLogo ? (
-            <div className="h-8 w-8 rounded-lg bg-white/20 p-1 flex items-center justify-center backdrop-blur-sm">
-              <img src={card.bankLogo} alt={card.bankName || ""} className="h-6 w-6 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-            </div>
-          ) : (
-            <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-sm">
-              <CreditCard className={`h-4 w-4 ${textLight ? "text-white" : "text-foreground"}`} />
-            </div>
-          )}
-          <CreditCard className={`h-5 w-5 ${textLight ? "text-white/60" : "text-foreground/60"}`} />
+          <div className="h-6 w-6 rounded-md bg-white/20 flex items-center justify-center">
+            <CreditCard className={`h-3 w-3 ${textLight ? "text-white" : "text-foreground"}`} />
+          </div>
         </div>
 
         {/* Nome */}
         <div className="relative">
-          <p className={`text-xs font-medium ${textLight ? "text-white/70" : "text-foreground/70"}`}>
-            {card.bankName || "Cartão"}
-          </p>
-          <p className={`text-sm font-bold ${textLight ? "text-white" : "text-foreground"}`}>
-            {shortenAccountName(card.name, "credit_card")}
-          </p>
+          <p className={`text-[10px] ${textLight ? "text-white/60" : "text-foreground/60"}`}>{card.bankName || "Cartão"}</p>
+          <p className={`text-xs font-bold ${textLight ? "text-white" : "text-foreground"}`}>{shortenAccountName(card.name, "credit_card")}</p>
         </div>
 
-        {/* Footer do Card */}
+        {/* Footer */}
         <div className="relative flex items-end justify-between">
           {card.dueDate && (
             <div>
-              <p className={`text-[9px] uppercase tracking-wider ${textLight ? "text-white/50" : "text-foreground/50"}`}>Vencimento</p>
-              <p className={`text-xs font-semibold ${textLight ? "text-white/90" : "text-foreground/90"}`}>{card.dueDate}</p>
-            </div>
-          )}
-          {card.bestPurchaseDay && (
-            <div className="text-right">
-              <p className={`text-[9px] uppercase tracking-wider ${textLight ? "text-white/50" : "text-foreground/50"}`}>Melhor Compra</p>
-              <p className={`text-xs font-semibold ${textLight ? "text-white/90" : "text-foreground/90"}`}>{card.bestPurchaseDay}</p>
+              <p className={`text-[8px] uppercase tracking-wider ${textLight ? "text-white/50" : "text-foreground/50"}`}>Venc.</p>
+              <p className={`text-[10px] font-semibold ${textLight ? "text-white/90" : "text-foreground/90"}`}>{card.dueDate}</p>
             </div>
           )}
         </div>
@@ -194,38 +176,25 @@ function CreditCardVisual({ card, onViewInvoices, onNavigate }: {
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
       </div>
 
-      {/* Informações Abaixo do Card */}
-      <div className="mt-3 space-y-3 px-1">
-        {/* Limite e Disponível */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <p className="text-[11px] text-muted-foreground">Limite Total</p>
-            <p className="text-sm font-bold">{formatCurrency(card.limit)}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[11px] text-muted-foreground">Disponível</p>
-            <p className="text-sm font-bold text-success">{formatCurrency(card.available)}</p>
-          </div>
+      {/* Info below card */}
+      <div className="mt-2 space-y-2 px-0.5">
+        <div className="flex items-center justify-between text-[10px]">
+          <span className="text-muted-foreground">Limite</span>
+          <span className="font-medium">{formatCurrency(card.limit)}</span>
         </div>
-
-        {/* Barra de Progresso */}
-        <div>
-          <div className="flex items-center justify-between text-[11px] mb-1">
-            <span className="text-muted-foreground">Utilizado</span>
-            <span className={cn("font-semibold", status.color)}>{usagePercent}%</span>
-          </div>
-          <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">
-            <div
-              className={cn("h-full rounded-full transition-all duration-500", status.barColor)}
-              style={{ width: `${Math.min(100, usagePercent)}%` }}
-            />
-          </div>
+        <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+          <div
+            className={cn("h-full rounded-full transition-all duration-500", status.barColor)}
+            style={{ width: `${Math.min(100, usagePercent)}%` }}
+          />
         </div>
-
-        {/* Fatura Atual */}
-        <div className="pt-2 border-t border-border/50">
-          <p className="text-[11px] text-muted-foreground">Fatura Atual</p>
-          <p className="text-base font-bold text-destructive">{formatCurrency(card.invoiceAmount)}</p>
+        <div className="flex items-center justify-between text-[10px]">
+          <span className="text-muted-foreground">Fatura</span>
+          <span className="font-semibold text-destructive">{formatCurrency(card.invoiceAmount)}</span>
+        </div>
+        <div className="flex items-center justify-between text-[10px]">
+          <span className="text-muted-foreground">Disponível</span>
+          <span className="font-semibold text-success">{formatCurrency(card.available)}</span>
         </div>
       </div>
     </div>
@@ -324,7 +293,7 @@ export default function CartoesCredito() {
             </Button>
           </div>
         ) : (
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
             {cards.map((card) => (
               <CreditCardVisual
                 key={card.id}

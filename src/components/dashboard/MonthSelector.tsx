@@ -16,25 +16,25 @@ export function MonthSelector({ selectedMonth, onMonthChange }: MonthSelectorPro
   const capitalizedLabel = label.charAt(0).toUpperCase() + label.slice(1);
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1">
       <Button
         variant="ghost"
         size="icon"
         onClick={handlePrev}
-        className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/60"
+        className="h-5 w-5 rounded-full text-muted-foreground md:text-muted-foreground text-white/70 hover:text-white md:hover:text-foreground hover:bg-white/10 md:hover:bg-muted/60"
       >
-        <ChevronLeft className="h-3.5 w-3.5" />
+        <ChevronLeft className="h-3 w-3" />
       </Button>
-      <span className="text-xs font-medium text-foreground min-w-[140px] text-center select-none">
+      <span className="text-[11px] font-medium text-white md:text-foreground min-w-[120px] text-center select-none">
         {capitalizedLabel}
       </span>
       <Button
         variant="ghost"
         size="icon"
         onClick={handleNext}
-        className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/60"
+        className="h-5 w-5 rounded-full text-muted-foreground md:text-muted-foreground text-white/70 hover:text-white md:hover:text-foreground hover:bg-white/10 md:hover:bg-muted/60"
       >
-        <ChevronRight className="h-3.5 w-3.5" />
+        <ChevronRight className="h-3 w-3" />
       </Button>
     </div>
   );
