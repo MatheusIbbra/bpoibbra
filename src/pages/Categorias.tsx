@@ -58,10 +58,9 @@ const DRE_GROUP_OPTIONS = [
   { value: "impostos", label: "Impostos" },
 ];
 
-const EXPENSE_CLASSIFICATION_OPTIONS = [
-  { value: "fixa", label: "Despesa Fixa" },
-  { value: "variavel_programada", label: "Despesa Variável Programada" },
-  { value: "variavel_recorrente", label: "Despesa Variável Recorrente" },
+const FINANCIAL_CLASSIFICATION_OPTIONS = [
+  { value: "fixa", label: "Fixa" },
+  { value: "variavel_recorrente", label: "Variável" },
 ];
 
 const COLOR_OPTIONS = [
@@ -210,11 +209,12 @@ export default function Categorias() {
 
   const handleSave = async () => {
     const autoIcon = formData.icon || getAutoIcon(formData.name);
+    const isChild = !!formData.parent_id;
     const dataToSave = {
       ...formData,
       icon: autoIcon,
       dre_group: formData.parent_id ? null : formData.dre_group,
-      expense_classification: formData.type === 'expense' ? formData.expense_classification : null,
+      expense_classification: isChild ? formData.expense_classification : null,
     };
 
     if (editingCategory) {
@@ -254,8 +254,8 @@ export default function Categorias() {
   const getExpenseClassificationLabel = (classification: string | null): string => {
     switch (classification) {
       case "fixa": return "Fixa";
-      case "variavel_programada": return "Var. Programada";
-      case "variavel_recorrente": return "Var. Recorrente";
+      case "variavel_programada": return "Variável";
+      case "variavel_recorrente": return "Variável";
       default: return "";
     }
   };
@@ -544,7 +544,7 @@ export default function Categorias() {
                 </Select>
               </div>
 
-              {formData.type === 'expense' && (
+              {(formData.parent_id || editingCategory?.parent_id) && (
                 <div>
                   <Label className="text-xs">Classificação <span className="text-destructive">*</span></Label>
                   <Select
@@ -557,7 +557,7 @@ export default function Categorias() {
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
-                      {EXPENSE_CLASSIFICATION_OPTIONS.map((opt) => (
+                      {FINANCIAL_CLASSIFICATION_OPTIONS.map((opt) => (
                         <SelectItem key={opt.value} value={opt.value}>
                           {opt.label}
                         </SelectItem>
@@ -653,7 +653,7 @@ export default function Categorias() {
                   !formData.name || 
                   createCategory.isPending || 
                   updateCategory.isPending ||
-                  (formData.type === 'expense' && !formData.expense_classification)
+                  ((formData.parent_id || editingCategory?.parent_id) && !formData.expense_classification)
                 }
               >
                 {(createCategory.isPending || updateCategory.isPending) ? (
