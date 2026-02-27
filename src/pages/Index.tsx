@@ -139,16 +139,16 @@ const Index = () => {
   return (
     <AppLayout title="Dashboard">
       <div className="space-y-6 w-full">
-        {/* Month Selector */}
-        <div className="flex justify-center">
-          <div className="inline-flex items-center rounded-lg border border-border/40 bg-card/80 backdrop-blur-sm px-2 py-1 shadow-sm">
-            <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
-          </div>
-        </div>
-
         {/* 1. Stat Cards */}
         <div className="relative">
+          {/* Blue background extends to top on mobile */}
           <div className="absolute inset-x-0 -mx-4 bg-[hsl(var(--sidebar-background))] rounded-b-3xl md:hidden" style={{ top: '-8rem', bottom: '-0.75rem' }} />
+          {/* Month Selector - overlays blue bar on mobile */}
+          <div className="relative z-10 flex justify-center mb-3">
+            <div className="inline-flex items-center rounded-full border border-white/20 md:border-border/40 bg-white/15 md:bg-card/80 backdrop-blur-sm px-3 py-0.5 shadow-sm">
+              <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
+            </div>
+          </div>
           <StaggerGrid className="relative grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
             {statsLoading ? (
               <>
