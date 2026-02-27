@@ -13,7 +13,7 @@ import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 import { Suspense, lazy, Component, ErrorInfo, ReactNode } from "react";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { Sentry } from "@/lib/sentry";
-import { IOSInstallPrompt } from "@/components/pwa/IOSInstallPrompt";
+
 
 // Critical pages - eagerly loaded
 import Index from "./pages/Index";
@@ -137,7 +137,7 @@ const App = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <IOSInstallPrompt />
+            
             <UpgradeModal />
             <BrowserRouter>
               <Suspense fallback={<PageLoader />}>

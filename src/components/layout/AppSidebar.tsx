@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Upload, AlertCircle, ChevronRight, ChevronDown, Home, Receipt, Settings2, Wallet, FileText, Shield, Brain, CreditCard, BarChart3, CircleDollarSign, PieChart, Layers, Tags, Lightbulb, Radio, Building2, FolderKanban, Scale, TrendingUp } from "lucide-react";
+import { LogOut, Upload, AlertCircle, ChevronRight, ChevronDown, Home, Receipt, Settings2, Wallet, FileText, Shield, Brain, CreditCard, BarChart3, CircleDollarSign, PieChart, Layers, Tags, Lightbulb, Radio, Building2, FolderKanban, Scale, TrendingUp, Share, Plus, Download } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sidebar, SidebarContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, SidebarSeparator } from "@/components/ui/sidebar";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,8 +10,6 @@ import { useIsAdmin } from "@/hooks/useUserRoles";
 import { usePendingTransactionsCount } from "@/hooks/usePendingTransactionsCount";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import ibbraLogoWhite from "@/assets/ibbra-logo-white.png";
 import ibbraLogoFullWhite from "@/assets/ibbra-logo-full-white.png";
 
@@ -36,7 +33,7 @@ const cadastrosSubItems = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
@@ -49,27 +46,14 @@ export function AppSidebar() {
   const cadastrosPages = ["/contas", "/categorias", "/centros-custo", "/open-finance", "/regras-conciliacao"];
   const [cadastrosOpen, setCadastrosOpen] = useState(cadastrosPages.includes(location.pathname));
 
-  const { data: userProfile } = useQuery({
-    queryKey: ["sidebar-profile", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const { data, error } = await supabase.from("profiles").select("full_name, avatar_url").eq("user_id", user.id).single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.id
-  });
-
-  const { data: userRole } = useQuery({
-    queryKey: ["sidebar-role", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", user.id).single();
-      if (error) return null;
-      return data?.role;
-    },
-    enabled: !!user?.id
-  });
+  // PWA install prompt detection
+  const [showPwaPrompt, setShowPwaPrompt] = useState(false);
+  useEffect(() => {
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isStandalone = ("standalone" in window.navigator && (window.navigator as any).standalone) ||
+      window.matchMedia("(display-mode: standalone)").matches;
+    setShowPwaPrompt(isIOS && !isStandalone);
+  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -83,20 +67,6 @@ export function AppSidebar() {
 
   const isActive = (path: string) => location.pathname === path;
   const isReportActive = location.pathname === "/relatorios";
-
-  const getRoleLabel = (role: string | null | undefined): string => {
-    if (role === 'cliente') return ''; // Don't show "Cliente" label
-    const labels: Record<string, string> = {
-      admin: "Administrador", supervisor: "Supervisor", kam: "KAM",
-      fa: "FA", projetista: "Projetista", user: "Usuário"
-    };
-    return role ? labels[role] || "Usuário" : "Usuário";
-  };
-
-  const getInitials = (name: string | null | undefined): string => {
-    if (!name) return "U";
-    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
-  };
 
   // Build nav items based on role — order: Dashboard, Orçamentos, Cartões, Importar, Relatórios, Cadastros
   const navItems = [
@@ -176,10 +146,8 @@ export function AppSidebar() {
           {/* Reports with submenu */}
           <SidebarMenuItem>
             {collapsed ? (
-              <SidebarMenuButton asChild isActive={isReportActive} tooltip="Relatórios">
-                <NavLink to="/relatorios" className={`flex items-center justify-center transition-all duration-200 text-sm py-2.5 rounded-xl ${isReportActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
-                  <BarChart3 className={`h-[18px] w-[18px] shrink-0 ${isReportActive ? "text-sidebar-primary" : ""}`} />
-                </NavLink>
+              <SidebarMenuButton isActive={isReportActive} tooltip="Relatórios" onClick={() => { toggleSidebar(); setReportsOpen(true); }}>
+                <BarChart3 className={`h-[18px] w-[18px] shrink-0 ${isReportActive ? "text-sidebar-primary" : ""}`} />
               </SidebarMenuButton>
             ) : (
               <>
@@ -221,10 +189,8 @@ export function AppSidebar() {
           {/* Cadastros with submenu */}
           <SidebarMenuItem>
             {collapsed ? (
-              <SidebarMenuButton asChild isActive={isCadastrosActive} tooltip="Cadastros">
-                <NavLink to="/contas" className={`flex items-center justify-center transition-all duration-200 text-sm py-2.5 rounded-xl ${isCadastrosActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
-                  <Settings2 className={`h-[18px] w-[18px] shrink-0 ${isCadastrosActive ? "text-sidebar-primary" : ""}`} />
-                </NavLink>
+              <SidebarMenuButton isActive={isCadastrosActive} tooltip="Cadastros" onClick={() => { toggleSidebar(); setCadastrosOpen(true); }}>
+                <Settings2 className={`h-[18px] w-[18px] shrink-0 ${isCadastrosActive ? "text-sidebar-primary" : ""}`} />
               </SidebarMenuButton>
             ) : (
               <>
@@ -299,41 +265,17 @@ export function AppSidebar() {
       <SidebarFooter className="p-3 pt-0">
         <SidebarSeparator className="mb-3 bg-sidebar-border/40" />
         
-        {!collapsed && (
-          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-sidebar-accent/30 mb-2 cursor-pointer hover:bg-sidebar-accent/50 transition-all duration-200" onClick={() => navigate("/perfil")}>
-            <Avatar className="h-9 w-9 border-2 border-sidebar-border/60">
-              <AvatarImage src={userProfile?.avatar_url || undefined} />
-              <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-xs font-semibold">
-                {getInitials(userProfile?.full_name)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-sidebar-foreground truncate">
-                {userProfile?.full_name || "Usuário"}
-              </p>
-              {getRoleLabel(userRole) && (
-                <p className="text-[9px] text-sidebar-primary font-semibold uppercase tracking-wider">
-                  {getRoleLabel(userRole)}
-                </p>
-              )}
-            </div>
-            <ChevronRight className="h-3.5 w-3.5 text-sidebar-muted" />
+        {/* PWA Install Prompt - only on iOS Safari not in standalone */}
+        {!collapsed && showPwaPrompt && (
+          <div className="mx-1 mb-2 px-3 py-2 rounded-lg bg-sidebar-accent/20 border border-sidebar-border/20">
+            <p className="text-[11px] text-sidebar-foreground font-medium flex items-center gap-1.5">
+              <Download className="h-3.5 w-3.5 text-sidebar-primary shrink-0" />
+              Instale o IBBRA
+            </p>
+            <p className="text-[10px] text-sidebar-muted mt-1 leading-relaxed">
+              Toque em <Share className="inline h-2.5 w-2.5 text-sidebar-primary" /> e depois <Plus className="inline h-2.5 w-2.5 text-sidebar-primary" /> <span className="font-medium text-sidebar-foreground">Tela de Início</span>
+            </p>
           </div>
-        )}
-
-        {collapsed && (
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton tooltip="Meu Perfil" className="justify-center" onClick={() => navigate("/perfil")}>
-                <Avatar className="h-8 w-8 border border-sidebar-border">
-                  <AvatarImage src={userProfile?.avatar_url || undefined} />
-                  <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-xs font-semibold">
-                    {getInitials(userProfile?.full_name)}
-                  </AvatarFallback>
-                </Avatar>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
         )}
 
         <SidebarMenu>
