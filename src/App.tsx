@@ -93,6 +93,12 @@ class GlobalErrorBoundary extends Component<
 
   render() {
     if (this.state.hasError) {
+      // Don't show error boundary on auth page - let it reload naturally
+      const isAuthPage = typeof window !== 'undefined' && window.location.pathname === '/auth';
+      if (isAuthPage) {
+        setTimeout(() => { this.setState({ hasError: false, error: null }); }, 100);
+        return this.props.children;
+      }
       return (
         <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-6 text-center">
           <AlertTriangle className="h-12 w-12 text-destructive" />

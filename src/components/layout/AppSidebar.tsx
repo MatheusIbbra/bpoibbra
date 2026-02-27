@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Upload, AlertCircle, User, ChevronRight, ChevronDown, Home, Receipt, Settings2, Wallet, FileText, Shield, Brain, Building2, CreditCard, BarChart3, CircleDollarSign, PieChart, Layers, Tags, Lightbulb, Radio } from "lucide-react";
+import { LogOut, Upload, AlertCircle, ChevronRight, ChevronDown, Home, Receipt, Settings2, Wallet, FileText, Shield, Brain, CreditCard, BarChart3, CircleDollarSign, PieChart, Layers, Tags, Lightbulb, Radio } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -25,6 +25,14 @@ const reportSubItems = [
   { title: "Análises Estratégicas", url: "/relatorios?tab=estrategico", tab: "estrategico", icon: Lightbulb },
 ];
 
+const cadastrosSubItems = [
+  { title: "Contas", url: "/cadastros?tab=contas", tab: "contas" },
+  { title: "Categorias", url: "/cadastros?tab=categorias", tab: "categorias" },
+  { title: "Centros de Custo", url: "/cadastros?tab=centros-custo", tab: "centros-custo" },
+  { title: "Open Finance", url: "/cadastros?tab=open-finance", tab: "open-finance" },
+  { title: "Regras", url: "/cadastros?tab=regras", tab: "regras" },
+];
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -34,6 +42,7 @@ export function AppSidebar() {
   const { isAdmin } = useIsAdmin();
   const { data: pendingCount } = usePendingTransactionsCount();
   const [reportsOpen, setReportsOpen] = useState(location.pathname === "/relatorios");
+  const [cadastrosOpen, setCadastrosOpen] = useState(location.pathname === "/cadastros");
 
   const { data: userProfile } = useQuery({
     queryKey: ["sidebar-profile", user?.id],
@@ -84,27 +93,24 @@ export function AppSidebar() {
     return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
   };
 
-  // Build nav items based on role
+  // Build nav items based on role — order: Dashboard, Orçamentos, Cartões, Importar, Relatórios, Cadastros
   const navItems = [
-    { title: "Consolidação", url: "/", icon: Home },
-    
-    { title: "Cartões de Crédito", url: "/cartoes", icon: CreditCard },
+    { title: "Dashboard", url: "/", icon: Home },
     { title: "Orçamentos", url: "/orcamentos", icon: Wallet },
+    { title: "Cartões de Crédito", url: "/cartoes", icon: CreditCard },
+    { title: "Importar Extratos", url: "/importacoes", icon: Upload },
   ];
 
-  // "Relatórios" is handled separately as submenu
-  const postReportItems = [
-    { title: "Importar Extratos", url: "/importacoes", icon: Upload },
-    { title: "Cadastros", url: "/cadastros", icon: Settings2 },
-  ];
+  // "Relatórios" and "Cadastros" are handled separately as submenus
+  const isCadastrosActive = location.pathname === "/cadastros";
 
   const renderNavItem = (item: typeof navItems[0]) => (
     <SidebarMenuItem key={item.title} className="relative">
       <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={collapsed ? item.title : undefined}>
-        <NavLink to={item.url} end={item.url === "/"} className={`flex items-center transition-all duration-200 text-sm py-2.5 rounded-xl ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${isActive(item.url) ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
-          <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive(item.url) ? "text-sidebar-primary" : ""}`} />
+        <NavLink to={item.url} end={item.url === "/"} className={`flex items-center transition-all duration-200 text-sm py-3 rounded-xl ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${isActive(item.url) ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
+          <item.icon className={`h-[19px] w-[19px] shrink-0 ${isActive(item.url) ? "text-sidebar-primary" : ""}`} />
           {!collapsed && (
-            <span className="whitespace-nowrap flex-1 text-[13px]">
+            <span className="whitespace-nowrap flex-1 text-[13.5px]">
               {item.title}
             </span>
           )}
@@ -153,10 +159,10 @@ export function AppSidebar() {
               <>
                 <button
                   onClick={() => setReportsOpen(!reportsOpen)}
-                  className={`flex items-center w-full transition-all duration-200 text-sm py-2.5 rounded-xl gap-3 px-3 ${isReportActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`}
+                  className={`flex items-center w-full transition-all duration-200 text-sm py-3 rounded-xl gap-3 px-3 ${isReportActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`}
                 >
-                  <BarChart3 className={`h-[18px] w-[18px] shrink-0 ${isReportActive ? "text-sidebar-primary" : ""}`} />
-                  <span className="whitespace-nowrap flex-1 text-[13px] text-left">Relatórios</span>
+                  <BarChart3 className={`h-[19px] w-[19px] shrink-0 ${isReportActive ? "text-sidebar-primary" : ""}`} />
+                  <span className="whitespace-nowrap flex-1 text-[13.5px] text-left">Relatórios</span>
                   {reportsOpen ? (
                     <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-muted" />
                   ) : (
@@ -186,7 +192,49 @@ export function AppSidebar() {
             )}
           </SidebarMenuItem>
 
-          {postReportItems.map(renderNavItem)}
+          {/* Cadastros with submenu */}
+          <SidebarMenuItem>
+            {collapsed ? (
+              <SidebarMenuButton asChild isActive={isCadastrosActive} tooltip="Cadastros">
+                <NavLink to="/cadastros" className={`flex items-center justify-center transition-all duration-200 text-sm py-2.5 rounded-xl ${isCadastrosActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
+                  <Settings2 className={`h-[18px] w-[18px] shrink-0 ${isCadastrosActive ? "text-sidebar-primary" : ""}`} />
+                </NavLink>
+              </SidebarMenuButton>
+            ) : (
+              <>
+                <button
+                  onClick={() => setCadastrosOpen(!cadastrosOpen)}
+                  className={`flex items-center w-full transition-all duration-200 text-sm py-3 rounded-xl gap-3 px-3 ${isCadastrosActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`}
+                >
+                  <Settings2 className={`h-[19px] w-[19px] shrink-0 ${isCadastrosActive ? "text-sidebar-primary" : ""}`} />
+                  <span className="whitespace-nowrap flex-1 text-[13.5px] text-left">Cadastros</span>
+                  {cadastrosOpen ? (
+                    <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-muted" />
+                  ) : (
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-sidebar-muted" />
+                  )}
+                </button>
+                {cadastrosOpen && (
+                  <div className="ml-5 mt-1 space-y-0.5 border-l border-sidebar-border/30 pl-3">
+                    {cadastrosSubItems.map(sub => {
+                      const searchParams = new URLSearchParams(location.search);
+                      const currentTab = searchParams.get("tab");
+                      const isSubActive = isCadastrosActive && currentTab === sub.tab;
+                      return (
+                        <button
+                          key={sub.tab}
+                          onClick={() => navigate(`/cadastros?tab=${sub.tab}`)}
+                          className={`flex items-center gap-2 w-full text-[12px] py-1.5 px-2 rounded-lg transition-all duration-150 ${isSubActive ? "bg-sidebar-accent/60 text-sidebar-accent-foreground font-medium" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/30"}`}
+                        >
+                          <span>{sub.title}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+          </SidebarMenuItem>
         </SidebarMenu>
 
         {isAdmin && <>
