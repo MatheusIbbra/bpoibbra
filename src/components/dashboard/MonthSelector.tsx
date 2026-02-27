@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 interface MonthSelectorProps {
   selectedMonth: Date;
   onMonthChange: (date: Date) => void;
-  /** When true, uses light text for overlay on dark backgrounds (dashboard). Default: false */
-  variant?: "default" | "overlay";
+  /** "overlay" = white text (dark bg), "overlay-mobile" = white on mobile / normal on desktop */
+  variant?: "default" | "overlay" | "overlay-mobile";
 }
 
 export function MonthSelector({ selectedMonth, onMonthChange, variant = "default" }: MonthSelectorProps) {
@@ -17,12 +17,15 @@ export function MonthSelector({ selectedMonth, onMonthChange, variant = "default
   const label = format(selectedMonth, "MMMM 'de' yyyy", { locale: ptBR });
   const capitalizedLabel = label.charAt(0).toUpperCase() + label.slice(1);
 
-  const isOverlay = variant === "overlay";
-  const btnClass = isOverlay
+  const btnClass = variant === "overlay"
     ? "h-5 w-5 rounded-full text-white/70 hover:text-white hover:bg-white/10"
+    : variant === "overlay-mobile"
+    ? "h-5 w-5 rounded-full text-white/70 md:text-muted-foreground hover:text-white md:hover:text-foreground hover:bg-white/10 md:hover:bg-muted/60"
     : "h-5 w-5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/60";
-  const labelClass = isOverlay
+  const labelClass = variant === "overlay"
     ? "text-[11px] font-medium text-white min-w-[120px] text-center select-none"
+    : variant === "overlay-mobile"
+    ? "text-[11px] font-medium text-white md:text-foreground min-w-[120px] text-center select-none"
     : "text-[11px] font-medium text-foreground min-w-[120px] text-center select-none";
 
   return (
