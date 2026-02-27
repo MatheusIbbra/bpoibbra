@@ -197,7 +197,7 @@ export function MovimentacoesReportContent() {
       groups.push({ label, transactions: map.get(label)! });
     }
     return groups;
-  }, [transactions]);
+  }, [paginatedTransactions]);
 
   const handleEdit = (transaction: Transaction) => {
     setEditingTransaction(transaction);
