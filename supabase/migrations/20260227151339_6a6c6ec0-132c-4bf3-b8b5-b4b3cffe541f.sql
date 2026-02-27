@@ -1,0 +1,1 @@
+ALTER TABLE public.budgets ADD COLUMN IF NOT EXISTS recurring_group_id uuid DEFAULT NULL;

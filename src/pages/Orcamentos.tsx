@@ -13,6 +13,7 @@ import {
   Trash2,
   Check,
   ChevronsUpDown,
+  Repeat,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -22,9 +23,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -33,6 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import { MonthSelector } from "@/components/dashboard/MonthSelector";
 import { useBudgets, useCreateBudget, useUpdateBudget, useDeleteBudget, Budget } from "@/hooks/useBudgets";
 import { useCategoriesHierarchy } from "@/hooks/useCategories";
 import { useTransactions } from "@/hooks/useTransactions";
@@ -49,23 +53,29 @@ const budgetSchema = z.object({
 
 type FormData = z.infer<typeof budgetSchema>;
 
+const MONTHS = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+];
+
 export default function Orcamentos() {
   const { requiresBaseSelection } = useBaseFilter();
   const { canCreate } = useCanCreate();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Budget | null>(null);
   const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
 
-  const currentDate = new Date();
-  const month = currentDate.getMonth() + 1;
-  const year = currentDate.getFullYear();
+  // Month navigation state
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const month = selectedMonth.getMonth() + 1;
+  const year = selectedMonth.getFullYear();
 
   const startOfMonth = `${year}-${String(month).padStart(2, "0")}-01`;
   const endOfMonth = new Date(year, month, 0).toISOString().split("T")[0];
 
   const { data: budgets, isLoading } = useBudgets(month, year);
-  // Load ALL categories in hierarchy (income + expense)
   const { data: hierarchyCategories } = useCategoriesHierarchy();
   const { data: transactions } = useTransactions({
     startDate: startOfMonth,
@@ -81,36 +91,26 @@ export default function Orcamentos() {
     defaultValues: { category_id: "", amount: 0 },
   });
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
-  const getSpentForCategory = (categoryId: string) => {
-    return transactions
-      ?.filter((t) => t.category_id === categoryId)
+  const getSpentForCategory = (categoryId: string) =>
+    transactions?.filter((t) => t.category_id === categoryId)
       .reduce((acc, t) => acc + Math.abs(Number(t.amount)), 0) || 0;
-  };
 
   const handleEdit = (budget: Budget) => {
     setEditingBudget(budget);
-    form.reset({
-      category_id: budget.category_id,
-      amount: Number(budget.amount),
-    });
+    form.reset({ category_id: budget.category_id, amount: Number(budget.amount) });
     setDialogOpen(true);
   };
 
-  const handleDelete = async () => {
-    if (deleteId) {
-      await deleteBudget.mutateAsync(deleteId);
-      setDeleteId(null);
+  const handleDelete = async (deleteFuture: boolean) => {
+    if (deleteTarget) {
+      await deleteBudget.mutateAsync({ id: deleteTarget.id, deleteFuture });
+      setDeleteTarget(null);
     }
   };
 
-  // Build flat list of child categories from hierarchy for selection
   const allChildCategories = hierarchyCategories?.flatMap(parent =>
     (parent.children || []).map(child => ({
       ...child,
@@ -124,43 +124,45 @@ export default function Orcamentos() {
     (c) => !usedCategoryIds.includes(c.id) || c.id === editingBudget?.category_id
   );
 
-  // Group available categories by parent for display
   const groupedCategories = availableCategories.reduce<Record<string, { parentName: string; parentType: string; children: typeof availableCategories }>>((acc, cat) => {
     const key = cat.parentName;
-    if (!acc[key]) {
-      acc[key] = { parentName: cat.parentName, parentType: cat.parentType, children: [] };
-    }
+    if (!acc[key]) acc[key] = { parentName: cat.parentName, parentType: cat.parentType, children: [] };
     acc[key].children.push(cat);
     return acc;
   }, {});
 
-  // Sort groups: income first, then expense, alphabetically within
   const sortedGroups = Object.values(groupedCategories).sort((a, b) => {
-    if (a.parentType !== b.parentType) {
-      return a.parentType === "income" ? -1 : 1;
-    }
+    if (a.parentType !== b.parentType) return a.parentType === "income" ? -1 : 1;
     return a.parentName.localeCompare(b.parentName, "pt-BR");
   });
 
-  const findCategoryName = (id: string) => {
-    return allChildCategories.find(c => c.id === id)?.name || 
-           budgets?.find(b => b.category_id === id)?.categories?.name || id;
-  };
+  const findCategoryName = (id: string) =>
+    allChildCategories.find(c => c.id === id)?.name || budgets?.find(b => b.category_id === id)?.categories?.name || id;
 
   const onSubmit = async (data: FormData) => {
     const validCategory = allChildCategories.find(c => c.id === data.category_id);
-    if (!validCategory) {
-      toast.error("A categoria selecionada não existe ou não pertence a esta base");
-      return;
-    }
+    if (!validCategory) { toast.error("A categoria selecionada não existe ou não pertence a esta base"); return; }
     
     if (editingBudget) {
-      await updateBudget.mutateAsync({ id: editingBudget.id, ...data });
+      const isRecurringBudget = !!editingBudget.recurring_group_id;
+      await updateBudget.mutateAsync({
+        id: editingBudget.id,
+        amount: data.amount,
+        updateFuture: isRecurringBudget,
+      });
     } else {
-      await createBudget.mutateAsync({ category_id: data.category_id, amount: data.amount, month, year, cost_center_id: null });
+      await createBudget.mutateAsync({
+        category_id: data.category_id,
+        amount: data.amount,
+        month,
+        year,
+        cost_center_id: null,
+        is_recurring: isRecurring,
+      });
     }
     setDialogOpen(false);
     setEditingBudget(null);
+    setIsRecurring(false);
     form.reset();
   };
 
@@ -180,7 +182,14 @@ export default function Orcamentos() {
   return (
     <AppLayout title="Orçamentos">
       <div className="space-y-4">
-        {/* Summary - Compact */}
+        {/* Month Selector */}
+        <div className="flex items-center justify-center">
+          <div className="inline-flex items-center rounded-full border border-border/40 bg-muted/30 px-3 py-1 shadow-sm">
+            <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
+          </div>
+        </div>
+
+        {/* Summary */}
         <Card>
           <CardContent className="py-3 px-4">
             <div className="flex items-center justify-between mb-2">
@@ -219,12 +228,12 @@ export default function Orcamentos() {
         </Card>
 
         {/* Budget Alerts */}
-        <BudgetAlerts showNotifications={false} compact />
+        <BudgetAlerts showNotifications={false} compact selectedMonth={selectedMonth} />
 
         {/* Header */}
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold">Orçamentos por Categoria</h2>
-          <Button size="sm" className="h-7 text-xs" onClick={() => { setEditingBudget(null); form.reset(); setDialogOpen(true); }}>
+          <Button size="sm" className="h-7 text-xs" onClick={() => { setEditingBudget(null); setIsRecurring(false); form.reset(); setDialogOpen(true); }}>
             <Plus className="h-3.5 w-3.5 mr-1" />
             Novo Orçamento
           </Button>
@@ -239,7 +248,7 @@ export default function Orcamentos() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-6 text-center">
               <Wallet className="h-8 w-8 text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">Nenhum orçamento definido</p>
+              <p className="text-sm text-muted-foreground">Nenhum orçamento definido para {MONTHS[month - 1]}</p>
             </CardContent>
           </Card>
         ) : (
@@ -248,17 +257,23 @@ export default function Orcamentos() {
               const spent = getSpentForCategory(budget.category_id);
               const percentage = Math.min((spent / Number(budget.amount)) * 100, 100);
               const isOverBudget = spent > Number(budget.amount);
+              const isRecurringBudget = !!budget.recurring_group_id;
 
               return (
                 <Card key={budget.id}>
                   <CardContent className="py-2.5 px-3">
                     <div className="flex items-center justify-between mb-1.5">
-                      <p className="text-sm font-medium truncate flex-1">{budget.categories?.name}</p>
+                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{budget.categories?.name}</p>
+                        {isRecurringBudget && (
+                          <Repeat className="h-3 w-3 text-muted-foreground shrink-0" />
+                        )}
+                      </div>
                       <div className="flex gap-0.5 shrink-0 ml-2">
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEdit(budget)}>
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setDeleteId(budget.id)}>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setDeleteTarget(budget)}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
@@ -289,6 +304,7 @@ export default function Orcamentos() {
         )}
       </div>
 
+      {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -341,10 +357,7 @@ export default function Orcamentos() {
                                 key={group.parentName}
                                 heading={
                                   <span className="flex items-center gap-1.5">
-                                    <span className={cn(
-                                      "h-2 w-2 rounded-full",
-                                      group.parentType === "income" ? "bg-primary" : "bg-destructive"
-                                    )} />
+                                    <span className={cn("h-2 w-2 rounded-full", group.parentType === "income" ? "bg-primary" : "bg-destructive")} />
                                     {group.parentName}
                                   </span>
                                 }
@@ -353,17 +366,9 @@ export default function Orcamentos() {
                                   <CommandItem
                                     key={cat.id}
                                     value={cat.id}
-                                    onSelect={(val) => {
-                                      field.onChange(val);
-                                      setCategoryPopoverOpen(false);
-                                    }}
+                                    onSelect={(val) => { field.onChange(val); setCategoryPopoverOpen(false); }}
                                   >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-3 w-3",
-                                        field.value === cat.id ? "opacity-100" : "opacity-0"
-                                      )}
-                                    />
+                                    <Check className={cn("mr-2 h-3 w-3", field.value === cat.id ? "opacity-100" : "opacity-0")} />
                                     <span className="text-sm">{cat.name}</span>
                                   </CommandItem>
                                 ))}
@@ -384,16 +389,40 @@ export default function Orcamentos() {
                   <FormItem>
                     <FormLabel className="text-xs">Limite (R$)</FormLabel>
                     <FormControl>
-                      <CurrencyInput
-                        value={field.value}
-                        onChange={field.onChange}
-                        className="h-8 text-sm bg-white dark:bg-muted"
-                      />
+                      <CurrencyInput value={field.value} onChange={field.onChange} className="h-8 text-sm bg-white dark:bg-muted" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {/* Recurring toggle - only for new budgets */}
+              {!editingBudget && (
+                <div className="flex items-center justify-between rounded-lg border p-3">
+                  <div className="flex items-center gap-2">
+                    <Repeat className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Label className="text-xs cursor-pointer">Orçamento recorrente</Label>
+                  </div>
+                  <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
+                </div>
+              )}
+              {!editingBudget && !isRecurring && (
+                <p className="text-[10px] text-muted-foreground">
+                  Será criado apenas para {MONTHS[month - 1]} de {year}
+                </p>
+              )}
+              {!editingBudget && isRecurring && (
+                <p className="text-[10px] text-muted-foreground">
+                  Será criado de {MONTHS[month - 1]} até Dezembro de {year}
+                </p>
+              )}
+              {editingBudget?.recurring_group_id && (
+                <p className="text-[10px] text-accent flex items-center gap-1">
+                  <Repeat className="h-3 w-3" />
+                  Orçamento recorrente — a edição será aplicada a este e aos meses seguintes
+                </p>
+              )}
+
               <div className="flex gap-2">
                 <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => setDialogOpen(false)}>
                   Cancelar
@@ -409,19 +438,40 @@ export default function Orcamentos() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+      {/* Delete Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base">Excluir orçamento?</AlertDialogTitle>
             <AlertDialogDescription className="text-sm">
-              Esta ação não pode ser desfeita.
+              {deleteTarget?.recurring_group_id
+                ? "Este orçamento é recorrente. O que deseja fazer?"
+                : "Esta ação não pode ser desfeita."}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className={deleteTarget?.recurring_group_id ? "flex-col gap-2 sm:flex-col" : ""}>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-              Excluir
-            </AlertDialogAction>
+            {deleteTarget?.recurring_group_id ? (
+              <>
+                <Button
+                  variant="outline"
+                  className="border-destructive text-destructive hover:bg-destructive/10"
+                  onClick={() => handleDelete(false)}
+                >
+                  Excluir só este mês
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleDelete(true)}
+                >
+                  Excluir este e os próximos
+                </Button>
+              </>
+            ) : (
+              <Button variant="destructive" onClick={() => handleDelete(false)}>
+                Excluir
+              </Button>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
