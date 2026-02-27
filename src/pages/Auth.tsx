@@ -28,6 +28,7 @@ export default function Auth() {
   const [resetEmail, setResetEmail] = useState("");
   const { user, loading: authLoading, signIn } = useAuth();
   const navigate = useNavigate();
+  const [authReady, setAuthReady] = useState(false);
 
   // IMPORTANT: useForm must be called unconditionally (before any early returns)
   const loginForm = useForm<LoginFormData>({
@@ -35,8 +36,18 @@ export default function Auth() {
     defaultValues: { email: "", password: "" },
   });
 
+  // Safety: ensure we never stay in loading state forever
   useEffect(() => {
-    if (authLoading) return;
+    if (!authLoading) {
+      setAuthReady(true);
+      return;
+    }
+    const timeout = setTimeout(() => setAuthReady(true), 3000);
+    return () => clearTimeout(timeout);
+  }, [authLoading]);
+
+  useEffect(() => {
+    if (!authReady) return;
     if (!user) return;
 
     const checkRegistration = async () => {
@@ -57,10 +68,10 @@ export default function Auth() {
     };
 
     checkRegistration();
-  }, [user, authLoading, navigate]);
+  }, [user, authReady, navigate]);
 
-  // Show loading while auth state is being resolved
-  if (authLoading) {
+  // Show loading while auth state is being resolved (with safety timeout)
+  if (!authReady) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
