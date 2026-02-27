@@ -304,7 +304,7 @@ export default function Categorias() {
                 <Badge variant={getTypeBadgeVariant(category.type) as any} className="shrink-0 text-[10px] px-1.5 py-0">
                   {getTypeLabel(category.type)}
                 </Badge>
-                {(category as any).expense_classification && (
+                {isChild && (category as any).expense_classification && (
                   <Badge variant="secondary" className="shrink-0 text-[10px] px-1.5 py-0">
                     {getExpenseClassificationLabel((category as any).expense_classification)}
                   </Badge>
