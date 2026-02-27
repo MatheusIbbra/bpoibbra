@@ -18,6 +18,8 @@ import {
   TrendingUp,
   TrendingDown,
   CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -135,6 +137,8 @@ export function MovimentacoesReportContent() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const PAGE_SIZE = 50;
 
   const { data: allTransactions, isLoading } = useTransactions({ search: search || undefined });
   const { data: categories } = useCategories();
@@ -165,12 +169,22 @@ export function MovimentacoesReportContent() {
       });
   }, [allTransactions, typeFilter, categoryFilter, costCenterFilter, accountFilter, classificationFilter, periodRange]);
 
+  // Reset page on filter change
+  const totalPages = Math.ceil(transactions.length / PAGE_SIZE);
+  const paginatedTransactions = useMemo(() => {
+    const start = currentPage * PAGE_SIZE;
+    return transactions.slice(start, start + PAGE_SIZE);
+  }, [transactions, currentPage]);
+
+  // Reset page when filters change
+  useMemo(() => { setCurrentPage(0); }, [typeFilter, categoryFilter, costCenterFilter, accountFilter, classificationFilter, periodRange, search]);
+
   // Group by date label
   const grouped = useMemo(() => {
     const groups: { label: string; transactions: Transaction[] }[] = [];
     const map = new Map<string, Transaction[]>();
     const order: string[] = [];
-    for (const tx of transactions) {
+    for (const tx of paginatedTransactions) {
       const txDate = parseLocalDate(tx.date);
       const label = format(txDate, "dd 'de' MMMM, yyyy", { locale: ptBR });
       if (!map.has(label)) {
@@ -297,10 +311,20 @@ export function MovimentacoesReportContent() {
       </div>
 
       <Card className="shadow-sm">
-        <CardHeader className="py-2 px-3">
+        <CardHeader className="py-2 px-3 flex flex-row items-center justify-between">
           <CardTitle className="text-xs text-muted-foreground">
-            {isLoading ? "Carregando..." : `${transactions.length} movimentações`}
+            {isLoading ? "Carregando..." : `${transactions.length} movimentações${totalPages > 1 ? ` · Página ${currentPage + 1} de ${totalPages}` : ""}`}
           </CardTitle>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)}>
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage >= totalPages - 1} onClick={() => setCurrentPage(p => p + 1)}>
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="p-2">
           {isLoading ? (
@@ -404,6 +428,19 @@ export function MovimentacoesReportContent() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          {totalPages > 1 && !isLoading && transactions.length > 0 && (
+            <div className="flex items-center justify-center gap-2 py-3 border-t">
+              <Button variant="outline" size="sm" className="h-7 text-xs" disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)}>
+                <ChevronLeft className="h-3 w-3 mr-1" />Anterior
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                {currentPage + 1} / {totalPages}
+              </span>
+              <Button variant="outline" size="sm" className="h-7 text-xs" disabled={currentPage >= totalPages - 1} onClick={() => setCurrentPage(p => p + 1)}>
+                Próxima<ChevronRight className="h-3 w-3 ml-1" />
+              </Button>
             </div>
           )}
         </CardContent>

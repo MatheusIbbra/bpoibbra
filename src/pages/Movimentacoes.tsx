@@ -18,6 +18,8 @@ import {
   RefreshCw,
   EyeOff,
   Eye,
+  ChevronLeft,
+  ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -102,6 +104,8 @@ export default function Movimentacoes() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [ignoreTarget, setIgnoreTarget] = useState<{ id: string; is_ignored: boolean } | null>(null);
   const [defaultType, setDefaultType] = useState<"transfer" | "income" | "expense">("transfer");
+  const [currentPage, setCurrentPage] = useState(0);
+  const PAGE_SIZE = 50;
 
   const { data: allTransactions, isLoading } = useTransactions({
     search: search || undefined,
@@ -129,7 +133,15 @@ export default function Movimentacoes() {
   };
 
   const filteredTransactions = getFilteredTransactions();
-  const grouped = useMemo(() => groupTransactionsByDate(filteredTransactions), [filteredTransactions]);
+  const totalPages = Math.ceil(filteredTransactions.length / PAGE_SIZE);
+  const paginatedFiltered = useMemo(() => {
+    const start = currentPage * PAGE_SIZE;
+    return filteredTransactions.slice(start, start + PAGE_SIZE);
+  }, [filteredTransactions, currentPage]);
+  const grouped = useMemo(() => groupTransactionsByDate(paginatedFiltered), [paginatedFiltered]);
+
+  // Reset page on tab/search change
+  useMemo(() => { setCurrentPage(0); }, [activeTab, search]);
 
   const handleEdit = (transaction: Transaction) => {
     setEditingTransaction(transaction);
@@ -266,10 +278,20 @@ export default function Movimentacoes() {
 
           <TabsContent value={activeTab} className="mt-4">
             <Card className="card-executive">
-              <CardHeader className="py-3 px-4">
+              <CardHeader className="py-3 px-4 flex flex-row items-center justify-between">
                 <CardTitle className="text-sm font-medium">
-                  {isLoading ? "Carregando..." : `${filteredTransactions.length} movimentações`}
+                  {isLoading ? "Carregando..." : `${filteredTransactions.length} movimentações${totalPages > 1 ? ` · Pág. ${currentPage + 1}/${totalPages}` : ""}`}
                 </CardTitle>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)}>
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage >= totalPages - 1} onClick={() => setCurrentPage(p => p + 1)}>
+                      <ChevronRightIcon className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="p-0">
                 {isLoading ? (
@@ -412,6 +434,17 @@ export default function Movimentacoes() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+                {totalPages > 1 && !isLoading && filteredTransactions.length > 0 && (
+                  <div className="flex items-center justify-center gap-2 py-3 border-t">
+                    <Button variant="outline" size="sm" className="h-7 text-xs" disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)}>
+                      <ChevronLeft className="h-3 w-3 mr-1" />Anterior
+                    </Button>
+                    <span className="text-xs text-muted-foreground">{currentPage + 1} / {totalPages}</span>
+                    <Button variant="outline" size="sm" className="h-7 text-xs" disabled={currentPage >= totalPages - 1} onClick={() => setCurrentPage(p => p + 1)}>
+                      Próxima<ChevronRightIcon className="h-3 w-3 ml-1" />
+                    </Button>
                   </div>
                 )}
               </CardContent>
