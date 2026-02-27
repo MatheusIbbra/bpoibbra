@@ -56,7 +56,7 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
     const activeConnections = bankConnections?.filter(c => c.status === "active") || [];
     if (activeConnections.length === 0) { toast.info("Nenhuma conexão ativa para sincronizar."); return; }
     setIsSyncingAll(true);
-    toast.info(`Sincronizando ${activeConnections.length} conexão(ões)...`);
+    toast.info("Atualização do Open Finance em Andamento", { duration: 4000 });
     let totalImported = 0;
     for (const conn of activeConnections) {
       try {
@@ -175,6 +175,10 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
                 <User className="mr-2 h-4 w-4" />
                 Meu Perfil
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={toggleTheme} className="cursor-pointer">
+                {theme === "light" ? <Moon className="mr-2 h-4 w-4" /> : <Sun className="mr-2 h-4 w-4" />}
+                {theme === "light" ? "Modo Escuro" : "Modo Claro"}
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={signOut} className="text-destructive cursor-pointer">
                 <LogOut className="mr-2 h-4 w-4" />
@@ -252,12 +256,15 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
           <InsightsHeaderButton />
         </div>
 
-        {/* Theme toggle */}
+        {/* Theme toggle - hidden on mobile for clients (available in dropdown) */}
         <Button 
           variant="ghost" 
           size="icon" 
           onClick={toggleTheme} 
-          className="h-8 w-8 md:h-9 md:w-9 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/40 rounded-lg transition-all duration-200"
+          className={cn(
+            "h-8 w-8 md:h-9 md:w-9 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/40 rounded-lg transition-all duration-200",
+            userRole === 'cliente' && "hidden md:flex"
+          )}
         >
           {theme === "light" ? (
             <Moon className="h-4 w-4" />
