@@ -261,51 +261,49 @@ export default function CartoesCredito() {
 
   return (
     <AppLayout title="Cartões de Crédito">
-      <div className="space-y-6">
+      <div className="space-y-5">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Cartões de Crédito</h1>
-            <p className="text-sm text-muted-foreground">Gerencie todos os seus cartões em um só lugar</p>
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Cartões de Crédito</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">Gerencie todos os seus cartões</p>
           </div>
-          <Button onClick={() => setShowAddDialog(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
+          <Button onClick={() => setShowAddDialog(true)} size="sm" className="gap-1.5 text-xs">
+            <Plus className="h-3.5 w-3.5" />
             Adicionar Cartão
           </Button>
         </div>
 
         {/* Consolidated Summary */}
         {data && cards.length > 0 && (
-          <Card className="card-executive overflow-hidden">
+          <Card className="border-0 bg-gradient-to-br from-card to-muted/20 overflow-hidden">
             <CardContent className="p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                <div className="flex-1 grid grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-[11px] text-muted-foreground mb-0.5">Limite Total</p>
-                    <p className="text-lg font-bold tracking-tight">{formatCurrency(data.totalLimit)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] text-muted-foreground mb-0.5">Utilizado</p>
-                    <p className="text-lg font-bold tracking-tight text-destructive">{formatCurrency(data.totalUsed)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] text-muted-foreground mb-0.5">Disponível</p>
-                    <p className="text-lg font-bold tracking-tight text-success">{formatCurrency(data.totalAvailable)}</p>
-                  </div>
+              <div className="grid grid-cols-3 gap-3 sm:gap-6">
+                <div>
+                  <p className="text-[10px] sm:text-[11px] text-muted-foreground uppercase tracking-wider">Limite</p>
+                  <p className="text-sm sm:text-lg font-bold mt-0.5">{formatCurrency(data.totalLimit)}</p>
                 </div>
-                <div className="w-full sm:w-48">
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-                    <span>Uso consolidado</span>
-                    <span className={cn("font-semibold", getUsageStatus(data.totalLimit > 0 ? Math.round((data.totalUsed / data.totalLimit) * 100) : 0).color)}>
-                      {data.totalLimit > 0 ? Math.round((data.totalUsed / data.totalLimit) * 100) : 0}%
-                    </span>
-                  </div>
-                  <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">
-                    <div
-                      className={cn("h-full rounded-full transition-all duration-500", getUsageStatus(data.totalLimit > 0 ? Math.round((data.totalUsed / data.totalLimit) * 100) : 0).barColor)}
-                      style={{ width: `${data.totalLimit > 0 ? Math.min(100, Math.round((data.totalUsed / data.totalLimit) * 100)) : 0}%` }}
-                    />
-                  </div>
+                <div>
+                  <p className="text-[10px] sm:text-[11px] text-muted-foreground uppercase tracking-wider">Utilizado</p>
+                  <p className="text-sm sm:text-lg font-bold text-destructive mt-0.5">{formatCurrency(data.totalUsed)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] sm:text-[11px] text-muted-foreground uppercase tracking-wider">Disponível</p>
+                  <p className="text-sm sm:text-lg font-bold text-success mt-0.5">{formatCurrency(data.totalAvailable)}</p>
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+                  <span>Uso consolidado</span>
+                  <span className={cn("font-semibold", getUsageStatus(data.totalLimit > 0 ? Math.round((data.totalUsed / data.totalLimit) * 100) : 0).color)}>
+                    {data.totalLimit > 0 ? Math.round((data.totalUsed / data.totalLimit) * 100) : 0}%
+                  </span>
+                </div>
+                <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className={cn("h-full rounded-full transition-all duration-500", getUsageStatus(data.totalLimit > 0 ? Math.round((data.totalUsed / data.totalLimit) * 100) : 0).barColor)}
+                    style={{ width: `${data.totalLimit > 0 ? Math.min(100, Math.round((data.totalUsed / data.totalLimit) * 100)) : 0}%` }}
+                  />
                 </div>
               </div>
             </CardContent>

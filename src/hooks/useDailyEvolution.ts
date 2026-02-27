@@ -20,17 +20,17 @@ type DailyInternal = DailyData & {
   redemption: number;
 };
 
-export function useDailyEvolution() {
+export function useDailyEvolution(selectedMonth?: Date) {
   const { user } = useAuth();
   const { getOrganizationFilter } = useBaseFilter();
   const orgFilter = getOrganizationFilter();
 
   return useQuery({
-    queryKey: ["daily-evolution", user?.id, orgFilter.type, orgFilter.ids],
+    queryKey: ["daily-evolution", user?.id, orgFilter.type, orgFilter.ids, selectedMonth?.toISOString()],
     queryFn: async (): Promise<DailyData[]> => {
-      const today = new Date();
-      const startDate = startOfMonth(today);
-      const endDate = endOfMonth(today);
+      const refDate = selectedMonth || new Date();
+      const startDate = startOfMonth(refDate);
+      const endDate = endOfMonth(refDate);
 
       // Initial balance from accounts is now handled as a transaction,
       // so we don't need to fetch initial_balance separately anymore.

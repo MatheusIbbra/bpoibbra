@@ -141,14 +141,14 @@ const Index = () => {
       <div className="space-y-6 w-full">
         {/* Month Selector */}
         <div className="flex justify-center">
-          <div className="inline-flex items-center rounded-xl border border-border/60 bg-card px-4 py-2 shadow-sm">
+          <div className="inline-flex items-center rounded-lg border border-border/40 bg-card/80 backdrop-blur-sm px-2 py-1 shadow-sm">
             <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
           </div>
         </div>
 
         {/* 1. Stat Cards */}
         <div className="relative">
-          <div className="absolute inset-x-0 -mx-4 bg-[hsl(var(--sidebar-background))] rounded-b-3xl md:hidden" style={{ top: '-4rem', bottom: '-0.75rem' }} />
+          <div className="absolute inset-x-0 -mx-4 bg-[hsl(var(--sidebar-background))] rounded-b-3xl md:hidden" style={{ top: '-8rem', bottom: '-0.75rem' }} />
           <StaggerGrid className="relative grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
             {statsLoading ? (
               <>
@@ -258,8 +258,8 @@ const Index = () => {
                     </Link>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <InteractiveBudgetList />
-                    <BudgetAlerts showNotifications={true} compact />
+                    <InteractiveBudgetList selectedMonth={selectedMonth} />
+                    <BudgetAlerts showNotifications={true} compact selectedMonth={selectedMonth} />
                     <UnclassifiedTransactionsAlert />
                   </CardContent>
                 </Card>
@@ -273,8 +273,8 @@ const Index = () => {
 
             {/* Distribuição por Categoria + Evolução Financeira */}
             <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-              <StaggerItem><CategoryDonutChart /></StaggerItem>
-              <StaggerItem><MonthlyEvolutionChart /></StaggerItem>
+              <StaggerItem><CategoryDonutChart selectedMonth={selectedMonth} /></StaggerItem>
+              <StaggerItem><MonthlyEvolutionChart selectedMonthFilter={selectedMonth} /></StaggerItem>
             </StaggerGrid>
 
           </div>
@@ -291,10 +291,10 @@ const Index = () => {
                     </Link>
                   </CardHeader>
                   <CardContent className="px-4 pb-4 space-y-4">
-                    <InteractiveBudgetList />
+                    <InteractiveBudgetList selectedMonth={selectedMonth} />
                     <div className="border-t pt-3">
                       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Alertas</p>
-                      <BudgetAlerts showNotifications={false} compact />
+                      <BudgetAlerts showNotifications={false} compact selectedMonth={selectedMonth} />
                     </div>
                     <UnclassifiedTransactionsAlert />
                   </CardContent>
@@ -306,7 +306,7 @@ const Index = () => {
 
         {/* Últimas Movimentações - full width */}
         <AnimatedCard delay={0.05}>
-          <FintechTransactionsList />
+          <FintechTransactionsList selectedMonth={selectedMonth} />
         </AnimatedCard>
       </div>
     </AppLayout>
@@ -314,13 +314,13 @@ const Index = () => {
 };
 
 /** Interactive budget list with click-to-expand details */
-function InteractiveBudgetList() {
+function InteractiveBudgetList({ selectedMonth }: { selectedMonth?: Date } = {}) {
   const { requiresBaseSelection } = useBaseFilter();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const now = new Date();
-  const startDate = format(startOfMonth(now), "yyyy-MM-dd");
-  const endDate = format(endOfMonth(now), "yyyy-MM-dd");
+  const refDate = selectedMonth || new Date();
+  const startDate = format(startOfMonth(refDate), "yyyy-MM-dd");
+  const endDate = format(endOfMonth(refDate), "yyyy-MM-dd");
 
   const { data: budgets, isLoading: budgetsLoading } = useBudgets();
   const { data: transactions, isLoading: transactionsLoading } = useTransactions({
@@ -346,13 +346,13 @@ function InteractiveBudgetList() {
 
   const currentMonthBudgets = useMemo(() => {
     return budgets
-      ?.filter((b) => b.month === now.getMonth() + 1 && b.year === now.getFullYear())
+      ?.filter((b) => b.month === refDate.getMonth() + 1 && b.year === refDate.getFullYear())
       .map((budget) => {
         const catData = spentByCategory.get(budget.category_id) || { total: 0, dates: [] };
         return { ...budget, spent: catData.total, txDates: catData.dates };
       })
       .slice(0, 8) || [];
-  }, [budgets, spentByCategory, now]);
+  }, [budgets, spentByCategory, refDate]);
 
   if (requiresBaseSelection) return null;
 
@@ -378,9 +378,9 @@ function InteractiveBudgetList() {
   }
 
   // Calculate business days remaining in month
-  const monthEnd = endOfMonth(now);
-  const remainingDays = differenceInDays(monthEnd, now);
-  const remainingBusinessDays = eachDayOfInterval({ start: now, end: monthEnd }).filter(d => !isWeekend(d)).length;
+  const monthEnd = endOfMonth(refDate);
+  const remainingDays = differenceInDays(monthEnd, refDate);
+  const remainingBusinessDays = eachDayOfInterval({ start: refDate, end: monthEnd }).filter(d => !isWeekend(d)).length;
 
   return (
     <div className="space-y-1">
