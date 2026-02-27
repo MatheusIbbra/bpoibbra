@@ -226,30 +226,7 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
           <span className="sr-only">{showValues ? "Ocultar valores" : "Mostrar valores"}</span>
         </Button>
 
-        {/* Plan usage indicator */}
-        {usage && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => openUpgradeModal("general")}
-                className="hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-sidebar-accent/40 transition-all duration-200 cursor-pointer"
-              >
-                <TrendingUp className="h-3.5 w-3.5 text-sidebar-foreground/60" />
-                <div className="flex flex-col gap-0.5 min-w-[80px]">
-                  <span className="text-[10px] text-sidebar-foreground/50 leading-none">{usage.planName}</span>
-                  <Progress value={mainUsagePercent} className="h-1.5 bg-sidebar-accent/30" indicatorClassName={usageColor} />
-                </div>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">
-              <p className="font-medium mb-1">{usage.planName}</p>
-              <p>Transações: {usage.transactionsUsed}/{usage.transactionsLimit}</p>
-              <p>IA: {usage.aiRequestsUsed}/{usage.aiRequestsLimit}</p>
-              <p>Conexões: {usage.bankConnectionsUsed}/{usage.bankConnectionsLimit}</p>
-              <p className="text-muted-foreground mt-1">Clique para ver planos</p>
-            </TooltipContent>
-          </Tooltip>
-        )}
+        {/* Plan usage indicator - removed Starter button per user request */}
 
         {/* Insights button */}
         <div className="hidden md:block">

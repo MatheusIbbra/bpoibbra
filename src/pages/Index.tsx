@@ -151,7 +151,7 @@ const Index = () => {
           {/* Month Selector - overlays blue bar on mobile */}
           <div className="relative z-10 flex justify-center mb-3">
             <div className="inline-flex items-center rounded-full border border-white/20 md:border-border/40 bg-white/15 md:bg-card/80 backdrop-blur-sm px-3 py-0.5 shadow-sm">
-              <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
+              <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} variant="overlay" />
             </div>
           </div>
           <StaggerGrid className="relative grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">

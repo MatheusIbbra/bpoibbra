@@ -391,6 +391,7 @@ export type Database = {
           id: string
           month: number
           organization_id: string | null
+          recurring_group_id: string | null
           updated_at: string
           user_id: string
           year: number
@@ -403,6 +404,7 @@ export type Database = {
           id?: string
           month: number
           organization_id?: string | null
+          recurring_group_id?: string | null
           updated_at?: string
           user_id: string
           year: number
@@ -415,6 +417,7 @@ export type Database = {
           id?: string
           month?: number
           organization_id?: string | null
+          recurring_group_id?: string | null
           updated_at?: string
           user_id?: string
           year?: number
