@@ -110,6 +110,7 @@ export function BankConnectionsManager() {
         try {
           toast.info("Salvando conexão bancária...");
           await savePluggyItem.mutateAsync({ organizationId: orgId, itemId, connectorName });
+          toast.success("Conexão realizada com sucesso! A importação das movimentações ocorrerá em breve.");
         } catch (err: any) {
           console.error("[OpenFinance] Save error:", err);
           toast.error("Erro ao salvar conexão: " + (err?.message || 'Erro'));
