@@ -12,17 +12,17 @@ export interface DashboardStats {
   expenseChange: number;
 }
 
-export function useDashboardStats() {
+export function useDashboardStats(selectedMonth?: Date) {
   const { user } = useAuth();
   const { getOrganizationFilter } = useBaseFilter();
   const orgFilter = getOrganizationFilter();
   
   return useQuery({
-    queryKey: ["dashboard-stats", user?.id, orgFilter.type, orgFilter.ids],
+    queryKey: ["dashboard-stats", user?.id, orgFilter.type, orgFilter.ids, selectedMonth?.toISOString()],
     queryFn: async (): Promise<DashboardStats> => {
-      const now = new Date();
-      const currentMonth = now.getMonth() + 1;
-      const currentYear = now.getFullYear();
+      const refDate = selectedMonth || new Date();
+      const currentMonth = refDate.getMonth() + 1;
+      const currentYear = refDate.getFullYear();
       const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1;
       const lastMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
       

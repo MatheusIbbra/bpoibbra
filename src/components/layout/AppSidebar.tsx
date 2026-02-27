@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Upload, AlertCircle, ChevronRight, ChevronDown, Home, Receipt, Settings2, Wallet, FileText, Shield, Brain, CreditCard, BarChart3, CircleDollarSign, PieChart, Layers, Tags, Lightbulb, Radio } from "lucide-react";
+import { LogOut, Upload, AlertCircle, ChevronRight, ChevronDown, Home, Receipt, Settings2, Wallet, FileText, Shield, Brain, CreditCard, BarChart3, CircleDollarSign, PieChart, Layers, Tags, Lightbulb, Radio, Building2, FolderKanban, Scale, TrendingUp } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,6 +9,8 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useUserRoles";
 import { usePendingTransactionsCount } from "@/hooks/usePendingTransactionsCount";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import ibbraLogoWhite from "@/assets/ibbra-logo-white.png";
@@ -26,11 +28,11 @@ const reportSubItems = [
 ];
 
 const cadastrosSubItems = [
-  { title: "Contas", url: "/cadastros?tab=contas", tab: "contas" },
-  { title: "Categorias", url: "/cadastros?tab=categorias", tab: "categorias" },
-  { title: "Centros de Custo", url: "/cadastros?tab=centros-custo", tab: "centros-custo" },
-  { title: "Open Finance", url: "/cadastros?tab=open-finance", tab: "open-finance" },
-  { title: "Regras", url: "/cadastros?tab=regras", tab: "regras" },
+  { title: "Contas", url: "/contas", icon: Building2 },
+  { title: "Categorias", url: "/categorias", icon: Tags },
+  { title: "Centros de Custo", url: "/centros-custo", icon: FolderKanban },
+  { title: "Open Finance", url: "/open-finance", icon: Radio },
+  { title: "Regras", url: "/regras-conciliacao", icon: Scale, adminOnly: true },
 ];
 
 export function AppSidebar() {
@@ -41,8 +43,11 @@ export function AppSidebar() {
   const { signOut, user } = useAuth();
   const { isAdmin } = useIsAdmin();
   const { data: pendingCount } = usePendingTransactionsCount();
+  const { currentPlan } = useSubscription();
+  const { openUpgradeModal } = useUpgradeModal();
   const [reportsOpen, setReportsOpen] = useState(location.pathname === "/relatorios");
-  const [cadastrosOpen, setCadastrosOpen] = useState(location.pathname === "/cadastros");
+  const cadastrosPages = ["/contas", "/categorias", "/centros-custo", "/open-finance", "/regras-conciliacao"];
+  const [cadastrosOpen, setCadastrosOpen] = useState(cadastrosPages.includes(location.pathname));
 
   const { data: userProfile } = useQuery({
     queryKey: ["sidebar-profile", user?.id],
@@ -102,7 +107,7 @@ export function AppSidebar() {
   ];
 
   // "Relatórios" and "Cadastros" are handled separately as submenus
-  const isCadastrosActive = location.pathname === "/cadastros";
+  const isCadastrosActive = cadastrosPages.includes(location.pathname);
 
   const renderNavItem = (item: typeof navItems[0]) => (
     <SidebarMenuItem key={item.title} className="relative">
@@ -141,6 +146,27 @@ export function AppSidebar() {
             )}
           </div>
         </div>
+        {/* Plan indicator */}
+        {!collapsed && (
+          <button
+            onClick={() => openUpgradeModal("general")}
+            className="mx-1 mb-1 px-3 py-2 rounded-lg bg-sidebar-accent/30 hover:bg-sidebar-accent/50 transition-all duration-200 text-center cursor-pointer"
+          >
+            <span className="text-[10px] uppercase tracking-wider font-semibold text-sidebar-primary">
+              {currentPlan?.name || "Starter"}
+            </span>
+            <p className="text-[9px] text-sidebar-muted mt-0.5">Clique para ver planos</p>
+          </button>
+        )}
+        {collapsed && (
+          <button
+            onClick={() => openUpgradeModal("general")}
+            className="mx-auto mb-1 h-7 w-7 rounded-md bg-sidebar-accent/30 hover:bg-sidebar-accent/50 flex items-center justify-center transition-all cursor-pointer"
+            title={currentPlan?.name || "Starter"}
+          >
+            <TrendingUp className="h-3.5 w-3.5 text-sidebar-primary" />
+          </button>
+        )}
       </SidebarHeader>
 
       <SidebarContent className="px-3 py-2">
@@ -196,7 +222,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             {collapsed ? (
               <SidebarMenuButton asChild isActive={isCadastrosActive} tooltip="Cadastros">
-                <NavLink to="/cadastros" className={`flex items-center justify-center transition-all duration-200 text-sm py-2.5 rounded-xl ${isCadastrosActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
+                <NavLink to="/contas" className={`flex items-center justify-center transition-all duration-200 text-sm py-2.5 rounded-xl ${isCadastrosActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
                   <Settings2 className={`h-[18px] w-[18px] shrink-0 ${isCadastrosActive ? "text-sidebar-primary" : ""}`} />
                 </NavLink>
               </SidebarMenuButton>
@@ -216,16 +242,17 @@ export function AppSidebar() {
                 </button>
                 {cadastrosOpen && (
                   <div className="ml-5 mt-1 space-y-0.5 border-l border-sidebar-border/30 pl-3">
-                    {cadastrosSubItems.map(sub => {
-                      const searchParams = new URLSearchParams(location.search);
-                      const currentTab = searchParams.get("tab");
-                      const isSubActive = isCadastrosActive && currentTab === sub.tab;
+                    {cadastrosSubItems
+                      .filter(sub => !sub.adminOnly || isAdmin)
+                      .map(sub => {
+                      const isSubActive = location.pathname === sub.url;
                       return (
                         <button
-                          key={sub.tab}
-                          onClick={() => navigate(`/cadastros?tab=${sub.tab}`)}
+                          key={sub.url}
+                          onClick={() => navigate(sub.url)}
                           className={`flex items-center gap-2 w-full text-[12px] py-1.5 px-2 rounded-lg transition-all duration-150 ${isSubActive ? "bg-sidebar-accent/60 text-sidebar-accent-foreground font-medium" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/30"}`}
                         >
+                          <sub.icon className="h-3.5 w-3.5 shrink-0" />
                           <span>{sub.title}</span>
                         </button>
                       );

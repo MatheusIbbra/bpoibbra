@@ -29,11 +29,13 @@ import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, differenceInDays, eachDayOfInterval, isWeekend } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useBaseFilter, useBaseFilterState } from "@/contexts/BaseFilterContext";
+import { MonthSelector } from "@/components/dashboard/MonthSelector";
 
 const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const { data: stats, error, isLoading: statsLoading } = useDashboardStats();
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const { data: stats, error, isLoading: statsLoading } = useDashboardStats(selectedMonth);
   const { data: accounts } = useAccounts();
   const [showAccountsDialog, setShowAccountsDialog] = useState(false);
   const [showIncomeDialog, setShowIncomeDialog] = useState(false);
@@ -42,12 +44,11 @@ const Index = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const { data: allTransactions } = useTransactions({});
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
+  const selMonth = selectedMonth.getMonth();
+  const selYear = selectedMonth.getFullYear();
   const monthTransactions = allTransactions?.filter((t) => {
     const d = parseLocalDate(t.date);
-    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    return d.getMonth() === selMonth && d.getFullYear() === selYear;
   }) || [];
 
   const { isLoading: baseLoading, availableOrganizations, userRole } = useBaseFilterState();
@@ -138,6 +139,13 @@ const Index = () => {
   return (
     <AppLayout title="Dashboard">
       <div className="space-y-6 w-full">
+        {/* Month Selector */}
+        <div className="flex justify-center">
+          <div className="inline-flex items-center rounded-xl border border-border/60 bg-card px-4 py-2 shadow-sm">
+            <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
+          </div>
+        </div>
+
         {/* 1. Stat Cards */}
         <div className="relative">
           <div className="absolute inset-x-0 -mx-4 bg-[hsl(var(--sidebar-background))] rounded-b-3xl md:hidden" style={{ top: '-4rem', bottom: '-0.75rem' }} />
