@@ -152,7 +152,7 @@ export function CategoriesDialog({ open: externalOpen, onOpenChange: externalOnO
       parent_id: formData.is_child ? formData.parent_id : null,
       description: formData.description,
       dre_group: formData.dre_group,
-      expense_classification: formData.expense_classification,
+      expense_classification: formData.is_child ? formData.expense_classification : null,
     };
 
     if (initialCategory) {
@@ -203,9 +203,9 @@ export function CategoriesDialog({ open: externalOpen, onOpenChange: externalOnO
             <Label className="cursor-pointer">É subcategoria?</Label>
             <Switch
               checked={formData.is_child}
-              onCheckedChange={(checked) =>
-                setFormData({ ...formData, is_child: checked, parent_id: checked ? formData.parent_id : null })
-              }
+                onCheckedChange={(checked) =>
+                  setFormData({ ...formData, is_child: checked, parent_id: checked ? formData.parent_id : null, expense_classification: checked ? formData.expense_classification : null })
+                }
             />
           </div>
 
@@ -262,24 +262,25 @@ export function CategoriesDialog({ open: externalOpen, onOpenChange: externalOnO
             </div>
           )}
 
-          {/* Financial Classification - for all category types */}
-          <div>
-            <Label>Tipo Financeiro</Label>
-            <Select
-              value={formData.expense_classification || ""}
-              onValueChange={(value) => setFormData({ ...formData, expense_classification: value || null })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="fixa">Fixa</SelectItem>
-                <SelectItem value="variavel_recorrente">Variável Recorrente</SelectItem>
-                <SelectItem value="variavel_programada">Variável Programada</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground mt-1">Define o tipo financeiro dos lançamentos desta categoria</p>
-          </div>
+          {/* Financial Classification - only for child categories */}
+          {formData.is_child && (
+            <div>
+              <Label>Classificação Financeira</Label>
+              <Select
+                value={formData.expense_classification || ""}
+                onValueChange={(value) => setFormData({ ...formData, expense_classification: value || null })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a classificação" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fixa">Fixa</SelectItem>
+                  <SelectItem value="variavel_recorrente">Variável</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">Obrigatório para subcategorias de receita e despesa</p>
+            </div>
+          )}
 
           <div>
             <Label>Ícone</Label>
@@ -324,6 +325,7 @@ export function CategoriesDialog({ open: externalOpen, onOpenChange: externalOnO
             disabled={
               !formData.name ||
               (formData.is_child && !formData.parent_id) ||
+              (formData.is_child && !formData.expense_classification) ||
               createCategory.isPending ||
               updateCategory.isPending
             }
