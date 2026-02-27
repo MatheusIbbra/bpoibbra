@@ -1,4 +1,4 @@
-import { Moon, Sun, LogOut, User, Settings, Eye, EyeOff, TrendingUp, Radio } from "lucide-react";
+import { Moon, Sun, LogOut, User, Settings, Eye, EyeOff, TrendingUp, Radio, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOpenFinanceStatus } from "@/hooks/useOpenFinanceStatus";
 import { useNavigate } from "react-router-dom";
+import { useBankConnections, useSyncBankConnection } from "@/hooks/useBankConnections";
+import { useBaseFilter } from "@/contexts/BaseFilterContext";
+import { useAutoIgnoreTransfers } from "@/hooks/useAutoIgnoreTransfers";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface AppHeaderProps {
   title?: string;
@@ -35,9 +40,33 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
   const { showValues, toggleValues } = useValuesVisibility();
   const { usage } = usePlanLimits();
   const { openUpgradeModal } = useUpgradeModal();
+  const [isSyncingAll, setIsSyncingAll] = useState(false);
 
   const navigate = useNavigate();
   const { overallStatus, hasItems, errorCount, staleCount } = useOpenFinanceStatus();
+  const { data: bankConnections } = useBankConnections();
+  const syncConnection = useSyncBankConnection();
+  const autoIgnoreTransfers = useAutoIgnoreTransfers();
+  const { getRequiredOrganizationId } = useBaseFilter();
+
+  const handleSyncAllOpenFinance = async () => {
+    const orgId = getRequiredOrganizationId();
+    if (!orgId) { toast.error("Selecione uma base antes de sincronizar."); return; }
+    const activeConnections = bankConnections?.filter(c => c.status === "active") || [];
+    if (activeConnections.length === 0) { toast.info("Nenhuma conexão ativa para sincronizar."); return; }
+    setIsSyncingAll(true);
+    toast.info(`Sincronizando ${activeConnections.length} conexão(ões)...`);
+    let totalImported = 0;
+    for (const conn of activeConnections) {
+      try {
+        const result = await syncConnection.mutateAsync({ organizationId: orgId, bankConnectionId: conn.id });
+        totalImported += result.imported || 0;
+      } catch { /* ignore individual errors */ }
+    }
+    try { await autoIgnoreTransfers.mutateAsync(orgId); } catch {}
+    setIsSyncingAll(false);
+    toast.success(`Sincronização concluída: ${totalImported} transações importadas.`);
+  };
 
   const mainUsagePercent = usage
     ? Math.max(usage.transactionsPercent, usage.aiRequestsPercent, usage.bankConnectionsPercent)
@@ -119,12 +148,28 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
       <SidebarTrigger className="shrink-0 h-8 w-8 md:h-9 md:w-9 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/40 rounded-lg transition-all duration-200" />
       
       <div className="flex flex-1 items-center gap-2 md:gap-4 min-w-0">
-      {/* Title or greeting */}
+      {/* Title or greeting - mobile: centered profile button for clients */}
         <div className="hidden md:flex flex-col">
           <h1 className="text-[15px] font-medium text-sidebar-foreground/90 tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
             {userRole === 'cliente' ? `Olá, ${displayName.split(' ')[0]}` : title}
           </h1>
         </div>
+        
+        {/* Mobile: centered client greeting as profile button */}
+        {userRole === 'cliente' && (
+          <button
+            onClick={() => window.location.href = '/perfil'}
+            className="flex md:hidden items-center gap-1.5 px-3 py-1 rounded-lg hover:bg-sidebar-accent/30 transition-all"
+          >
+            <Avatar className="h-6 w-6 border border-sidebar-border/50">
+              <AvatarImage src={profile?.avatar_url || undefined} />
+              <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-[10px] font-semibold">
+                {getInitials(profile?.full_name)}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-sm font-medium text-sidebar-foreground">Olá, {displayName.split(' ')[0]}</span>
+          </button>
+        )}
         
         {/* Base Selector */}
         <div className="shrink-0">
@@ -133,6 +178,25 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center gap-1 md:gap-1.5">
+        {/* Sync Open Finance button */}
+        {bankConnections && bankConnections.filter(c => c.status === "active").length > 0 && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleSyncAllOpenFinance}
+                disabled={isSyncingAll}
+                className="h-8 w-8 md:h-9 md:w-9 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/40 rounded-lg transition-all duration-200"
+              >
+                <RefreshCw className={`h-4 w-4 ${isSyncingAll ? "animate-spin" : ""}`} />
+                <span className="sr-only">Sincronizar Open Finance</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">Sincronizar Open Finance</TooltipContent>
+          </Tooltip>
+        )}
+
         {/* Eye toggle */}
         <Button
           variant="ghost"

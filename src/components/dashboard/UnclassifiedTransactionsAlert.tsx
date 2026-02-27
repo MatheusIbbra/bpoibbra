@@ -30,7 +30,7 @@ export function UnclassifiedTransactionsAlert() {
   return (
     <div className="border-t pt-3">
       <button
-        onClick={() => navigate("/movimentacoes?filter=sem-categoria")}
+        onClick={() => navigate("/relatorios?tab=movimentacoes&filter=sem-categoria")}
         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border border-warning/25 bg-warning/8 hover:bg-warning/15 transition-colors text-left group"
       >
         <Tag className="h-3.5 w-3.5 text-warning shrink-0" />

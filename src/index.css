@@ -317,7 +317,8 @@
 
   /* ── Premium Input ── */
   .input-executive {
-    @apply bg-background rounded-lg transition-all duration-200;
+    @apply rounded-lg transition-all duration-200;
+    background-color: hsl(var(--card));
     border-color: hsl(var(--border) / 0.6);
   }
   .input-executive:focus {

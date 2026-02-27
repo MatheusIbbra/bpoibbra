@@ -136,7 +136,7 @@ const Index = () => {
   const financialAccounts = accounts?.filter(a => a.account_type !== 'credit_card' && a.account_type !== 'investment' && a.status === 'active') || [];
 
   return (
-    <AppLayout title="Consolidação Patrimonial">
+    <AppLayout title="Dashboard">
       <div className="space-y-6 w-full">
         {/* 1. Stat Cards */}
         <div className="relative">
