@@ -1,4 +1,5 @@
 import { Moon, Sun, LogOut, User, Settings, Eye, EyeOff, TrendingUp, Radio, RefreshCw } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -155,20 +156,32 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
           </h1>
         </div>
         
-        {/* Mobile: centered client greeting as profile button */}
+        {/* Mobile: centered client greeting with dropdown */}
         {userRole === 'cliente' && (
-          <button
-            onClick={() => window.location.href = '/perfil'}
-            className="flex md:hidden items-center gap-1.5 px-3 py-1 rounded-lg hover:bg-sidebar-accent/30 transition-all"
-          >
-            <Avatar className="h-6 w-6 border border-sidebar-border/50">
-              <AvatarImage src={profile?.avatar_url || undefined} />
-              <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-[10px] font-semibold">
-                {getInitials(profile?.full_name)}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-sm font-medium text-sidebar-foreground">Olá, {displayName.split(' ')[0]}</span>
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex md:hidden items-center gap-1.5 px-3 py-1 rounded-lg hover:bg-sidebar-accent/30 transition-all mx-auto">
+                <Avatar className="h-6 w-6 border border-sidebar-border/50">
+                  <AvatarImage src={profile?.avatar_url || undefined} />
+                  <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-[10px] font-semibold">
+                    {getInitials(profile?.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium text-sidebar-foreground">Olá, {displayName.split(' ')[0]}</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className="w-44">
+              <DropdownMenuItem onClick={() => navigate('/perfil')} className="cursor-pointer">
+                <User className="mr-2 h-4 w-4" />
+                Meu Perfil
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={signOut} className="text-destructive cursor-pointer">
+                <LogOut className="mr-2 h-4 w-4" />
+                Sair do Sistema
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
         
         {/* Base Selector */}
@@ -257,12 +270,15 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
         {/* Divider */}
         <div className="hidden lg:block h-5 w-px bg-sidebar-border/40 mx-0.5" />
 
-        {/* User menu */}
+        {/* User menu - hidden on mobile for clients */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button 
               variant="ghost" 
-              className="relative h-auto gap-2 px-2 py-1.5 shrink-0 hover:bg-sidebar-accent/40 transition-all duration-200 rounded-lg"
+              className={cn(
+                "relative h-auto gap-2 px-2 py-1.5 shrink-0 hover:bg-sidebar-accent/40 transition-all duration-200 rounded-lg",
+                userRole === 'cliente' && "hidden md:flex"
+              )}
             >
               {/* User info */}
               <div className="hidden lg:flex flex-col items-end text-right">
