@@ -1690,6 +1690,7 @@ export type Database = {
           external_client_validated: boolean | null
           full_name: string | null
           gender: string | null
+          has_seen_onboarding: boolean
           ibbra_email: string | null
           ibbra_locked: boolean | null
           ibbra_telefone: string | null
@@ -1727,6 +1728,7 @@ export type Database = {
           external_client_validated?: boolean | null
           full_name?: string | null
           gender?: string | null
+          has_seen_onboarding?: boolean
           ibbra_email?: string | null
           ibbra_locked?: boolean | null
           ibbra_telefone?: string | null
@@ -1764,6 +1766,7 @@ export type Database = {
           external_client_validated?: boolean | null
           full_name?: string | null
           gender?: string | null
+          has_seen_onboarding?: boolean
           ibbra_email?: string | null
           ibbra_locked?: boolean | null
           ibbra_telefone?: string | null

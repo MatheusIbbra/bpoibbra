@@ -30,6 +30,18 @@ import { format, startOfMonth, endOfMonth, differenceInDays, eachDayOfInterval, 
 import { ptBR } from "date-fns/locale";
 import { useBaseFilter, useBaseFilterState } from "@/contexts/BaseFilterContext";
 import { MonthSelector } from "@/components/dashboard/MonthSelector";
+import { WelcomeModal } from "@/components/dashboard/WelcomeModal";
+
+/** Auto-reloads the page every 5 seconds while provisioning */
+function AutoReloader() {
+  useEffect(() => {
+    const timer = setTimeout(() => window.location.reload(), 5000);
+    return () => clearTimeout(timer);
+  }, []);
+  return (
+    <p className="text-xs text-muted-foreground/50 mt-2">Recarregando automaticamente...</p>
+  );
+}
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -92,15 +104,7 @@ const Index = () => {
             <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
             <span>Finalizando configuração...</span>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-4"
-            onClick={() => window.location.reload()}
-          >
-            <RefreshCw className="h-3.5 w-3.5 mr-2" />
-            Recarregar
-          </Button>
+          <AutoReloader />
         </div>
       </div>
     );
@@ -138,6 +142,7 @@ const Index = () => {
 
   return (
     <AppLayout title="Dashboard">
+      <WelcomeModal />
       <div className="space-y-6 w-full">
         {/* 1. Stat Cards */}
         <div className="relative">
