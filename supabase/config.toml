@@ -1,5 +1,6 @@
 project_id = "umqehhhpedwqdfjmdjqv"
 
+# ── Webhooks externos (Pluggy e Klavi enviam requisições sem JWT) ──
 [functions.pluggy-connect]
 verify_jwt = false
 
@@ -7,21 +8,6 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.pluggy-webhook]
-verify_jwt = false
-
-[functions.classify-transaction]
-verify_jwt = false
-
-[functions.classify-transactions]
-verify_jwt = false
-
-[functions.delete-user]
-verify_jwt = false
-
-[functions.generate-ai-insights]
-verify_jwt = false
-
-[functions.get-user-emails]
 verify_jwt = false
 
 [functions.klavi-authorize]
@@ -39,41 +25,57 @@ verify_jwt = false
 [functions.klavi-webhook]
 verify_jwt = false
 
-[functions.manage-user-access]
-verify_jwt = false
-
-[functions.process-import]
-verify_jwt = false
-
-[functions.seed-categories]
-verify_jwt = false
-
-[functions.seed-reconciliation-rules]
-verify_jwt = false
-
-[functions.financial-core-engine]
-verify_jwt = false
-
-[functions.background-jobs]
-verify_jwt = false
-
+# ── Todas as demais: requerem usuário autenticado ──
 [functions.generate-ai-analysis]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-chat]
-verify_jwt = false
+verify_jwt = true
+
+[functions.classify-transaction]
+verify_jwt = true
+
+[functions.classify-transactions]
+verify_jwt = true
+
+[functions.generate-ai-insights]
+verify_jwt = true
+
+[functions.financial-core-engine]
+verify_jwt = true
 
 [functions.check-plan-limits]
-verify_jwt = false
+verify_jwt = true
 
-[functions.send-push-notification]
-verify_jwt = false
+[functions.process-import]
+verify_jwt = true
 
-[functions.check-cpf-duplicate]
-verify_jwt = false
+[functions.manage-user-access]
+verify_jwt = true
+
+[functions.delete-user]
+verify_jwt = true
 
 [functions.delete-client]
-verify_jwt = false
+verify_jwt = true
+
+[functions.seed-categories]
+verify_jwt = true
+
+[functions.seed-reconciliation-rules]
+verify_jwt = true
+
+[functions.send-push-notification]
+verify_jwt = true
+
+[functions.get-user-emails]
+verify_jwt = true
+
+[functions.background-jobs]
+verify_jwt = true
+
+[functions.check-cpf-duplicate]
+verify_jwt = true
 
 [functions.validate-ibbra-client]
-verify_jwt = false
+verify_jwt = true

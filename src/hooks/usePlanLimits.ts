@@ -1,8 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { useSubscription } from "./useSubscription";
+import { toast } from "sonner";
+import { trackEvent } from "@/lib/analytics";
 
 export interface PlanUsage {
   transactionsUsed: number;
@@ -56,8 +59,6 @@ export function usePlanLimits() {
         txQuery = txQuery.eq("organization_id", selectedOrganizationId);
       }
 
-      const { count: txCount } = await txQuery;
-
       // Count AI requests this month
       let aiQuery = supabase
         .from("api_usage_logs")
@@ -69,8 +70,6 @@ export function usePlanLimits() {
         aiQuery = aiQuery.eq("organization_id", selectedOrganizationId);
       }
 
-      const { count: aiCount } = await aiQuery;
-
       // Count active bank connections
       let connQuery = supabase
         .from("bank_connections")
@@ -81,7 +80,12 @@ export function usePlanLimits() {
         connQuery = connQuery.eq("organization_id", selectedOrganizationId);
       }
 
-      const { count: connCount } = await connQuery;
+      // Parallel execution — up to 3x faster
+      const [
+        { count: txCount },
+        { count: aiCount },
+        { count: connCount },
+      ] = await Promise.all([txQuery, aiQuery, connQuery]);
 
       const transactionsUsed = txCount || 0;
       const aiRequestsUsed = aiCount || 0;
@@ -104,9 +108,9 @@ export function usePlanLimits() {
         isOverTransactions: transactionsUsed >= maxTx,
         isOverAI: aiRequestsUsed >= maxAI,
         isOverConnections: bankConnectionsUsed >= maxConn,
-        allowForecast: (plan as any).allow_forecast ?? false,
-        allowSimulator: (plan as any).allow_simulator ?? false,
-        allowAnomalyDetection: (plan as any).allow_anomaly_detection ?? false,
+        allowForecast: (plan as Record<string, unknown>).allow_forecast as boolean ?? false,
+        allowSimulator: (plan as Record<string, unknown>).allow_simulator as boolean ?? false,
+        allowAnomalyDetection: (plan as Record<string, unknown>).allow_anomaly_detection as boolean ?? false,
         planName,
       };
     },
@@ -114,6 +118,20 @@ export function usePlanLimits() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Proactive warning at 80% of transaction limit
+  const warnedRef = useRef(false);
+  useEffect(() => {
+    if (!usageQuery.data || warnedRef.current) return;
+    const { transactionsPercent, planName } = usageQuery.data;
+    if (transactionsPercent >= 80 && transactionsPercent < 100) {
+      warnedRef.current = true;
+      trackEvent("plan_limit_warning", { percent: transactionsPercent, plan: planName });
+      toast.warning(`Atenção: ${Math.round(transactionsPercent)}% das transações usadas`, {
+        description: `Você está próximo do limite do plano ${planName}. Considere fazer upgrade.`,
+        duration: 8000,
+      });
+    }
+  }, [usageQuery.data]);
   /**
    * UX-only hint: indicates if the user is likely over the limit.
    * NOT a security gate — backend triggers and edge functions enforce actual limits.
