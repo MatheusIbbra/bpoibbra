@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { BaseFilterProvider } from "@/contexts/BaseFilterContext";
 import { ValuesVisibilityProvider } from "@/contexts/ValuesVisibilityContext";
 import { UpgradeModalProvider } from "@/contexts/UpgradeModalContext";
+import { ContextComposer } from "@/contexts/ContextComposer";
 import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
 import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 import { Suspense, lazy, Component, ErrorInfo, ReactNode } from "react";
@@ -129,67 +130,65 @@ const PageLoader = () => (
 const App = () => (
   <GlobalErrorBoundary>
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <AuthProvider>
-        <BaseFilterProvider>
-          <ValuesVisibilityProvider>
-          <UpgradeModalProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            
-            <UpgradeModal />
-            <BrowserRouter>
-              <Suspense fallback={<PageLoader />}>
-                <OnboardingGuard>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/onboarding" element={<Onboarding />} />
-                    <Route path="/admin" element={<Admin />} />
-                    <Route path="/transacoes" element={<Transacoes />} />
-                    <Route path="/receitas" element={<Receitas />} />
-                    <Route path="/despesas" element={<Despesas />} />
-                    <Route path="/orcamentos" element={<Orcamentos />} />
-                    <Route path="/pendencias" element={<Pendencias />} />
-                    <Route path="/relatorios" element={<Relatorios />} />
-                    <Route path="/relatorio-dre" element={<RelatorioDRE />} />
-                    <Route path="/relatorio-fluxo-caixa" element={<RelatorioFluxoCaixa />} />
-                    <Route path="/demonstrativo-financeiro" element={<DemonstrativoFinanceiro />} />
-                    <Route path="/contas" element={<Contas />} />
-                    <Route path="/centros-custo" element={<CentrosCusto />} />
-                    <Route path="/analise-orcamento" element={<AnaliseOrcamento />} />
-                    <Route path="/categorias" element={<Categorias />} />
-                    <Route path="/importacoes" element={<Importacoes />} />
-                    <Route path="/perfil" element={<Perfil />} />
-                    <Route path="/regras-conciliacao" element={<RegrasConciliacao />} />
-                    <Route path="/padroes-aprendidos" element={<PadroesAprendidos />} />
-                    <Route path="/documentacao" element={<Documentacao />} />
-                    <Route path="/extrato" element={<Extrato />} />
-                    <Route path="/movimentacoes" element={<Movimentacoes />} />
-                    <Route path="/cadastros" element={<Cadastros />} />
-                    <Route path="/open-finance" element={<OpenFinance />} />
-                    <Route path="/callback-klavi" element={<CallbackKlavi />} />
-                    <Route path="/cartao-credito" element={<CartaoCredito />} />
-                    <Route path="/cartao/:accountId" element={<CartaoCredito />} />
-                    <Route path="/cartoes-credito" element={<CartoesCredito />} />
-                    <Route path="/cartoes" element={<CartoesCredito />} />
-                    <Route path="/open-finance-monitor" element={<OpenFinanceMonitor />} />
-                    <Route path="/termos-de-uso" element={<TermosDeUso />} />
-                    <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
-                    <Route path="/lgpd" element={<Lgpd />} />
-                    <Route path="/consent-reaccept" element={<ConsentReaccept />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </OnboardingGuard>
-              </Suspense>
-            </BrowserRouter>
-          </TooltipProvider>
-          </UpgradeModalProvider>
-          </ValuesVisibilityProvider>
-        </BaseFilterProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <ContextComposer providers={[
+      ThemeProvider,
+      AuthProvider,
+      BaseFilterProvider,
+      ValuesVisibilityProvider,
+      UpgradeModalProvider,
+    ]}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        
+        <UpgradeModal />
+        <BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
+            <OnboardingGuard>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/onboarding" element={<Onboarding />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/transacoes" element={<Transacoes />} />
+                <Route path="/receitas" element={<Receitas />} />
+                <Route path="/despesas" element={<Despesas />} />
+                <Route path="/orcamentos" element={<Orcamentos />} />
+                <Route path="/pendencias" element={<Pendencias />} />
+                <Route path="/relatorios" element={<Relatorios />} />
+                <Route path="/relatorio-dre" element={<RelatorioDRE />} />
+                <Route path="/relatorio-fluxo-caixa" element={<RelatorioFluxoCaixa />} />
+                <Route path="/demonstrativo-financeiro" element={<DemonstrativoFinanceiro />} />
+                <Route path="/contas" element={<Contas />} />
+                <Route path="/centros-custo" element={<CentrosCusto />} />
+                <Route path="/analise-orcamento" element={<AnaliseOrcamento />} />
+                <Route path="/categorias" element={<Categorias />} />
+                <Route path="/importacoes" element={<Importacoes />} />
+                <Route path="/perfil" element={<Perfil />} />
+                <Route path="/regras-conciliacao" element={<RegrasConciliacao />} />
+                <Route path="/padroes-aprendidos" element={<PadroesAprendidos />} />
+                <Route path="/documentacao" element={<Documentacao />} />
+                <Route path="/extrato" element={<Extrato />} />
+                <Route path="/movimentacoes" element={<Movimentacoes />} />
+                <Route path="/cadastros" element={<Cadastros />} />
+                <Route path="/open-finance" element={<OpenFinance />} />
+                <Route path="/callback-klavi" element={<CallbackKlavi />} />
+                <Route path="/cartao-credito" element={<CartaoCredito />} />
+                <Route path="/cartao/:accountId" element={<CartaoCredito />} />
+                <Route path="/cartoes-credito" element={<CartoesCredito />} />
+                <Route path="/cartoes" element={<CartoesCredito />} />
+                <Route path="/open-finance-monitor" element={<OpenFinanceMonitor />} />
+                <Route path="/termos-de-uso" element={<TermosDeUso />} />
+                <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
+                <Route path="/lgpd" element={<Lgpd />} />
+                <Route path="/consent-reaccept" element={<ConsentReaccept />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </OnboardingGuard>
+          </Suspense>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ContextComposer>
   </QueryClientProvider>
   </GlobalErrorBoundary>
 );
