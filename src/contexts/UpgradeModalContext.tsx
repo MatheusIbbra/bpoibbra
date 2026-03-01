@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useState, ReactNode, useCallback, useMemo } from "react";
+import { trackEvent } from "@/lib/analytics";
 
 type UpgradeTrigger = "transactions" | "ai" | "connections" | "forecast" | "simulator" | "anomaly" | "general";
 
@@ -16,6 +17,7 @@ export function UpgradeModalProvider({ children }: { children: ReactNode }) {
   const [trigger, setTrigger] = useState<UpgradeTrigger>("general");
 
   const openUpgradeModal = useCallback((t: UpgradeTrigger = "general") => {
+    trackEvent("upgrade_modal_opened", { trigger: t });
     setTrigger(t);
     setIsOpen(true);
   }, []);
@@ -24,8 +26,12 @@ export function UpgradeModalProvider({ children }: { children: ReactNode }) {
     setIsOpen(false);
   }, []);
 
+  const value = useMemo(() => ({
+    isOpen, trigger, openUpgradeModal, closeUpgradeModal,
+  }), [isOpen, trigger, openUpgradeModal, closeUpgradeModal]);
+
   return (
-    <UpgradeModalContext.Provider value={{ isOpen, trigger, openUpgradeModal, closeUpgradeModal }}>
+    <UpgradeModalContext.Provider value={value}>
       {children}
     </UpgradeModalContext.Provider>
   );
