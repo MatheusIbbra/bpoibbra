@@ -80,7 +80,7 @@ export function BankConnectionsManager() {
         if (handledRef.current) return;
         handledRef.current = true;
 
-        console.log("[OpenFinance] Popup success:", JSON.stringify(data));
+        
         const orgId = pendingOrgIdRef.current;
         
         // Extract item ID from various possible structures
@@ -89,7 +89,7 @@ export function BankConnectionsManager() {
         const connectorName = data?.item?.connector?.name || data?.connector?.name || 
                               data?.item?.connectorName || data?.connectorName;
 
-        console.log("[OpenFinance] Extracted itemId:", itemId, "orgId:", orgId, "connectorName:", connectorName);
+        
 
         if (!itemId) {
           console.error("[OpenFinance] Could not extract itemId from data:", JSON.stringify(data));
@@ -167,7 +167,6 @@ export function BankConnectionsManager() {
         pendingOrgIdRef.current = null;
         handledRef.current = false;
       } else if (type === 'pluggy-close') {
-        console.log("[OpenFinance] Popup closed by user");
         // Don't clear orgId immediately - success message might still arrive
         setTimeout(() => {
           setIsConnecting(false);

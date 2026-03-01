@@ -18,6 +18,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { useBudgets } from "@/hooks/useBudgets";
 import { useTransactions, Transaction } from "@/hooks/useTransactions";
 import { formatCurrency, parseLocalDate, shortenAccountName } from "@/lib/formatters";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
@@ -28,20 +29,11 @@ import { Loader2, RefreshCw, Wallet, ArrowUpRight, ArrowDownRight, TrendingUp, B
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, differenceInDays, eachDayOfInterval, isWeekend } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useBaseFilter, useBaseFilterState } from "@/contexts/BaseFilterContext";
+import { useBaseFilter, useBaseFilterState, useBaseFilterActions } from "@/contexts/BaseFilterContext";
 import { MonthSelector } from "@/components/dashboard/MonthSelector";
+import { useQuery } from "@tanstack/react-query";
 import { WelcomeModal } from "@/components/dashboard/WelcomeModal";
 
-/** Auto-reloads the page every 5 seconds while provisioning */
-function AutoReloader() {
-  useEffect(() => {
-    const timer = setTimeout(() => window.location.reload(), 5000);
-    return () => clearTimeout(timer);
-  }, []);
-  return (
-    <p className="text-xs text-muted-foreground/50 mt-2">Recarregando automaticamente...</p>
-  );
-}
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -64,6 +56,7 @@ const Index = () => {
   }) || [];
 
   const { isLoading: baseLoading, availableOrganizations, userRole } = useBaseFilterState();
+  const { refreshOrganizations } = useBaseFilterActions();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -83,7 +76,27 @@ const Index = () => {
 
   // Show provisioning screen for non-staff users with no organizations yet
   const isStaffRole = userRole && ["admin", "supervisor", "fa", "kam", "projetista"].includes(userRole);
-  if (!baseLoading && !isStaffRole && availableOrganizations.length === 0) {
+  const isProvisioning = !baseLoading && !isStaffRole && availableOrganizations.length === 0;
+
+  // Poll for organization provisioning (non-destructive — no page reload)
+  useQuery({
+    queryKey: ["provisioning-poll", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("organization_members")
+        .select("organization_id")
+        .eq("user_id", user!.id)
+        .limit(1);
+      if (data && data.length > 0) {
+        refreshOrganizations();
+      }
+      return data || [];
+    },
+    enabled: isProvisioning && !!user,
+    refetchInterval: 3000,
+  });
+
+  if (isProvisioning) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-6 text-center max-w-sm px-6">
@@ -104,7 +117,7 @@ const Index = () => {
             <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
             <span>Finalizando configuração...</span>
           </div>
-          <AutoReloader />
+          <p className="text-xs text-muted-foreground/50 mt-2">Verificando automaticamente...</p>
         </div>
       </div>
     );

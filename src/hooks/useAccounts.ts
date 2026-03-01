@@ -32,7 +32,7 @@ export function useAccounts() {
     queryFn: async () => {
       let query = supabase
         .from("accounts")
-        .select("*")
+        .select("id, name, bank_name, account_type, currency_code, current_balance, official_balance, last_official_balance_at, initial_balance, start_date, status, color, organization_id, user_id, created_at, updated_at")
         .order("name");
 
       if (orgFilter.type === 'single') {
