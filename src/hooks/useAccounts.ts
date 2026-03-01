@@ -18,6 +18,8 @@ export interface Account extends Omit<AccountRow, 'initial_balance' | 'current_b
   official_balance?: number | null;
   last_official_balance_at?: string | null;
   start_date?: string | null;
+  /** True if this account is connected via Open Finance (cannot have manual transactions/imports) */
+  is_open_finance?: boolean;
 }
 
 export function useAccounts() {
@@ -43,11 +45,22 @@ export function useAccounts() {
 
       if (error) throw error;
       
+      // Fetch all OF-linked account IDs for this org filter
+      let ofQuery = supabase.from("open_finance_accounts").select("local_account_id").not("local_account_id", "is", null);
+      if (orgFilter.type === 'single') {
+        ofQuery = ofQuery.eq("organization_id", orgFilter.ids[0]);
+      } else if (orgFilter.type === 'multiple' && orgFilter.ids.length > 0) {
+        ofQuery = ofQuery.in("organization_id", orgFilter.ids);
+      }
+      const { data: ofAccounts } = await ofQuery;
+      const ofLinkedIds = new Set((ofAccounts || []).map(a => a.local_account_id).filter(Boolean));
+      
       // Calculate current balance for each account
       const accountsWithBalance = await Promise.all(
         (data || []).map(async (account) => {
           const officialBalance = (account as any).official_balance;
           const lastOfficialAt = (account as any).last_official_balance_at;
+          const isOpenFinance = ofLinkedIds.has(account.id) || (officialBalance !== null && officialBalance !== undefined);
           
           // PRIORITY: Use official_balance from Open Finance API if available
           if (officialBalance !== null && officialBalance !== undefined) {
@@ -57,6 +70,7 @@ export function useAccounts() {
               current_balance: Number(officialBalance),
               official_balance: Number(officialBalance),
               last_official_balance_at: lastOfficialAt,
+              is_open_finance: true,
             } as Account;
           }
           
@@ -71,6 +85,7 @@ export function useAccounts() {
             current_balance: balance,
             official_balance: null,
             last_official_balance_at: null,
+            is_open_finance: isOpenFinance,
           } as Account;
         })
       );
