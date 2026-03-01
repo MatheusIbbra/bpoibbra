@@ -121,7 +121,11 @@ export function TransactionDialog({
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
 
+  // For new transactions: only allow manual accounts (not Open Finance connected)
   const activeAccounts = accounts?.filter((a) => a.status === "active") || [];
+  const manualActiveAccounts = transaction
+    ? activeAccounts // when editing, show all accounts
+    : activeAccounts.filter((a) => !a.is_open_finance); // when creating, only manual
   const activeCostCenters = costCenters?.filter((c) => c.is_active) || [];
 
   // Get unlinked transactions that can be linked to (for transfer/investment/redemption)
@@ -352,7 +356,7 @@ export function TransactionDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {activeAccounts.map((acc) => (
+                        {manualActiveAccounts.map((acc) => (
                           <SelectItem key={acc.id} value={acc.id}>
                             {acc.name} ({acc.bank_name})
                           </SelectItem>
@@ -378,7 +382,7 @@ export function TransactionDialog({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {activeAccounts
+                          {manualActiveAccounts
                             .filter((acc) => acc.id !== form.watch("account_id"))
                             .map((acc) => (
                               <SelectItem key={acc.id} value={acc.id}>

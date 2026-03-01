@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Upload, AlertCircle, ChevronRight, ChevronDown, Home, Receipt, Settings2, Wallet, FileText, Shield, Brain, CreditCard, BarChart3, CircleDollarSign, PieChart, Layers, Tags, Lightbulb, Radio, Building2, FolderKanban, Scale, TrendingUp, Share, Plus, Download } from "lucide-react";
+import { LogOut, Upload, AlertCircle, ChevronRight, ChevronDown, Home, Receipt, Settings2, Wallet, FileText, Shield, Brain, CreditCard, BarChart3, CircleDollarSign, PieChart, Layers, Tags, Lightbulb, Radio, Building2, FolderKanban, Scale, TrendingUp, Smartphone } from "lucide-react";
+import { PWAInstallModal } from "@/components/pwa/PWAInstallModal";
 import { NavLink } from "@/components/NavLink";
 import { Badge } from "@/components/ui/badge";
 import { Sidebar, SidebarContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, SidebarSeparator } from "@/components/ui/sidebar";
@@ -48,6 +49,7 @@ export function AppSidebar() {
 
   // PWA install prompt detection
   const [showPwaPrompt, setShowPwaPrompt] = useState(false);
+  const [showPwaModal, setShowPwaModal] = useState(false);
   useEffect(() => {
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
     const isStandalone = ("standalone" in window.navigator && (window.navigator as any).standalone) ||
@@ -267,16 +269,20 @@ export function AppSidebar() {
         
         {/* PWA Install Prompt - only on iOS Safari not in standalone */}
         {!collapsed && showPwaPrompt && (
-          <div className="mx-1 mb-2 px-3 py-2 rounded-lg bg-sidebar-accent/20 border border-sidebar-border/20">
+          <button
+            onClick={() => setShowPwaModal(true)}
+            className="mx-1 mb-2 px-3 py-2.5 rounded-lg bg-sidebar-accent/20 border border-sidebar-border/20 text-left hover:bg-sidebar-accent/30 transition-colors w-full"
+          >
             <p className="text-[11px] text-sidebar-foreground font-medium flex items-center gap-1.5">
-              <Download className="h-3.5 w-3.5 text-sidebar-primary shrink-0" />
-              Instale o IBBRA
+              <Smartphone className="h-3.5 w-3.5 text-sidebar-primary shrink-0" />
+              Instale o APP no seu dispositivo
             </p>
-            <p className="text-[10px] text-sidebar-muted mt-1 leading-relaxed">
-              Toque em <Share className="inline h-2.5 w-2.5 text-sidebar-primary" /> e depois <Plus className="inline h-2.5 w-2.5 text-sidebar-primary" /> <span className="font-medium text-sidebar-foreground">Tela de Início</span>
+            <p className="text-[10px] text-sidebar-muted mt-0.5">
+              Toque para ver as instruções
             </p>
-          </div>
+          </button>
         )}
+        <PWAInstallModal open={showPwaModal} onClose={() => setShowPwaModal(false)} />
 
         <SidebarMenu>
           <SidebarMenuItem>
