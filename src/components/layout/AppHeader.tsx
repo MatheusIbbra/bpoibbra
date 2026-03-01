@@ -304,7 +304,7 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuItem 
-              onClick={() => window.location.href = '/perfil'}
+              onClick={() => navigate('/perfil')}
               className="cursor-pointer py-2 px-3 rounded-lg"
             >
               <User className="mr-2 h-4 w-4" />
@@ -312,7 +312,7 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
             </DropdownMenuItem>
             {userRole && userRole !== 'cliente' && (
               <DropdownMenuItem 
-                onClick={() => window.location.href = '/admin'}
+                onClick={() => navigate('/admin')}
                 className="cursor-pointer py-2 px-3 rounded-lg"
               >
                 <Settings className="mr-2 h-4 w-4" />

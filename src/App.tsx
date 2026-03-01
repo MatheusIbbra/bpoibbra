@@ -10,6 +10,7 @@ import { ValuesVisibilityProvider } from "@/contexts/ValuesVisibilityContext";
 import { UpgradeModalProvider } from "@/contexts/UpgradeModalContext";
 import { ContextComposer } from "@/contexts/ContextComposer";
 import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
+import { NavigationEventListener } from "@/components/layout/NavigationEventListener";
 import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 import { Suspense, lazy, Component, ErrorInfo, ReactNode } from "react";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
@@ -143,6 +144,7 @@ const App = () => (
         
         <UpgradeModal />
         <BrowserRouter>
+          <NavigationEventListener />
           <Suspense fallback={<PageLoader />}>
             <OnboardingGuard>
               <Routes>
