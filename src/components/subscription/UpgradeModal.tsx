@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, Crown, Zap, Building2, MessageCircle, Loader2, Gift } from "lucide-react";
+import { Check, X, Crown, Zap, MessageCircle, Loader2, Gift } from "lucide-react";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { cn } from "@/lib/utils";
@@ -19,52 +19,29 @@ const TRIGGER_MESSAGES: Record<string, string> = {
   general: "Desbloqueie todo o potencial do IBBRA com um plano superior.",
 };
 
-// Stripe plans config
-const STRIPE_PLANS = [
-  {
-    slug: "plus",
-    name: "Plus",
-    price: 49.99,
-    description: "Para famílias e profissionais",
-    icon: Zap,
-    features: [
-      "5.000 transações/mês",
-      "100 requisições de IA",
-      "10 conexões bancárias",
-      "Projeção de fluxo de caixa",
-      "Simulador financeiro",
-    ],
-    notIncluded: ["Detecção de anomalias"],
-    highlight: false,
-  },
-  {
-    slug: "pro",
-    name: "Pro",
-    price: 99.99,
-    description: "Para assessores e empresas",
-    icon: Crown,
-    features: [
-      "Transações ilimitadas",
-      "500 requisições de IA",
-      "Conexões ilimitadas",
-      "Projeção de fluxo de caixa",
-      "Simulador financeiro",
-      "Detecção de anomalias",
-    ],
-    notIncluded: [],
-    highlight: true,
-  },
-];
+const PLAN_ICONS: Record<string, typeof Zap> = {
+  plus: Zap,
+  pro: Crown,
+};
 
-function formatNumber(n: number): string {
-  if (n >= 10000) return `${(n / 1000).toFixed(0)}k`;
-  return n.toLocaleString("pt-BR");
+// Only these slugs can be purchased via Stripe checkout
+const PURCHASABLE_SLUGS = ["plus", "pro"];
+
+function formatLimit(value: number, suffix: string): string {
+  if (value >= 999999) return `Ilimitado`;
+  if (value >= 10000) return `${(value / 1000).toFixed(0)}k ${suffix}`;
+  return `${value.toLocaleString("pt-BR")} ${suffix}`;
 }
 
 export function UpgradeModal() {
   const { isOpen, trigger, closeUpgradeModal } = useUpgradeModal();
-  const { currentPlan } = useSubscription();
+  const { currentPlan, plans } = useSubscription();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
+  // Filter only purchasable plans, sorted by sort_order
+  const purchasablePlans = plans
+    .filter((p) => PURCHASABLE_SLUGS.includes(p.slug))
+    .sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
 
   const handleContact = () => {
     const message = encodeURIComponent(
@@ -105,6 +82,30 @@ export function UpgradeModal() {
     }
   };
 
+  const buildFeatureList = (plan: typeof plans[0]) => {
+    const features: string[] = [];
+    features.push(formatLimit(plan.max_transactions, "transações/mês"));
+    features.push(formatLimit(plan.max_ai_requests, "requisições de IA"));
+    features.push(formatLimit(plan.max_bank_connections, "conexões bancárias"));
+    if (plan.allow_forecast) features.push("Projeção de fluxo de caixa");
+    if (plan.allow_simulator) features.push("Simulador financeiro");
+    if (plan.allow_anomaly_detection) features.push("Detecção de anomalias");
+    return features;
+  };
+
+  const buildNotIncluded = (plan: typeof plans[0]) => {
+    const notIncluded: string[] = [];
+    if (!plan.allow_forecast) notIncluded.push("Projeção de fluxo de caixa");
+    if (!plan.allow_simulator) notIncluded.push("Simulador financeiro");
+    if (!plan.allow_anomaly_detection) notIncluded.push("Detecção de anomalias");
+    return notIncluded;
+  };
+
+  // Determine which plan is "highlight" (most expensive = pro)
+  const highlightSlug = purchasablePlans.length > 0
+    ? purchasablePlans[purchasablePlans.length - 1].slug
+    : "pro";
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeUpgradeModal()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 gap-0 border-0 [&>button.absolute]:text-white [&>button.absolute]:hover:text-white/80">
@@ -125,30 +126,33 @@ export function UpgradeModal() {
           <div className="flex justify-center mt-4">
             <div className="flex items-center gap-1.5 bg-white/10 text-white rounded-full px-3 py-1.5 text-xs font-medium">
               <Gift className="h-3.5 w-3.5" />
-              14 dias grátis — sem cobrança imediata
+              2 dias grátis — sem cobrança imediata
             </div>
           </div>
         </div>
 
         {/* Plans Grid */}
         <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {STRIPE_PLANS.map((plan) => {
-            const Icon = plan.icon;
+          {purchasablePlans.map((plan) => {
+            const Icon = PLAN_ICONS[plan.slug] || Zap;
             const isCurrent = currentPlan?.slug === plan.slug;
             const isLoading = loadingPlan === plan.slug;
+            const isHighlight = plan.slug === highlightSlug;
+            const features = buildFeatureList(plan);
+            const notIncluded = buildNotIncluded(plan);
 
             return (
               <div
                 key={plan.slug}
                 className={cn(
                   "relative rounded-xl border-2 p-5 flex flex-col transition-all duration-300",
-                  plan.highlight
+                  isHighlight
                     ? "border-[hsl(var(--brand-highlight))] shadow-lg"
                     : "border-border hover:border-[hsl(var(--brand-highlight))]/50 hover:shadow-md",
                   isCurrent && "bg-[hsl(var(--brand-light-blue))] dark:bg-accent/10"
                 )}
               >
-                {plan.highlight && (
+                {isHighlight && (
                   <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[hsl(var(--brand-highlight))] text-white border-0 px-3 text-xs">
                     Mais popular
                   </Badge>
@@ -174,23 +178,23 @@ export function UpgradeModal() {
                 <div className="mb-4">
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-bold text-foreground">
-                      R$ {plan.price.toLocaleString("pt-BR")}
+                      R$ {plan.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </span>
                     <span className="text-sm text-muted-foreground">/mês</span>
                   </div>
                   <p className="text-xs text-[hsl(var(--brand-highlight))] font-medium mt-1">
-                    Primeiros 14 dias grátis
+                    Primeiros 2 dias grátis
                   </p>
                 </div>
 
                 <div className="space-y-2 flex-1 text-sm">
-                  {plan.features.map((f) => (
+                  {features.map((f) => (
                     <div key={f} className="flex items-center gap-2">
                       <Check className="h-4 w-4 text-[hsl(var(--success))] shrink-0" />
                       <span>{f}</span>
                     </div>
                   ))}
-                  {plan.notIncluded.map((f) => (
+                  {notIncluded.map((f) => (
                     <div key={f} className="flex items-center gap-2">
                       <X className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                       <span className="text-muted-foreground/50">{f}</span>
@@ -207,7 +211,7 @@ export function UpgradeModal() {
                     <Button
                       className={cn(
                         "w-full text-white",
-                        plan.highlight
+                        isHighlight
                           ? "bg-[hsl(var(--brand-highlight))] hover:bg-[hsl(var(--brand-highlight))]/90"
                           : "bg-[hsl(var(--brand-deep))] hover:bg-[hsl(var(--brand-deep))]/90"
                       )}
