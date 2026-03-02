@@ -7,13 +7,15 @@ import { cn } from "@/lib/utils";
 
 interface StatCardHoverTransactionsProps {
   type: "income" | "expense";
+  selectedMonth?: Date;
 }
 
-export function StatCardHoverTransactions({ type }: StatCardHoverTransactionsProps) {
+export function StatCardHoverTransactions({ type, selectedMonth }: StatCardHoverTransactionsProps) {
   const { data: transactions, isLoading } = useTransactions({ type });
 
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
+  const refDate = selectedMonth || new Date();
+  const currentMonth = refDate.getMonth();
+  const currentYear = refDate.getFullYear();
 
   const filtered = transactions
     ?.filter((t) => {
