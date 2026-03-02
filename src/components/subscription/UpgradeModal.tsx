@@ -24,7 +24,7 @@ const STRIPE_PLANS = [
   {
     slug: "plus",
     name: "Plus",
-    price: 97,
+    price: 49.99,
     description: "Para famílias e profissionais",
     icon: Zap,
     features: [
@@ -40,7 +40,7 @@ const STRIPE_PLANS = [
   {
     slug: "pro",
     name: "Pro",
-    price: 197,
+    price: 99.99,
     description: "Para assessores e empresas",
     icon: Crown,
     features: [
