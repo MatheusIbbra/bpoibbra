@@ -196,7 +196,7 @@ const Index = () => {
                     variant="success"
                     trend={stats?.incomeChange ? { value: stats.incomeChange, isPositive: stats.incomeChange >= 0 } : undefined}
                     onClick={() => setShowIncomeDialog(true)}
-                    hoverContent={<StatCardHoverTransactions type="income" />} />
+                    hoverContent={<StatCardHoverTransactions type="income" selectedMonth={selectedMonth} />} />
                 </StaggerItem>
                 <StaggerItem>
                   <StatCard
@@ -206,7 +206,7 @@ const Index = () => {
                     variant="destructive"
                     trend={stats?.expenseChange ? { value: Math.abs(stats.expenseChange), isPositive: stats.expenseChange <= 0 } : undefined}
                     onClick={() => setShowExpenseDialog(true)}
-                    hoverContent={<StatCardHoverTransactions type="expense" />} />
+                    hoverContent={<StatCardHoverTransactions type="expense" selectedMonth={selectedMonth} />} />
                 </StaggerItem>
                 <StaggerItem>
                   <StatCard
