@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
       payment_method_types: ["card"],
       line_items: [{ price: PRICE_IDS[plan], quantity: 1 }],
       subscription_data: {
-        trial_period_days: 14,
+        trial_period_days: 2,
         metadata: { supabase_user_id: user.id, plan },
       },
       success_url: success_url || `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
