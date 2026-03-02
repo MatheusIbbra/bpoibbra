@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef } from "react";
+import { useState, useEffect, useMemo, forwardRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ import { useCashFlowReport, Granularity, ReportBasis } from "@/hooks/useCashFlow
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { PeriodSelector } from "@/components/reports/PeriodSelector";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
+import { ComparisonIndicator } from "@/components/reports/ComparisonIndicator";
 import {
   createProfessionalPDF,
   formatCurrencyForPDF,
@@ -102,6 +103,16 @@ export function FluxoCaixaContent() {
 
   const { data: costCenters } = useCostCenters();
   const { data, isLoading } = useCashFlowReport(dateRange.start, dateRange.end, basis, granularity, costCenterId);
+
+  // Previous period for comparison
+  const prevPeriod = useMemo(() => {
+    const durationMs = dateRange.end.getTime() - dateRange.start.getTime();
+    const prevEnd = new Date(dateRange.start.getTime() - 1);
+    const prevStart = new Date(prevEnd.getTime() - durationMs);
+    return { start: prevStart, end: prevEnd };
+  }, [dateRange]);
+
+  const { data: prevData } = useCashFlowReport(prevPeriod.start, prevPeriod.end, basis, granularity, costCenterId);
 
   const displayPeriods = (() => {
     if (!data) return [];
@@ -248,41 +259,71 @@ export function FluxoCaixaContent() {
         <>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
             <Card className="shadow-sm">
-              <CardContent className="flex items-center gap-2 p-3">
-                <Wallet className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-[10px] text-muted-foreground truncate">Saldo Inicial</p>
-                  <p className="text-sm font-bold truncate">{formatCurrency(data?.openingBalance || 0)}</p>
+              <CardContent className="flex flex-col gap-1 p-3">
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-muted-foreground truncate">Saldo Inicial</p>
+                    <p className="text-sm font-bold truncate">{formatCurrency(data?.openingBalance || 0)}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
             <Card className="shadow-sm">
-              <CardContent className="flex items-center gap-2 p-3">
-                <TrendingUp className="h-4 w-4 text-success shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-[10px] text-muted-foreground truncate">Entradas</p>
-                  <p className="text-sm font-bold text-success truncate">{formatCurrency(data?.totalInflows || 0)}</p>
+              <CardContent className="flex flex-col gap-1 p-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-success shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-muted-foreground truncate">Entradas</p>
+                    <p className="text-sm font-bold text-success truncate">{formatCurrency(data?.totalInflows || 0)}</p>
+                  </div>
                 </div>
+                {prevData && (
+                  <ComparisonIndicator
+                    current={data?.totalInflows || 0}
+                    previous={prevData.totalInflows}
+                    label="anterior"
+                  />
+                )}
               </CardContent>
             </Card>
             <Card className="shadow-sm">
-              <CardContent className="flex items-center gap-2 p-3">
-                <TrendingDown className="h-4 w-4 text-destructive shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-[10px] text-muted-foreground truncate">Saídas</p>
-                  <p className="text-sm font-bold text-destructive truncate">{formatCurrency(data?.totalOutflows || 0)}</p>
+              <CardContent className="flex flex-col gap-1 p-3">
+                <div className="flex items-center gap-2">
+                  <TrendingDown className="h-4 w-4 text-destructive shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-muted-foreground truncate">Saídas</p>
+                    <p className="text-sm font-bold text-destructive truncate">{formatCurrency(data?.totalOutflows || 0)}</p>
+                  </div>
                 </div>
+                {prevData && (
+                  <ComparisonIndicator
+                    current={data?.totalOutflows || 0}
+                    previous={prevData.totalOutflows}
+                    label="anterior"
+                    invertColors
+                  />
+                )}
               </CardContent>
             </Card>
             <Card className="shadow-sm">
-              <CardContent className="flex items-center gap-2 p-3">
-                <ArrowRightLeft className="h-4 w-4 text-primary shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-[10px] text-muted-foreground truncate">Saldo Final</p>
-                  <p className={`text-sm font-bold truncate ${(data?.closingBalance || 0) >= 0 ? "text-success" : "text-destructive"}`}>
-                    {formatCurrency(data?.closingBalance || 0)}
-                  </p>
+              <CardContent className="flex flex-col gap-1 p-3">
+                <div className="flex items-center gap-2">
+                  <ArrowRightLeft className="h-4 w-4 text-primary shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-muted-foreground truncate">Saldo Final</p>
+                    <p className={`text-sm font-bold truncate ${(data?.closingBalance || 0) >= 0 ? "text-success" : "text-destructive"}`}>
+                      {formatCurrency(data?.closingBalance || 0)}
+                    </p>
+                  </div>
                 </div>
+                {prevData && (
+                  <ComparisonIndicator
+                    current={data?.closingBalance || 0}
+                    previous={prevData.closingBalance}
+                    label="anterior"
+                  />
+                )}
               </CardContent>
             </Card>
           </div>

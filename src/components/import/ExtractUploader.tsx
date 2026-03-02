@@ -37,6 +37,9 @@ export function ExtractUploader({ onSuccess }: ExtractUploaderProps) {
   const processImport = useProcessImport();
   const { requiresBaseSelection, getRequiredOrganizationId } = useBaseFilter();
 
+  // Only show manual accounts (not Open Finance connected)
+  const manualAccounts = accounts?.filter((a) => a.status === "active" && !a.is_open_finance) || [];
+
   // Check if user can import
   const canImport = !requiresBaseSelection && getRequiredOrganizationId() !== null;
 
@@ -210,6 +213,17 @@ export function ExtractUploader({ onSuccess }: ExtractUploaderProps) {
     );
   }
 
+  if (manualAccounts.length === 0 && accounts && accounts.length > 0) {
+    return (
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Todas as suas contas estão conectadas via Open Finance. A importação manual de extratos não é permitida em contas Open Finance para preservar a integridade dos dados.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   if (requiresBaseSelection) {
     return (
       <Alert variant="destructive">
@@ -268,8 +282,8 @@ export function ExtractUploader({ onSuccess }: ExtractUploaderProps) {
             <SelectTrigger>
               <SelectValue placeholder="Selecione a conta" />
             </SelectTrigger>
-            <SelectContent>
-              {accounts?.map((account) => (
+          <SelectContent>
+              {manualAccounts.map((account) => (
                 <SelectItem key={account.id} value={account.id}>
                   {account.name} {account.bank_name && `- ${account.bank_name}`}
                 </SelectItem>

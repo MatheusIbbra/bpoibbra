@@ -28,10 +28,10 @@ interface DonutData {
   transactions: { id: string; description: string; amount: number; date: string }[];
 }
 
-export function CategoryDonutChart() {
-  const now = new Date();
-  const start = format(startOfMonth(now), "yyyy-MM-dd");
-  const end = format(endOfMonth(now), "yyyy-MM-dd");
+export function CategoryDonutChart({ selectedMonth }: { selectedMonth?: Date } = {}) {
+  const refDate = selectedMonth || new Date();
+  const start = format(startOfMonth(refDate), "yyyy-MM-dd");
+  const end = format(endOfMonth(refDate), "yyyy-MM-dd");
 
   const { data: transactions, isLoading: loadingTx } = useTransactions({
     startDate: start,
@@ -51,6 +51,8 @@ export function CategoryDonutChart() {
     transactions.forEach((tx) => {
       txById.set(tx.id, tx);
       if (tx.is_ignored) return;
+      // Exclude transfers, investments (aportes) and redemptions from category distribution
+      if (tx.type === "transfer" || tx.type === "investment" || tx.type === "redemption") return;
       // Only count transactions with child categories (parent_id not null)
       // Treat parent categories as uncategorized
       const cat = tx.category_id ? categories.find(c => c.id === tx.category_id) : null;

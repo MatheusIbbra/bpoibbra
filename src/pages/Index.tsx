@@ -18,6 +18,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { useBudgets } from "@/hooks/useBudgets";
 import { useTransactions, Transaction } from "@/hooks/useTransactions";
 import { formatCurrency, parseLocalDate, shortenAccountName } from "@/lib/formatters";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
@@ -28,12 +29,17 @@ import { Loader2, RefreshCw, Wallet, ArrowUpRight, ArrowDownRight, TrendingUp, B
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, differenceInDays, eachDayOfInterval, isWeekend } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useBaseFilter, useBaseFilterState } from "@/contexts/BaseFilterContext";
+import { useBaseFilter, useBaseFilterState, useBaseFilterActions } from "@/contexts/BaseFilterContext";
+import { MonthSelector } from "@/components/dashboard/MonthSelector";
+import { useQuery } from "@tanstack/react-query";
+import { WelcomeModal } from "@/components/dashboard/WelcomeModal";
+
 
 const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const { data: stats, error, isLoading: statsLoading } = useDashboardStats();
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const { data: stats, error, isLoading: statsLoading } = useDashboardStats(selectedMonth);
   const { data: accounts } = useAccounts();
   const [showAccountsDialog, setShowAccountsDialog] = useState(false);
   const [showIncomeDialog, setShowIncomeDialog] = useState(false);
@@ -42,15 +48,15 @@ const Index = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const { data: allTransactions } = useTransactions({});
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
+  const selMonth = selectedMonth.getMonth();
+  const selYear = selectedMonth.getFullYear();
   const monthTransactions = allTransactions?.filter((t) => {
     const d = parseLocalDate(t.date);
-    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    return d.getMonth() === selMonth && d.getFullYear() === selYear;
   }) || [];
 
   const { isLoading: baseLoading, availableOrganizations, userRole } = useBaseFilterState();
+  const { refreshOrganizations } = useBaseFilterActions();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -70,7 +76,27 @@ const Index = () => {
 
   // Show provisioning screen for non-staff users with no organizations yet
   const isStaffRole = userRole && ["admin", "supervisor", "fa", "kam", "projetista"].includes(userRole);
-  if (!baseLoading && !isStaffRole && availableOrganizations.length === 0) {
+  const isProvisioning = !baseLoading && !isStaffRole && availableOrganizations.length === 0;
+
+  // Poll for organization provisioning (non-destructive — no page reload)
+  useQuery({
+    queryKey: ["provisioning-poll", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("organization_members")
+        .select("organization_id")
+        .eq("user_id", user!.id)
+        .limit(1);
+      if (data && data.length > 0) {
+        refreshOrganizations();
+      }
+      return data || [];
+    },
+    enabled: isProvisioning && !!user,
+    refetchInterval: 3000,
+  });
+
+  if (isProvisioning) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-6 text-center max-w-sm px-6">
@@ -91,15 +117,7 @@ const Index = () => {
             <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
             <span>Finalizando configuração...</span>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-4"
-            onClick={() => window.location.reload()}
-          >
-            <RefreshCw className="h-3.5 w-3.5 mr-2" />
-            Recarregar
-          </Button>
+          <p className="text-xs text-muted-foreground/50 mt-2">Verificando automaticamente...</p>
         </div>
       </div>
     );
@@ -136,11 +154,19 @@ const Index = () => {
   const financialAccounts = accounts?.filter(a => a.account_type !== 'credit_card' && a.account_type !== 'investment' && a.status === 'active') || [];
 
   return (
-    <AppLayout title="Consolidação Patrimonial">
+    <AppLayout title="Dashboard">
+      <WelcomeModal />
       <div className="space-y-6 w-full">
         {/* 1. Stat Cards */}
         <div className="relative">
-          <div className="absolute inset-x-0 -mx-4 bg-[hsl(var(--sidebar-background))] rounded-b-3xl md:hidden" style={{ top: '-4rem', bottom: '-0.75rem' }} />
+          {/* Blue background extends to top on mobile */}
+          <div className="absolute inset-x-0 -mx-4 bg-[hsl(var(--sidebar-background))] rounded-b-3xl md:hidden" style={{ top: '-8rem', bottom: '-0.75rem' }} />
+          {/* Month Selector - overlays blue bar on mobile */}
+          <div className="relative z-10 flex justify-center mb-3">
+            <div className="inline-flex items-center rounded-full border border-white/20 md:border-border/40 bg-white/15 md:bg-card/80 backdrop-blur-sm px-3 py-0.5 shadow-sm">
+              <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} variant="overlay-mobile" />
+            </div>
+          </div>
           <StaggerGrid className="relative grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
             {statsLoading ? (
               <>
@@ -250,8 +276,8 @@ const Index = () => {
                     </Link>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <InteractiveBudgetList />
-                    <BudgetAlerts showNotifications={true} compact />
+                    <InteractiveBudgetList selectedMonth={selectedMonth} />
+                    <BudgetAlerts showNotifications={true} compact selectedMonth={selectedMonth} />
                     <UnclassifiedTransactionsAlert />
                   </CardContent>
                 </Card>
@@ -265,8 +291,8 @@ const Index = () => {
 
             {/* Distribuição por Categoria + Evolução Financeira */}
             <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-              <StaggerItem><CategoryDonutChart /></StaggerItem>
-              <StaggerItem><MonthlyEvolutionChart /></StaggerItem>
+              <StaggerItem><CategoryDonutChart selectedMonth={selectedMonth} /></StaggerItem>
+              <StaggerItem><MonthlyEvolutionChart selectedMonthFilter={selectedMonth} /></StaggerItem>
             </StaggerGrid>
 
           </div>
@@ -283,10 +309,10 @@ const Index = () => {
                     </Link>
                   </CardHeader>
                   <CardContent className="px-4 pb-4 space-y-4">
-                    <InteractiveBudgetList />
+                    <InteractiveBudgetList selectedMonth={selectedMonth} />
                     <div className="border-t pt-3">
                       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Alertas</p>
-                      <BudgetAlerts showNotifications={false} compact />
+                      <BudgetAlerts showNotifications={false} compact selectedMonth={selectedMonth} />
                     </div>
                     <UnclassifiedTransactionsAlert />
                   </CardContent>
@@ -298,7 +324,7 @@ const Index = () => {
 
         {/* Últimas Movimentações - full width */}
         <AnimatedCard delay={0.05}>
-          <FintechTransactionsList />
+          <FintechTransactionsList selectedMonth={selectedMonth} />
         </AnimatedCard>
       </div>
     </AppLayout>
@@ -306,13 +332,13 @@ const Index = () => {
 };
 
 /** Interactive budget list with click-to-expand details */
-function InteractiveBudgetList() {
+function InteractiveBudgetList({ selectedMonth }: { selectedMonth?: Date } = {}) {
   const { requiresBaseSelection } = useBaseFilter();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const now = new Date();
-  const startDate = format(startOfMonth(now), "yyyy-MM-dd");
-  const endDate = format(endOfMonth(now), "yyyy-MM-dd");
+  const refDate = selectedMonth || new Date();
+  const startDate = format(startOfMonth(refDate), "yyyy-MM-dd");
+  const endDate = format(endOfMonth(refDate), "yyyy-MM-dd");
 
   const { data: budgets, isLoading: budgetsLoading } = useBudgets();
   const { data: transactions, isLoading: transactionsLoading } = useTransactions({
@@ -338,13 +364,13 @@ function InteractiveBudgetList() {
 
   const currentMonthBudgets = useMemo(() => {
     return budgets
-      ?.filter((b) => b.month === now.getMonth() + 1 && b.year === now.getFullYear())
+      ?.filter((b) => b.month === refDate.getMonth() + 1 && b.year === refDate.getFullYear())
       .map((budget) => {
         const catData = spentByCategory.get(budget.category_id) || { total: 0, dates: [] };
         return { ...budget, spent: catData.total, txDates: catData.dates };
       })
       .slice(0, 8) || [];
-  }, [budgets, spentByCategory, now]);
+  }, [budgets, spentByCategory, refDate]);
 
   if (requiresBaseSelection) return null;
 
@@ -370,9 +396,9 @@ function InteractiveBudgetList() {
   }
 
   // Calculate business days remaining in month
-  const monthEnd = endOfMonth(now);
-  const remainingDays = differenceInDays(monthEnd, now);
-  const remainingBusinessDays = eachDayOfInterval({ start: now, end: monthEnd }).filter(d => !isWeekend(d)).length;
+  const monthEnd = endOfMonth(refDate);
+  const remainingDays = differenceInDays(monthEnd, refDate);
+  const remainingBusinessDays = eachDayOfInterval({ start: refDate, end: monthEnd }).filter(d => !isWeekend(d)).length;
 
   return (
     <div className="space-y-1">

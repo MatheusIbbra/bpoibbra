@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import { useDREReport, ReportBasis } from "@/hooks/useDREReport";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { PeriodSelector } from "@/components/reports/PeriodSelector";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
+import { ComparisonIndicator } from "@/components/reports/ComparisonIndicator";
 import {
   createProfessionalPDF,
   formatCurrencyForPDF,
@@ -31,7 +32,7 @@ import {
   FileText,
   Banknote,
 } from "lucide-react";
-import { startOfMonth, endOfMonth, format } from "date-fns";
+import { startOfMonth, endOfMonth, subMonths, subYears, format } from "date-fns";
 
 export function DREContent() {
   const { requiresBaseSelection } = useBaseFilter();
@@ -50,6 +51,16 @@ export function DREContent() {
 
   const { data: costCenters } = useCostCenters();
   const { data, isLoading } = useDREReport(dateRange.start, dateRange.end, basis, costCenterId);
+
+  // Previous period for comparison (same duration, shifted back)
+  const prevPeriod = useMemo(() => {
+    const durationMs = dateRange.end.getTime() - dateRange.start.getTime();
+    const prevEnd = new Date(dateRange.start.getTime() - 1);
+    const prevStart = new Date(prevEnd.getTime() - durationMs);
+    return { start: prevStart, end: prevEnd };
+  }, [dateRange]);
+
+  const { data: prevData } = useDREReport(prevPeriod.start, prevPeriod.end, basis, costCenterId);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -173,6 +184,13 @@ export function DREContent() {
                 <p className="text-lg font-bold text-success">
                   {formatCurrency(data?.grossRevenue || 0)}
                 </p>
+                {prevData && (
+                  <ComparisonIndicator
+                    current={data?.grossRevenue || 0}
+                    previous={prevData.grossRevenue}
+                    label="período anterior"
+                  />
+                )}
               </CardContent>
             </Card>
 
@@ -187,6 +205,14 @@ export function DREContent() {
                 <p className="text-lg font-bold text-destructive">
                   {formatCurrency(data?.totalOperatingExpenses || 0)}
                 </p>
+                {prevData && (
+                  <ComparisonIndicator
+                    current={data?.totalOperatingExpenses || 0}
+                    previous={prevData.totalOperatingExpenses}
+                    label="período anterior"
+                    invertColors
+                  />
+                )}
               </CardContent>
             </Card>
 
@@ -201,6 +227,13 @@ export function DREContent() {
                 <p className={`text-lg font-bold ${(data?.operatingIncome || 0) >= 0 ? "text-success" : "text-destructive"}`}>
                   {formatCurrency(data?.operatingIncome || 0)}
                 </p>
+                {prevData && (
+                  <ComparisonIndicator
+                    current={data?.operatingIncome || 0}
+                    previous={prevData.operatingIncome}
+                    label="período anterior"
+                  />
+                )}
               </CardContent>
             </Card>
 
@@ -215,6 +248,13 @@ export function DREContent() {
                 <p className={`text-lg font-bold ${(data?.netIncome || 0) >= 0 ? "text-success" : "text-destructive"}`}>
                   {formatCurrency(data?.netIncome || 0)}
                 </p>
+                {prevData && (
+                  <ComparisonIndicator
+                    current={data?.netIncome || 0}
+                    previous={prevData.netIncome}
+                    label="período anterior"
+                  />
+                )}
               </CardContent>
             </Card>
           </div>

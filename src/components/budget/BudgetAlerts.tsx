@@ -17,10 +17,12 @@ const formatCurrency = (value: number) => {
 interface BudgetAlertsProps {
   showNotifications?: boolean;
   compact?: boolean;
+  selectedMonth?: Date;
 }
 
-export function BudgetAlerts({ showNotifications = true, compact = false }: BudgetAlertsProps) {
-  const { data } = useBudgetAnalysis();
+export function BudgetAlerts({ showNotifications = true, compact = false, selectedMonth }: BudgetAlertsProps) {
+  const refDate = selectedMonth || new Date();
+  const { data } = useBudgetAnalysis(refDate.getMonth() + 1, refDate.getFullYear());
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   const alerts = data?.items.filter(

@@ -52,8 +52,9 @@ export function useCashFlowReport(
       // Step 1: Get IDs of allowed accounts (checking, savings, investment, cash only)
       let accountsQuery = supabase
         .from("accounts")
-        .select("id")
-        .in("account_type", [...CASHFLOW_ACCOUNT_TYPES]);
+        .select("id, current_balance, official_balance, initial_balance, start_date")
+        .in("account_type", [...CASHFLOW_ACCOUNT_TYPES])
+        .eq("status", "active");
 
       if (orgFilter.type === 'single') {
         accountsQuery = accountsQuery.eq("organization_id", orgFilter.ids[0]);
@@ -242,6 +243,27 @@ export function useCashFlowReport(
 
       const netCashFlow = totalInflows + totalRedemptions - totalOutflows - totalInvestments;
 
+      // Use actual account balances as the authoritative closing balance
+      // This ensures the report matches real bank data
+      const actualClosingBalance = allowedAccounts?.reduce((sum, acc) => {
+        // Prefer official_balance (from Open Finance) over calculated balance
+        const balance = acc.official_balance != null ? Number(acc.official_balance) : Number(acc.current_balance || 0);
+        return sum + balance;
+      }, 0) || 0;
+
+      // Derive opening balance from actual closing balance minus period net flow
+      // This anchors the report to real account balances
+      const isCurrentPeriod = endDate >= new Date();
+      const effectiveClosingBalance = isCurrentPeriod ? actualClosingBalance : openingBalance + netCashFlow;
+      const effectiveOpeningBalance = isCurrentPeriod ? actualClosingBalance - netCashFlow : openingBalance;
+
+      // Recalculate cumulative balances based on effective opening
+      let recalcCumulative = effectiveOpeningBalance;
+      periodData.forEach(p => {
+        recalcCumulative += p.netFlow;
+        p.cumulativeBalance = recalcCumulative;
+      });
+
       return {
         periods: periodData,
         totalInflows,
@@ -249,8 +271,8 @@ export function useCashFlowReport(
         totalInvestments,
         totalRedemptions,
         netCashFlow,
-        openingBalance,
-        closingBalance: openingBalance + netCashFlow,
+        openingBalance: effectiveOpeningBalance,
+        closingBalance: effectiveClosingBalance,
       };
     },
     enabled: !!user,

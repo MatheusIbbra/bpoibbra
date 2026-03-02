@@ -30,7 +30,7 @@ export function useBankConnections() {
     queryFn: async () => {
       let query = supabase
         .from("bank_connections")
-        .select("*")
+        .select("id, organization_id, user_id, provider, provider_name, external_consent_id, external_account_id, status, last_sync_at, sync_error, token_expires_at, created_at, updated_at")
         .order("created_at", { ascending: false });
 
       if (orgFilter.type === 'single') {

@@ -421,6 +421,24 @@ export default function Onboarding() {
       const orgId = (result as any)?.organization_id;
       if (orgId) {
         localStorage.setItem("selectedOrganizationId", orgId);
+        
+        // Auto-seed categories and reconciliation rules for new users
+        try {
+          await supabase.functions.invoke("seed-categories", {
+            body: { organization_id: orgId },
+          });
+          console.log("[Onboarding] Categories seeded successfully");
+        } catch (seedErr) {
+          console.warn("[Onboarding] Failed to seed categories:", seedErr);
+        }
+        try {
+          await supabase.functions.invoke("seed-reconciliation-rules", {
+            body: { organization_id: orgId },
+          });
+          console.log("[Onboarding] Reconciliation rules seeded successfully");
+        } catch (seedErr) {
+          console.warn("[Onboarding] Failed to seed rules:", seedErr);
+        }
       }
 
       toast.success("Cadastro concluído! Bem-vindo ao IBBRA.");

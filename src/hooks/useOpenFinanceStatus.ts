@@ -95,7 +95,7 @@ export function useOpenFinanceLoginToast() {
         duration: 10000,
         action: {
           label: "Ver",
-          onClick: () => { window.location.href = "/open-finance-monitor"; },
+          onClick: () => { window.dispatchEvent(new CustomEvent("navigate-to", { detail: { path: "/open-finance-monitor" } })); },
         },
       }
     );

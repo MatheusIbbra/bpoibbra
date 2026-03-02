@@ -40,10 +40,18 @@ export default function Perfil() {
   const [phone, setPhone] = useState("");
   const [uploading, setUploading] = useState(false);
 
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 11);
+    if (digits.length <= 2) return digits.length ? `(${digits}` : "";
+    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    if (digits.length <= 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+  };
+
   useEffect(() => {
     if (profile) {
       if (profile.full_name) setFullName(profile.full_name);
-      if (profile.phone) setPhone(profile.phone);
+      if (profile.phone) setPhone(formatPhone(profile.phone));
     }
   }, [profile]);
 
@@ -214,7 +222,8 @@ export default function Perfil() {
                     id="phone"
                     placeholder="(00) 00000-0000"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(formatPhone(e.target.value))}
+                    inputMode="tel"
                   />
                 </div>
               </div>

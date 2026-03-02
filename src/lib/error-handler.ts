@@ -102,7 +102,7 @@ export function handleSupabaseError(error: unknown, context?: string): string {
       description: message,
       action: {
         label: "Fazer upgrade →",
-        onClick: () => window.location.href = "/perfil",
+        onClick: () => window.dispatchEvent(new CustomEvent("open-upgrade-modal", { detail: { trigger: "transactions" } })),
       },
       duration: 8000,
     });

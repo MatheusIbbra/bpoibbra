@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Share, Plus, ArrowDown } from "lucide-react";
+import { X, Share, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 function isIOS(): boolean {
@@ -34,90 +34,32 @@ export function IOSInstallPrompt() {
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ y: 200, opacity: 0 }}
+        initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 200, opacity: 0 }}
-        transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="fixed bottom-0 left-0 right-0 z-[9999] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"
+        exit={{ y: 100, opacity: 0 }}
+        transition={{ type: "spring", damping: 30, stiffness: 300 }}
+        className="fixed bottom-0 left-0 right-0 z-[9999] p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
       >
-        <div className="mx-auto max-w-md rounded-2xl border border-border/40 bg-card shadow-2xl overflow-hidden">
-          {/* Header */}
-          <div className="relative bg-[hsl(213,80%,13%)] p-5 text-white">
+        <div className="mx-auto max-w-sm rounded-xl border border-border/30 bg-card/95 backdrop-blur-xl shadow-lg overflow-hidden">
+          <div className="flex items-start gap-3 p-4">
+            <div className="shrink-0 h-9 w-9 rounded-lg bg-[hsl(213,80%,13%)] flex items-center justify-center">
+              <img src="/icons/icon-192.png" alt="IBBRA" className="h-6 w-6 rounded" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground">Instale o IBBRA</p>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                Toque em <Share className="inline h-3 w-3 text-accent -mt-0.5" /> e depois em <Plus className="inline h-3 w-3 text-accent -mt-0.5" /> <span className="font-medium">Tela de Início</span>
+              </p>
+            </div>
             <button
               onClick={handleDismiss}
-              className="absolute right-3 top-3 rounded-full p-1.5 text-white/60 hover:bg-white/10 hover:text-white transition-colors"
+              className="shrink-0 rounded-full p-1 text-muted-foreground/50 hover:bg-muted/60 hover:text-foreground transition-colors"
             >
-              <X className="h-4 w-4" />
-            </button>
-            <h3 className="font-serif text-lg font-semibold tracking-tight">
-              Instale o IBBRA
-            </h3>
-            <p className="mt-1 text-sm text-white/70">
-              Acesse como um app nativo no seu iPhone
-            </p>
-          </div>
-
-          {/* Steps */}
-          <div className="p-5 space-y-4">
-            <Step
-              number={1}
-              icon={<Share className="h-5 w-5 text-accent" />}
-              title="Toque em Compartilhar"
-              description='No Safari, toque no ícone de compartilhar na barra inferior'
-            />
-            <div className="flex justify-center">
-              <ArrowDown className="h-4 w-4 text-muted-foreground/40" />
-            </div>
-            <Step
-              number={2}
-              icon={<Plus className="h-5 w-5 text-accent" />}
-              title="Adicionar à Tela de Início"
-              description="Role e selecione esta opção no menu"
-            />
-            <div className="flex justify-center">
-              <ArrowDown className="h-4 w-4 text-muted-foreground/40" />
-            </div>
-            <Step
-              number={3}
-              icon={<span className="text-lg">✓</span>}
-              title="Confirme a instalação"
-              description='Toque em "Adicionar" e pronto!'
-            />
-          </div>
-
-          {/* Footer */}
-          <div className="border-t border-border/30 px-5 py-3">
-            <button
-              onClick={handleDismiss}
-              className="w-full rounded-lg bg-accent py-2.5 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90"
-            >
-              Entendi
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
       </motion.div>
     </AnimatePresence>
-  );
-}
-
-function Step({ number, icon, title, description }: {
-  number: number;
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/8">
-        {icon}
-      </div>
-      <div>
-        <p className="text-sm font-semibold text-foreground">
-          <span className="text-accent mr-1">{number}.</span>
-          {title}
-        </p>
-        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
-      </div>
-    </div>
   );
 }

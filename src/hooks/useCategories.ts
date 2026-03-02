@@ -25,7 +25,7 @@ export function useCategories(type?: CategoryType | CategoryType[]) {
     queryFn: async () => {
       let query = supabase
         .from("categories")
-        .select("*")
+        .select("id, name, icon, color, type, parent_id, organization_id, is_system_template, description, dre_group, expense_classification, user_id, created_at, updated_at")
         .order("name");
       
       // Aplicar filtro de organização
@@ -62,7 +62,7 @@ export function useCategoriesHierarchy(type?: CategoryType | CategoryType[]) {
     queryFn: async () => {
       let query = supabase
         .from("categories")
-        .select("*")
+        .select("id, name, icon, color, type, parent_id, organization_id, is_system_template, description, dre_group, expense_classification, user_id, created_at, updated_at")
         .order("name");
       
       // Aplicar filtro de organização

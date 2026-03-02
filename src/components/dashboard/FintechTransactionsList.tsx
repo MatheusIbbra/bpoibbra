@@ -10,7 +10,7 @@ import {
   ChevronRight,
   ChevronDown,
 } from "lucide-react";
-import { format, isToday, isYesterday, startOfWeek } from "date-fns";
+import { format, isToday, isYesterday, startOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { useTransactions, Transaction } from "@/hooks/useTransactions";
@@ -95,9 +95,12 @@ function getIconBg(type: string) {
   }
 }
 
-export function FintechTransactionsList() {
+export function FintechTransactionsList({ selectedMonth }: { selectedMonth?: Date } = {}) {
   const navigate = useNavigate();
-  const { data: transactions, isLoading } = useTransactions({});
+  const refDate = selectedMonth || new Date();
+  const txStart = format(startOfMonth(refDate), "yyyy-MM-dd");
+  const txEnd = format(endOfMonth(refDate), "yyyy-MM-dd");
+  const { data: transactions, isLoading } = useTransactions({ startDate: txStart, endDate: txEnd });
   const [isExpanded, setIsExpanded] = useState(() => {
     try {
       return localStorage.getItem("dashboard-transactions-expanded") === "true";

@@ -141,7 +141,7 @@ export function ExtratoContent() {
       case "income": return "Receita";
       case "expense": return "Despesa";
       case "transfer": return "Transf.";
-      case "investment": return "Aplicação";
+      case "investment": return "Aporte";
       case "redemption": return "Resgate";
       default: return type;
     }

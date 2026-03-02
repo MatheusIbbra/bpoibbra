@@ -65,13 +65,13 @@ CustomTooltipContent.displayName = "CustomTooltipContent";
 
 type ViewMode = "monthly" | "daily";
 
-export function MonthlyEvolutionChart() {
+export function MonthlyEvolutionChart({ selectedMonthFilter }: { selectedMonthFilter?: Date } = {}) {
   const [viewMode, setViewMode] = useState<ViewMode>("monthly");
   const [selectedMonth, setSelectedMonth] = useState<{ start: string; end: string; label: string } | null>(null);
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
   
   const { data: monthlyData, isLoading: isLoadingMonthly } = useMonthlyEvolution(6);
-  const { data: dailyData, isLoading: isLoadingDaily } = useDailyEvolution();
+  const { data: dailyData, isLoading: isLoadingDaily } = useDailyEvolution(selectedMonthFilter);
 
   // Fetch transactions for selected month
   const { data: monthTransactions } = useTransactions({

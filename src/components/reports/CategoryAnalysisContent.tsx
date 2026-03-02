@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { startOfMonth, endOfMonth } from "date-fns";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TrendingUp, TrendingDown } from "lucide-react";
 
 export function CategoryAnalysisContent() {
+  const queryClient = useQueryClient();
   const { requiresBaseSelection } = useBaseFilter();
   const [dateRange, setDateRange] = useState({ start: startOfMonth(new Date()), end: endOfMonth(new Date()) });
   const [costCenterId, setCostCenterId] = useState<string | undefined>(undefined);
@@ -236,7 +238,12 @@ export function CategoryAnalysisContent() {
       {editingTransaction && (
         <TransactionDialog
           open={!!editingTransaction}
-          onOpenChange={(o) => !o && setEditingTransaction(null)}
+          onOpenChange={(o) => {
+            if (!o) {
+              setEditingTransaction(null);
+              queryClient.invalidateQueries({ queryKey: ["category-analysis"] });
+            }
+          }}
           transaction={editingTransaction}
         />
       )}

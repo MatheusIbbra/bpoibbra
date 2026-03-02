@@ -214,7 +214,7 @@ export function AnaliseOrcamentoContent() {
             </Card>
           </div>
 
-          <BudgetAlerts showNotifications={false} />
+          <BudgetAlerts showNotifications={false} selectedMonth={new Date(year, month - 1, 1)} />
           <BudgetVsActualChart month={month} year={year} />
 
           <div>

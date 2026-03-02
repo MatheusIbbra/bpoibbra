@@ -26,7 +26,7 @@ export function useAuditLog(limit: number = 50) {
     queryFn: async () => {
       let query = supabase
         .from("audit_log")
-        .select("*")
+        .select("id, organization_id, user_id, action, table_name, record_id, old_values, new_values, ip_address, user_agent, created_at")
         .order("created_at", { ascending: false })
         .limit(limit);
 
@@ -63,7 +63,7 @@ export function useAllAuditLogs(limit: number = 100) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("audit_log")
-        .select("*")
+        .select("id, organization_id, user_id, action, table_name, record_id, old_values, new_values, ip_address, user_agent, created_at")
         .order("created_at", { ascending: false })
         .limit(limit);
 
