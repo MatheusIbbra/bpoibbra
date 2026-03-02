@@ -125,9 +125,9 @@ export function AppSidebar() {
             className="group mx-1 mb-1 px-3 py-2.5 rounded-xl bg-gradient-to-r from-sidebar-accent/40 to-sidebar-accent/20 hover:from-sidebar-accent/60 hover:to-sidebar-accent/30 border border-sidebar-border/20 hover:border-sidebar-primary/30 transition-all duration-300 text-left cursor-pointer"
           >
             <div className="flex items-center gap-2">
-              {currentPlan?.slug === 'pro' ? (
+              {currentPlan?.slug?.toLowerCase() === 'pro' ? (
                 <Crown className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-              ) : currentPlan?.slug === 'plus' ? (
+              ) : currentPlan?.slug?.toLowerCase() === 'plus' ? (
                 <Zap className="h-3.5 w-3.5 text-sidebar-primary shrink-0" />
               ) : (
                 <Sparkles className="h-3.5 w-3.5 text-sidebar-primary shrink-0" />
@@ -138,7 +138,7 @@ export function AppSidebar() {
               <ChevronRight className="h-3 w-3 text-sidebar-muted ml-auto group-hover:translate-x-0.5 transition-transform" />
             </div>
             <p className="text-[9px] text-sidebar-muted mt-1 ml-5.5">
-              {currentPlan?.slug === 'pro' ? 'Plano completo' : 'Ver planos disponíveis'}
+              {currentPlan?.slug?.toLowerCase() === 'pro' ? 'Plano completo' : 'Ver planos disponíveis'}
             </p>
           </button>
         )}
@@ -148,9 +148,9 @@ export function AppSidebar() {
             className="mx-auto mb-1 h-8 w-8 rounded-lg bg-sidebar-accent/30 hover:bg-sidebar-accent/50 border border-sidebar-border/20 hover:border-sidebar-primary/30 flex items-center justify-center transition-all cursor-pointer"
             title={currentPlan?.name || "Starter"}
           >
-            {currentPlan?.slug === 'pro' ? (
+            {currentPlan?.slug?.toLowerCase() === 'pro' ? (
               <Crown className="h-3.5 w-3.5 text-amber-400" />
-            ) : currentPlan?.slug === 'plus' ? (
+            ) : currentPlan?.slug?.toLowerCase() === 'plus' ? (
               <Zap className="h-3.5 w-3.5 text-sidebar-primary" />
             ) : (
               <Sparkles className="h-3.5 w-3.5 text-sidebar-primary" />

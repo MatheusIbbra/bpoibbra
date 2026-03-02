@@ -40,7 +40,7 @@ export function UpgradeModal() {
 
   // Filter only purchasable plans, sorted by sort_order
   const purchasablePlans = plans
-    .filter((p) => PURCHASABLE_SLUGS.includes(p.slug))
+    .filter((p) => PURCHASABLE_SLUGS.includes(p.slug.toLowerCase()))
     .sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
 
   const handleContact = () => {
@@ -67,7 +67,7 @@ export function UpgradeModal() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ plan: planSlug }),
+        body: JSON.stringify({ plan: planSlug.toLowerCase() }),
       });
 
       const data = await res.json();
@@ -134,8 +134,9 @@ export function UpgradeModal() {
         {/* Plans Grid */}
         <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
           {purchasablePlans.map((plan) => {
-            const Icon = PLAN_ICONS[plan.slug] || Zap;
-            const isCurrent = currentPlan?.slug === plan.slug;
+            const slugLower = plan.slug.toLowerCase();
+            const Icon = PLAN_ICONS[slugLower] || Zap;
+            const isCurrent = currentPlan?.slug?.toLowerCase() === slugLower;
             const isLoading = loadingPlan === plan.slug;
             const isHighlight = plan.slug === highlightSlug;
             const features = buildFeatureList(plan);
