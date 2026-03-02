@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Upload, AlertCircle, ChevronRight, ChevronDown, Home, Receipt, Settings2, Wallet, FileText, Shield, Brain, CreditCard, BarChart3, CircleDollarSign, PieChart, Layers, Tags, Lightbulb, Radio, Building2, FolderKanban, Scale, TrendingUp, Smartphone } from "lucide-react";
+import { LogOut, Upload, AlertCircle, ChevronRight, ChevronDown, Home, Receipt, Settings2, Wallet, FileText, Shield, Brain, CreditCard, BarChart3, CircleDollarSign, PieChart, Layers, Tags, Lightbulb, Radio, Building2, FolderKanban, Scale, TrendingUp, Smartphone, Sparkles, Crown, Zap } from "lucide-react";
 import { PWAInstallModal } from "@/components/pwa/PWAInstallModal";
 import { NavLink } from "@/components/NavLink";
 import { Badge } from "@/components/ui/badge";
@@ -122,21 +122,39 @@ export function AppSidebar() {
         {!collapsed && (
           <button
             onClick={() => openUpgradeModal("general")}
-            className="mx-1 mb-1 px-3 py-2 rounded-lg bg-sidebar-accent/30 hover:bg-sidebar-accent/50 transition-all duration-200 text-center cursor-pointer"
+            className="group mx-1 mb-1 px-3 py-2.5 rounded-xl bg-gradient-to-r from-sidebar-accent/40 to-sidebar-accent/20 hover:from-sidebar-accent/60 hover:to-sidebar-accent/30 border border-sidebar-border/20 hover:border-sidebar-primary/30 transition-all duration-300 text-left cursor-pointer"
           >
-            <span className="text-[10px] uppercase tracking-wider font-semibold text-sidebar-primary">
-              {currentPlan?.name || "Starter"}
-            </span>
-            <p className="text-[9px] text-sidebar-muted mt-0.5">Clique para ver planos</p>
+            <div className="flex items-center gap-2">
+              {currentPlan?.slug === 'pro' ? (
+                <Crown className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+              ) : currentPlan?.slug === 'plus' ? (
+                <Zap className="h-3.5 w-3.5 text-sidebar-primary shrink-0" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5 text-sidebar-primary shrink-0" />
+              )}
+              <span className="text-[11px] font-semibold text-sidebar-foreground tracking-wide">
+                {currentPlan?.name || "Starter"}
+              </span>
+              <ChevronRight className="h-3 w-3 text-sidebar-muted ml-auto group-hover:translate-x-0.5 transition-transform" />
+            </div>
+            <p className="text-[9px] text-sidebar-muted mt-1 ml-5.5">
+              {currentPlan?.slug === 'pro' ? 'Plano completo' : 'Ver planos disponíveis'}
+            </p>
           </button>
         )}
         {collapsed && (
           <button
             onClick={() => openUpgradeModal("general")}
-            className="mx-auto mb-1 h-7 w-7 rounded-md bg-sidebar-accent/30 hover:bg-sidebar-accent/50 flex items-center justify-center transition-all cursor-pointer"
+            className="mx-auto mb-1 h-8 w-8 rounded-lg bg-sidebar-accent/30 hover:bg-sidebar-accent/50 border border-sidebar-border/20 hover:border-sidebar-primary/30 flex items-center justify-center transition-all cursor-pointer"
             title={currentPlan?.name || "Starter"}
           >
-            <TrendingUp className="h-3.5 w-3.5 text-sidebar-primary" />
+            {currentPlan?.slug === 'pro' ? (
+              <Crown className="h-3.5 w-3.5 text-amber-400" />
+            ) : currentPlan?.slug === 'plus' ? (
+              <Zap className="h-3.5 w-3.5 text-sidebar-primary" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5 text-sidebar-primary" />
+            )}
           </button>
         )}
       </SidebarHeader>
