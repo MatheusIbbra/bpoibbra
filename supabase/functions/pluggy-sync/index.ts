@@ -456,6 +456,9 @@ Deno.serve(async (req) => {
 
     // Access check (use admin client since get_viewable_organizations is SECURITY DEFINER)
     const supabaseUserClient = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authHeader } } });
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'Token inválido' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
     const { data: viewableOrgs } = await supabaseUserClient.rpc('get_viewable_organizations', { _user_id: user.id });
     const orgIdToCheck = organization_id || (bank_connection_id ? (await supabaseAdmin.from('bank_connections').select('organization_id').eq('id', bank_connection_id).single()).data?.organization_id : null);
     if (!viewableOrgs?.includes(orgIdToCheck)) {
@@ -499,7 +502,7 @@ Deno.serve(async (req) => {
         connectionToSync = existing;
       } else {
         const { data: newConn, error: createErr } = await supabaseAdmin.from('bank_connections').insert({
-          organization_id, user_id: user.id, provider: 'pluggy', provider_name: 'Open Finance (Pluggy)', status: 'active'
+          organization_id, user_id: user!.id, provider: 'pluggy', provider_name: 'Open Finance (Pluggy)', status: 'active'
         }).select().single();
         if (createErr) throw new Error('Falha ao criar conexão bancária');
         connectionToSync = newConn;

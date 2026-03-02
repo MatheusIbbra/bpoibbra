@@ -55,6 +55,7 @@ const TermosDeUso = lazy(() => import("./pages/TermosDeUso"));
 const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
 const Lgpd = lazy(() => import("./pages/Lgpd"));
 const ConsentReaccept = lazy(() => import("./pages/ConsentReaccept"));
+const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -184,6 +185,7 @@ const App = () => (
                 <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
                 <Route path="/lgpd" element={<Lgpd />} />
                 <Route path="/consent-reaccept" element={<ConsentReaccept />} />
+                <Route path="/checkout/success" element={<CheckoutSuccess />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </OnboardingGuard>
