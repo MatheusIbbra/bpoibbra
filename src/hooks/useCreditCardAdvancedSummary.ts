@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
-import { format, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
+import { format, startOfMonth, subMonths, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export interface CreditCardInvoiceMonth {
@@ -139,16 +139,46 @@ export function useCreditCardAdvancedSummary() {
         });
       });
 
-      // 4. Get last 6 months of transactions for all credit card accounts
+      // 4. Fetch invoices from credit_card_invoices table (correct accounting source)
       const now = new Date();
       const sixMonthsAgo = subMonths(startOfMonth(now), 5);
 
-      const { data: transactions } = await supabase
-        .from("transactions")
-        .select("account_id, amount, type, date, accrual_date")
+      const { data: dbInvoices } = await supabase
+        .from("credit_card_invoices")
+        .select("*")
         .in("account_id", accountIds)
-        .gte("date", format(sixMonthsAgo, "yyyy-MM-dd"))
-        .order("date", { ascending: false });
+        .gte("reference_year", sixMonthsAgo.getFullYear())
+        .order("reference_year", { ascending: false })
+        .order("reference_month", { ascending: false });
+
+      // Group invoices by account_id
+      const invoicesByAccount = new Map<string, CreditCardInvoiceMonth[]>();
+      (dbInvoices || []).forEach((inv) => {
+        const refDate = new Date(inv.reference_year, inv.reference_month - 1, 1);
+        // Filter to last 6 months
+        if (refDate < sixMonthsAgo) return;
+        const rawLabel = format(refDate, "MMMM yyyy", { locale: ptBR });
+        const label = rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1);
+        const purchases = Number(inv.total_purchases);
+        const payments = Number(inv.total_paid);
+        const balance = Math.max(0, purchases - payments);
+
+        let status: "paid" | "partial" | "open" = "open";
+        if (inv.status === "paid" || balance <= 0) status = "paid";
+        else if (inv.status === "partial" || payments > 0) status = "partial";
+
+        const list = invoicesByAccount.get(inv.account_id) || [];
+        list.push({
+          month: inv.reference_month,
+          year: inv.reference_year,
+          label,
+          totalPurchases: purchases,
+          totalPayments: payments,
+          balance,
+          status,
+        });
+        invoicesByAccount.set(inv.account_id, list);
+      });
 
       // 5. Build per-card data
       const cards: CreditCardAdvanced[] = accounts.map((account) => {
@@ -168,7 +198,6 @@ export function useCreditCardAdvancedSummary() {
           available = Math.max(0, ofData.availableCredit);
           limit = Math.abs(ofData.balance) + available;
         } else {
-          // Fallback: try Pluggy metadata
           let foundCreditData = false;
           for (const [key, data] of pluggyCreditMap.entries()) {
             if (key === account.name || (account.bank_name && key.includes(account.bank_name))) {
@@ -191,60 +220,22 @@ export function useCreditCardAdvancedSummary() {
           dueDate = `Dia ${ofData.dueDay}`;
         }
         if (ofData?.closingDay) {
-          // Best purchase day is the day after the closing day
           const bestDay = ofData.closingDay >= 28 ? 1 : ofData.closingDay + 1;
           bestPurchaseDay = `Dia ${bestDay}`;
         }
 
-        // Group transactions by month for invoices
-        const accountTxs = transactions?.filter((tx) => tx.account_id === account.id) || [];
-        const monthMap = new Map<string, { purchases: number; payments: number }>();
+        // Invoices from the dedicated table (correct accounting: competência vs caixa)
+        const invoicesByMonth = invoicesByAccount.get(account.id) || [];
 
-        accountTxs.forEach((tx) => {
-          const txDateStr = tx.accrual_date || tx.date;
-          const txDate = parseISO(txDateStr);
-          const key = format(txDate, "yyyy-MM");
-          const existing = monthMap.get(key) || { purchases: 0, payments: 0 };
-
-          const amount = Number(tx.amount);
-          if (tx.type === "expense") {
-            existing.purchases += amount;
-          } else if (tx.type === "income" || tx.type === "transfer") {
-            existing.payments += amount;
-          }
-          monthMap.set(key, existing);
+        // Current invoice amount: use the open/partial invoice balance for current month
+        // This is the REAL passivo (liability) of the card, not the cash flow impact
+        const currentInv = invoicesByMonth.find((i) => {
+          const m = now.getMonth() + 1;
+          const y = now.getFullYear();
+          return i.month === m && i.year === y;
         });
-
-        const invoicesByMonth: CreditCardInvoiceMonth[] = [];
-        const sortedKeys = Array.from(monthMap.keys()).sort((a, b) => b.localeCompare(a));
-
-        sortedKeys.forEach((key) => {
-          const [yearStr, monthStr] = key.split("-");
-          const year = parseInt(yearStr);
-          const month = parseInt(monthStr);
-          const data = monthMap.get(key)!;
-
-          const refDate = new Date(year, month - 1, 1);
-          const label = format(refDate, "MMMM yyyy", { locale: ptBR });
-          const balance = data.purchases - data.payments;
-
-          let status: "paid" | "partial" | "open" = "open";
-          if (balance <= 0) status = "paid";
-          else if (data.payments > 0) status = "partial";
-
-          invoicesByMonth.push({
-            month,
-            year,
-            label: label.charAt(0).toUpperCase() + label.slice(1),
-            totalPurchases: data.purchases,
-            totalPayments: data.payments,
-            balance: Math.max(0, balance),
-            status,
-          });
-        });
-
-        // Current invoice amount = actual bank-reported debt (most accurate)
-        const invoiceAmount = used;
+        // If no DB invoice yet, fall back to OF balance (most recent sync)
+        const invoiceAmount = currentInv ? currentInv.balance : used;
 
         return {
           id: account.id,
