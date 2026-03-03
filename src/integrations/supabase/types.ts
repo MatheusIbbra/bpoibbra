@@ -630,6 +630,66 @@ export type Database = {
           },
         ]
       }
+      credit_card_invoices: {
+        Row: {
+          account_id: string
+          closing_date: string | null
+          created_at: string
+          due_date: string | null
+          id: string
+          organization_id: string
+          reference_month: number
+          reference_year: number
+          status: string
+          total_paid: number
+          total_purchases: number
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          closing_date?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          organization_id: string
+          reference_month: number
+          reference_year: number
+          status?: string
+          total_paid?: number
+          total_purchases?: number
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          closing_date?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          organization_id?: string
+          reference_month?: number
+          reference_year?: number
+          status?: string
+          total_paid?: number
+          total_purchases?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_card_invoices_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_card_invoices_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_deletion_requests: {
         Row: {
           created_at: string
@@ -2275,6 +2335,7 @@ export type Database = {
           converted_amount: number | null
           cost_center_id: string | null
           created_at: string
+          credit_card_invoice_id: string | null
           date: string
           description: string | null
           due_date: string | null
@@ -2285,6 +2346,7 @@ export type Database = {
           import_batch_id: string | null
           is_anomaly: boolean | null
           is_ignored: boolean | null
+          is_invoice_payment: boolean
           linked_transaction_id: string | null
           normalized_description: string | null
           notes: string | null
@@ -2316,6 +2378,7 @@ export type Database = {
           converted_amount?: number | null
           cost_center_id?: string | null
           created_at?: string
+          credit_card_invoice_id?: string | null
           date: string
           description?: string | null
           due_date?: string | null
@@ -2326,6 +2389,7 @@ export type Database = {
           import_batch_id?: string | null
           is_anomaly?: boolean | null
           is_ignored?: boolean | null
+          is_invoice_payment?: boolean
           linked_transaction_id?: string | null
           normalized_description?: string | null
           notes?: string | null
@@ -2357,6 +2421,7 @@ export type Database = {
           converted_amount?: number | null
           cost_center_id?: string | null
           created_at?: string
+          credit_card_invoice_id?: string | null
           date?: string
           description?: string | null
           due_date?: string | null
@@ -2367,6 +2432,7 @@ export type Database = {
           import_batch_id?: string | null
           is_anomaly?: boolean | null
           is_ignored?: boolean | null
+          is_invoice_payment?: boolean
           linked_transaction_id?: string | null
           normalized_description?: string | null
           notes?: string | null
@@ -2421,6 +2487,13 @@ export type Database = {
             columns: ["cost_center_id"]
             isOneToOne: false
             referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_credit_card_invoice_id_fkey"
+            columns: ["credit_card_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "credit_card_invoices"
             referencedColumns: ["id"]
           },
           {
@@ -2858,6 +2931,10 @@ export type Database = {
       provision_organization_from_template: {
         Args: { p_org_id: string; p_user_id: string }
         Returns: Json
+      }
+      recalc_invoice_totals: {
+        Args: { p_invoice_id: string }
+        Returns: undefined
       }
       simulate_macro_scenario: {
         Args: {

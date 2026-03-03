@@ -67,12 +67,13 @@ function getUsageStatus(percentage: number) {
 }
 
 function InvoiceStatusBadge({ status }: { status: string }) {
-  const config = {
-    paid: { label: "Paga", className: "bg-success/10 text-success border-success/20" },
-    partial: { label: "Parcial", className: "bg-warning/10 text-warning border-warning/20" },
-    open: { label: "Aberta", className: "bg-destructive/10 text-destructive border-destructive/20" },
+  const config: Record<string, { label: string; className: string }> = {
+    paid:    { label: "Paga",       className: "bg-success/10 text-success border-success/20" },
+    partial: { label: "Parcial",    className: "bg-warning/10 text-warning border-warning/20" },
+    open:    { label: "Em aberto",  className: "bg-destructive/10 text-destructive border-destructive/20" },
+    overdue: { label: "Vencida",    className: "bg-destructive/20 text-destructive border-destructive/40" },
   };
-  const c = config[status as keyof typeof config] || config.open;
+  const c = config[status] || config.open;
   return <Badge variant="default" className={cn("text-[10px] px-1.5 py-0 border", c.className)}>{c.label}</Badge>;
 }
 
@@ -245,15 +246,15 @@ export default function CartoesCredito() {
 
         {/* Consolidated Summary */}
         {data && cards.length > 0 && (
-          <Card className="border-0 bg-gradient-to-br from-card to-muted/20 overflow-hidden">
+          <Card className="border border-border/30 bg-card overflow-hidden">
             <CardContent className="p-4">
               <div className="grid grid-cols-3 gap-3 sm:gap-6">
                 <div>
-                  <p className="text-[10px] sm:text-[11px] text-muted-foreground uppercase tracking-wider">Limite</p>
+                  <p className="text-[10px] sm:text-[11px] text-muted-foreground uppercase tracking-wider">Limite Total</p>
                   <p className="text-sm sm:text-lg font-bold mt-0.5">{formatCurrency(data.totalLimit)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] sm:text-[11px] text-muted-foreground uppercase tracking-wider">Utilizado</p>
+                  <p className="text-[10px] sm:text-[11px] text-muted-foreground uppercase tracking-wider">Passivo Atual</p>
                   <p className="text-sm sm:text-lg font-bold text-destructive mt-0.5">{formatCurrency(data.totalUsed)}</p>
                 </div>
                 <div>
@@ -263,7 +264,7 @@ export default function CartoesCredito() {
               </div>
               <div className="mt-3">
                 <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-                  <span>Uso consolidado</span>
+                  <span>Comprometimento do limite</span>
                   <span className={cn("font-semibold", getUsageStatus(data.totalLimit > 0 ? Math.round((data.totalUsed / data.totalLimit) * 100) : 0).color)}>
                     {data.totalLimit > 0 ? Math.round((data.totalUsed / data.totalLimit) * 100) : 0}%
                   </span>
@@ -275,6 +276,9 @@ export default function CartoesCredito() {
                   />
                 </div>
               </div>
+              <p className="text-[10px] text-muted-foreground/60 mt-2.5 border-t border-border/20 pt-2">
+                Compras impactam despesa por competência · Pagamentos de fatura impactam caixa
+              </p>
             </CardContent>
           </Card>
         )}
