@@ -70,7 +70,8 @@ export function UpgradeModal() {
         body: JSON.stringify({ plan: planSlug.toLowerCase() }),
       });
 
-      const data = await res.json();
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : {};
       if (!res.ok) throw new Error(data.error || "Erro ao criar sessão de checkout");
       if (data.url) {
         closeUpgradeModal();
