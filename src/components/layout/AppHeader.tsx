@@ -112,29 +112,6 @@ export function AppHeader({ title = "Posição Patrimonial" }: AppHeaderProps) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-sidebar-border/20 bg-[hsl(var(--sidebar-background))]">
-      {/* ── Linha institucional superior ── */}
-      <div className="hidden md:flex items-center justify-between px-6 pt-3 pb-1.5 border-b border-white/[0.05]">
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-sidebar-foreground/80"
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-            IBBRA
-          </span>
-          <span className="text-sidebar-border/50 text-[10px]">|</span>
-          <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-sidebar-muted"
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-            Autonomia Patrimonial
-          </span>
-          <span className="text-sidebar-border/30 text-[10px]">·</span>
-          <span className="text-[9px] italic text-sidebar-muted/50"
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-            Mais que pensar em números, pensar em você.
-          </span>
-        </div>
-        <span className="text-[8px] uppercase tracking-[0.2em] text-sidebar-muted/40 font-medium">
-          Acompanhamento estratégico consolidado
-        </span>
-      </div>
-
       {/* ── Linha funcional ── */}
       <div className="flex h-12 items-center gap-2 md:gap-3 px-3 md:px-5">
         {/* Sidebar toggle */}

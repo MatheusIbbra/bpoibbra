@@ -3,9 +3,8 @@ import { Home, CreditCard, BarChart3, Plus, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { AppSidebar } from "./AppSidebar";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import { MobileMenuScreen } from "./MobileMenuScreen";
 
 const navItems = [
   { label: "Visão", icon: Home, path: "/" },
@@ -62,14 +61,9 @@ export function MobileBottomNav() {
                         <span className="text-[9px] font-medium tracking-wide">{item.label}</span>
                       </button>
                     </SheetTrigger>
-                    <SheetContent side="bottom" className="rounded-t-[20px] max-h-[85vh] p-0 border-0">
+                    <SheetContent side="bottom" className="rounded-t-[24px] max-h-[90vh] h-[90vh] p-0 border-0">
                       <SheetTitle className="sr-only">Menu</SheetTitle>
-                      <div className="mx-auto w-8 h-0.5 rounded-full bg-muted-foreground/20 mt-3 mb-2" />
-                      <SidebarProvider defaultOpen>
-                        <div className="w-full overflow-y-auto max-h-[80vh]">
-                          <AppSidebar />
-                        </div>
-                      </SidebarProvider>
+                      <MobileMenuScreen onClose={() => setMoreOpen(false)} />
                     </SheetContent>
                   </Sheet>
                 );

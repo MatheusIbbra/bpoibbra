@@ -167,7 +167,7 @@ const Index = () => {
             BLOCO 1 — POSIÇÃO PATRIMONIAL
             Painel institucional azul profundo
             ══════════════════════════════════════════ */}
-        <div className="-mx-5 md:mx-0 md:rounded-[20px] overflow-hidden relative"
+        <div className="rounded-[20px] overflow-hidden relative"
           style={{ backgroundColor: BRAND_DEEP }}
         >
           {/* Guilloche texture — 3% opacity */}
@@ -182,19 +182,9 @@ const Index = () => {
             }}
           />
 
-          <div className="relative px-5 pt-6 pb-6 md:px-10 md:pt-8 md:pb-8">
-            {/* Top row: institutional label + month selector */}
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <p className="text-[8px] uppercase tracking-[0.22em] font-semibold mb-0.5"
-                  style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  IBBRA · POSIÇÃO ESTRATÉGICA
-                </p>
-                <p className="text-[9px] italic"
-                  style={{ color: "rgba(255,255,255,0.18)", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  Acompanhamento patrimonial consolidado
-                </p>
-              </div>
+          <div className="relative px-5 pt-5 pb-6 md:px-10 md:pt-7 md:pb-8">
+            {/* Top row: month selector */}
+            <div className="flex items-center justify-end mb-5">
               <div className="rounded-full border px-3 py-1 flex items-center"
                 style={{ borderColor: "rgba(255,255,255,0.12)", backgroundColor: "rgba(255,255,255,0.04)" }}>
                 <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} variant="overlay-mobile" />
