@@ -13,7 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useValuesVisibility } from "@/contexts/ValuesVisibilityContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import ibbraLogoWhite from "@/assets/ibbra-logo-white.png";
 import ibbraLogoIcon from "@/assets/ibbra-logo-icon.png";
 
@@ -22,6 +22,8 @@ export function MobileHeader() {
   const { user, signOut } = useAuth();
   const { showValues, toggleValues } = useValuesVisibility();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isHome = location.pathname === "/";
 
   const { data: profile } = useQuery({
     queryKey: ["user-profile", user?.id],
@@ -103,13 +105,15 @@ export function MobileHeader() {
         </div>
       </div>
 
-      {/* Greeting */}
-      <div className="mt-5">
-        <p className="text-muted-foreground text-sm">Olá,</p>
-        <h2 className="text-2xl font-bold tracking-tight mt-0.5">
-          {displayName.split(" ")[0]} 👋
-        </h2>
-      </div>
+      {/* Greeting — only on home */}
+      {isHome && (
+        <div className="mt-5">
+          <p className="text-muted-foreground text-sm">Olá,</p>
+          <h2 className="text-2xl font-bold tracking-tight mt-0.5">
+            {displayName.split(" ")[0]} 👋
+          </h2>
+        </div>
+      )}
     </header>
   );
 }
