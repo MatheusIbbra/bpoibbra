@@ -144,16 +144,29 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
   const displayName = profile?.full_name || "Usuário";
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 md:h-[60px] items-center gap-2 md:gap-3 border-b border-sidebar-border/20 bg-[hsl(var(--sidebar-background))] px-3 md:px-6">
+    <header className="sticky top-0 z-40 flex h-auto md:min-h-[68px] items-center gap-2 md:gap-3 border-b border-sidebar-border/15 bg-[hsl(var(--sidebar-background))] px-3 md:px-7 py-2.5">
       {/* Sidebar toggle */}
-      <SidebarTrigger className="shrink-0 h-8 w-8 md:h-9 md:w-9 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/40 rounded-lg transition-all duration-200" />
+      <SidebarTrigger className="shrink-0 h-8 w-8 md:h-9 md:w-9 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30 rounded-lg transition-all duration-200" />
       
-      <div className="flex flex-1 items-center gap-2 md:gap-4 min-w-0">
-      {/* Title or greeting - mobile: centered profile button for clients */}
-        <div className="hidden md:flex flex-col">
-          <h1 className="text-[15px] font-medium text-sidebar-foreground/90 tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
-            {userRole === 'cliente' ? `Olá, ${displayName.split(' ')[0]}` : title}
-          </h1>
+      <div className="flex flex-1 items-center gap-2 md:gap-5 min-w-0">
+        {/* Institutional greeting block */}
+        <div className="hidden md:flex flex-col justify-center border-r border-sidebar-border/20 pr-5 mr-1">
+          <div className="flex items-baseline gap-2">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-sidebar-foreground/40 font-medium">
+              {userRole === 'cliente' ? 'Olá,' : ''}
+            </p>
+            <h1
+              className="text-[16px] font-light text-sidebar-foreground/95 tracking-tight leading-none"
+              style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+            >
+              {userRole === 'cliente' ? displayName.split(' ')[0] : title}
+            </h1>
+          </div>
+          {userRole === 'cliente' && (
+            <p className="text-[10px] text-sidebar-foreground/35 mt-1 italic" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              Mais que pensar em números, pensar em você.
+            </p>
+          )}
         </div>
         
         {/* Mobile: centered client greeting with dropdown */}
