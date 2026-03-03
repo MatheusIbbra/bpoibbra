@@ -56,7 +56,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
           <BaseSelectorEnhanced />
         </div>
 
-        <main className="flex-1 w-full max-w-[420px] mx-auto px-5 pb-28 space-y-6">
+        <main className="flex-1 w-full max-w-[420px] mx-auto px-5 pb-28 space-y-6 overflow-x-hidden">
           {baseLoading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
