@@ -34,7 +34,7 @@ export function MobileBottomNav() {
     <>
       <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
         <div className="mx-auto max-w-[420px] px-2 pb-[env(safe-area-inset-bottom)]">
-          <div className="flex items-center justify-around rounded-t-[24px] bg-card/95 backdrop-blur-2xl border-t border-x border-border/20 shadow-fintech-nav px-2 py-2">
+          <div className="flex items-center justify-around rounded-t-[20px] bg-card/98 backdrop-blur-xl border-t border-x border-border/15 shadow-fintech-nav px-2 py-1.5">
             {navItems.map((item) => {
               // FAB center button
               if (item.path === "__fab__") {
