@@ -33,7 +33,6 @@ import { useBaseFilter, useBaseFilterState, useBaseFilterActions } from "@/conte
 import { MonthSelector } from "@/components/dashboard/MonthSelector";
 import { useQuery } from "@tanstack/react-query";
 import { WelcomeModal } from "@/components/dashboard/WelcomeModal";
-import { MaskedValue } from "@/contexts/ValuesVisibilityContext";
 
 
 const Index = () => {
@@ -157,189 +156,68 @@ const Index = () => {
   return (
     <AppLayout title="Dashboard">
       <WelcomeModal />
-      <div className="space-y-7 w-full">
-        {/* Financial Summary — Institutional Blue Panel */}
-        <div className="-mx-5 md:mx-0 bg-[hsl(var(--brand-deep))] md:bg-[hsl(var(--brand-deep)/0.04)] md:border md:border-[hsl(var(--brand-deep)/0.08)] md:rounded-2xl overflow-hidden relative">
-          {/* Subtle guilloche texture overlay */}
-          <div
-            className="absolute inset-0 pointer-events-none md:hidden opacity-[0.04]"
-            style={{
-              backgroundImage: "url('/ibbra-grafismo.svg')",
-              backgroundRepeat: "repeat",
-              backgroundSize: "320px",
-              backgroundPosition: "center",
-            }}
-          />
-
-          <div className="relative px-5 pt-5 pb-6 md:px-6 md:py-5">
-            {/* Month Selector */}
-            <div className="flex justify-center mb-5 md:mb-4">
-              <div className="inline-flex items-center rounded-full border border-white/15 md:border-border/40 bg-white/8 md:bg-card/80 px-4 py-1">
-                <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} variant="overlay-mobile" />
-              </div>
+      <div className="space-y-6 w-full">
+        {/* 1. Stat Cards */}
+        <div className="relative">
+          {/* Blue background extends to top on mobile */}
+          <div className="absolute inset-x-0 -mx-4 bg-[hsl(var(--sidebar-background))] rounded-b-3xl md:hidden" style={{ top: '-8rem', bottom: '-0.75rem' }} />
+          {/* Month Selector - overlays blue bar on mobile */}
+          <div className="relative z-10 flex justify-center mb-3">
+            <div className="inline-flex items-center rounded-full border border-white/20 md:border-border/40 bg-white/15 md:bg-card/80 backdrop-blur-sm px-3 py-0.5 shadow-sm">
+              <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} variant="overlay-mobile" />
             </div>
-
-            {/* Saldo Total — primary focus, full width */}
-            {statsLoading ? (
-              <div className="mb-3"><StatCardSkeleton /></div>
-            ) : (
-              <div
-                className="mb-3 cursor-pointer"
-                onClick={() => setShowAccountsDialog(true)}
-              >
-                <div className="rounded-[16px] bg-white/[0.06] border border-white/10 px-5 py-4 md:bg-card md:border-border/30">
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-white/50 md:text-muted-foreground font-medium mb-1">
-                    Saldo Total
-                  </p>
-                  <p
-                    className="text-3xl font-light text-white md:text-foreground leading-none"
-                    style={{ fontFamily: "'Playfair Display', Georgia, serif", letterSpacing: "-0.02em" }}
-                  >
-                    <MaskedValue>{formatCurrency(stats?.totalBalance ?? 0)}</MaskedValue>
-                  </p>
-                  <p className="text-[10px] text-white/35 md:text-muted-foreground/50 mt-1.5 uppercase tracking-[0.1em]">
-                    Posição patrimonial consolidada
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Secondary cards: Evolução, Entradas, Saídas */}
-            {/* Desktop: 4-column grid — Saldo Total spans 2 cols */}
-            <div className="hidden md:grid grid-cols-4 gap-4 mb-2">
-              {statsLoading ? (
-                <>
-                  <div className="col-span-2"><StatCardSkeleton /></div>
-                  <StatCardSkeleton />
-                  <StatCardSkeleton />
-                </>
-              ) : (
-                <>
-                  {/* Saldo Total — wide, institutional */}
-                  <div
-                    className="col-span-2 rounded-2xl border border-[hsl(var(--brand-deep)/0.15)] bg-[hsl(var(--brand-deep)/0.04)] px-7 py-5 cursor-pointer hover:bg-[hsl(var(--brand-deep)/0.07)] transition-all duration-300"
-                    onClick={() => setShowAccountsDialog(true)}
-                  >
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground/60 font-medium mb-2">
-                      Posição Patrimonial Consolidada
-                    </p>
-                    <p
-                      className="text-4xl font-light text-foreground leading-none"
-                      style={{ fontFamily: "'Playfair Display', Georgia, serif", letterSpacing: "-0.03em" }}
-                    >
-                      <MaskedValue>{formatCurrency(stats?.totalBalance ?? 0)}</MaskedValue>
-                    </p>
-                    <p className="text-[10px] text-muted-foreground/40 mt-2.5 uppercase tracking-[0.1em]">
-                      Saldo total · {format(selectedMonth, "MMMM 'de' yyyy", { locale: ptBR })}
-                    </p>
-                  </div>
-                  {/* Evolução Patrimonial */}
-                  <div className="rounded-2xl border border-border/20 bg-card px-5 py-4">
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/55 font-medium mb-1.5">Evolução Patrimonial</p>
-                    <p className="text-2xl font-light text-foreground" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                      <MaskedValue>{formatCurrency(stats?.monthlySavings ?? 0)}</MaskedValue>
-                    </p>
-                  </div>
-                  {/* Entradas / Saídas stacked */}
-                  <div className="flex flex-col gap-2.5">
-                    <div
-                      className="flex-1 rounded-xl border border-border/20 bg-card px-4 py-3 cursor-pointer hover:bg-muted/30 transition-all"
-                      onClick={() => setShowIncomeDialog(true)}
-                    >
-                      <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/50 font-medium mb-1">Entradas</p>
-                      <p className="text-lg font-light text-foreground" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                        <MaskedValue>{formatCurrency(stats?.monthlyIncome ?? 0)}</MaskedValue>
-                      </p>
-                    </div>
-                    <div
-                      className="flex-1 rounded-xl border border-border/20 border-l-2 border-l-destructive/30 bg-card px-4 py-3 cursor-pointer hover:bg-muted/30 transition-all"
-                      onClick={() => setShowExpenseDialog(true)}
-                    >
-                      <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/50 font-medium mb-1">Saídas</p>
-                      <p className="text-lg font-light text-foreground" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                        <MaskedValue>{formatCurrency(stats?.monthlyExpenses ?? 0)}</MaskedValue>
-                      </p>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Mobile: existing layout */}
-            <StaggerGrid className="grid gap-2 grid-cols-3 md:hidden">
-              {statsLoading ? (
-                <>
-                  <StaggerItem><StatCardSkeleton /></StaggerItem>
-                  <StaggerItem><StatCardSkeleton /></StaggerItem>
-                  <StaggerItem><StatCardSkeleton /></StaggerItem>
-                </>
-              ) : (
-                <>
-                  <StaggerItem>
-                    <div
-                      className={cn(
-                        "rounded-[14px] bg-white/[0.06] border border-white/10 px-3 py-3 md:bg-card md:border-border/30",
-                        stats?.monthlySavings && stats.monthlySavings >= 0 ? "" : "border-l-2 border-l-[#FF4614]/60"
-                      )}
-                    >
-                      <p className="text-[9px] uppercase tracking-[0.1em] text-white/45 md:text-muted-foreground font-medium leading-none mb-1.5">
-                        Evolução
-                      </p>
-                      <p
-                        className="text-sm font-light text-white md:text-foreground leading-none"
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                      >
-                        <MaskedValue>{formatCurrency(stats?.monthlySavings ?? 0)}</MaskedValue>
-                      </p>
-                    </div>
-                  </StaggerItem>
-                  <StaggerItem>
-                    <div
-                      className="rounded-[14px] bg-white/[0.06] border border-white/10 px-3 py-3 md:bg-card md:border-border/30 cursor-pointer"
-                      onClick={() => setShowIncomeDialog(true)}
-                    >
-                      <p className="text-[9px] uppercase tracking-[0.1em] text-white/45 md:text-muted-foreground font-medium leading-none mb-1.5">
-                        Entradas
-                      </p>
-                      <p
-                        className="text-sm font-light text-white/90 md:text-foreground leading-none"
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                      >
-                        <MaskedValue>{formatCurrency(stats?.monthlyIncome ?? 0)}</MaskedValue>
-                      </p>
-                      {stats?.incomeChange !== undefined && (
-                        <p className={cn("text-[9px] mt-1 font-medium", stats.incomeChange >= 0 ? "text-success/80" : "text-destructive/80")}>
-                          {stats.incomeChange >= 0 ? "+" : ""}{stats.incomeChange.toFixed(1)}%
-                        </p>
-                      )}
-                    </div>
-                  </StaggerItem>
-                  <StaggerItem>
-                    <div
-                      className="rounded-[14px] bg-white/[0.06] border border-white/10 border-l-2 border-l-[#FF4614]/50 px-3 py-3 md:bg-card md:border-border/30 cursor-pointer"
-                      onClick={() => setShowExpenseDialog(true)}
-                    >
-                      <p className="text-[9px] uppercase tracking-[0.1em] text-white/45 md:text-muted-foreground font-medium leading-none mb-1.5">
-                        Saídas
-                      </p>
-                      <p
-                        className="text-sm font-light text-white/90 md:text-foreground leading-none"
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                      >
-                        <MaskedValue>{formatCurrency(stats?.monthlyExpenses ?? 0)}</MaskedValue>
-                      </p>
-                      {stats?.expenseChange !== undefined && (
-                        <p className={cn("text-[9px] mt-1 font-medium", stats.expenseChange <= 0 ? "text-success/80" : "text-destructive/80")}>
-                          {stats.expenseChange <= 0 ? "" : "+"}{stats.expenseChange.toFixed(1)}%
-                        </p>
-                      )}
-                    </div>
-                  </StaggerItem>
-                  </StaggerItem>
-                </>
-              )}
-            </StaggerGrid>
           </div>
+          <StaggerGrid className="relative grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+            {statsLoading ? (
+              <>
+                <StaggerItem><StatCardSkeleton /></StaggerItem>
+                <StaggerItem><StatCardSkeleton /></StaggerItem>
+                <StaggerItem><StatCardSkeleton /></StaggerItem>
+                <StaggerItem><StatCardSkeleton /></StaggerItem>
+              </>
+            ) : (
+              <>
+                <StaggerItem>
+                  <StatCard
+                    title="Saldo Total"
+                    value={formatCurrency(stats?.totalBalance ?? 0)}
+                    icon={<Wallet className="h-5 w-5" />}
+                    variant="default"
+                    onClick={() => setShowAccountsDialog(true)}
+                    hoverContent={
+                      <AccountsBreakdown accounts={financialAccounts} />
+                    } />
+                </StaggerItem>
+                <StaggerItem>
+                  <StatCard
+                    title="Entradas Financeiras"
+                    value={formatCurrency(stats?.monthlyIncome ?? 0)}
+                    icon={<ArrowUpRight className="h-5 w-5" />}
+                    variant="success"
+                    trend={stats?.incomeChange ? { value: stats.incomeChange, isPositive: stats.incomeChange >= 0 } : undefined}
+                    onClick={() => setShowIncomeDialog(true)}
+                    hoverContent={<StatCardHoverTransactions type="income" selectedMonth={selectedMonth} />} />
+                </StaggerItem>
+                <StaggerItem>
+                  <StatCard
+                    title="Saídas Financeiras"
+                    value={formatCurrency(stats?.monthlyExpenses ?? 0)}
+                    icon={<ArrowDownRight className="h-5 w-5" />}
+                    variant="destructive"
+                    trend={stats?.expenseChange ? { value: Math.abs(stats.expenseChange), isPositive: stats.expenseChange <= 0 } : undefined}
+                    onClick={() => setShowExpenseDialog(true)}
+                    hoverContent={<StatCardHoverTransactions type="expense" selectedMonth={selectedMonth} />} />
+                </StaggerItem>
+                <StaggerItem>
+                  <StatCard
+                    title="Evolução Patrimonial"
+                    value={formatCurrency(stats?.monthlySavings ?? 0)}
+                    icon={<TrendingUp className="h-5 w-5" />}
+                    variant={stats?.monthlySavings && stats.monthlySavings >= 0 ? "success" : "warning"} />
+                </StaggerItem>
+              </>
+            )}
+          </StaggerGrid>
         </div>
 
         {/* Accounts breakdown dialog (mobile click) */}
@@ -391,11 +269,8 @@ const Index = () => {
             <div className="block lg:hidden">
               <AnimatedCard delay={0.1}>
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-1">
-                    <div>
-                      <CardTitle className="text-sm font-semibold tracking-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Orçamentos</CardTitle>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">Acompanhamento e correções estratégicas mensais</p>
-                    </div>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-base font-semibold">Orçamentos & Alertas</CardTitle>
                     <Link to="/orcamentos">
                       <Badge variant="outline" className="cursor-pointer hover:bg-secondary text-xs">Ver todos</Badge>
                     </Link>

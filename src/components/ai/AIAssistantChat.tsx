@@ -144,16 +144,6 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
   const popupRef = useRef<Window | null>(null);
   const pendingOrgIdRef = useRef<string | null>(null);
   const handledRef = useRef(false);
-
-  // Listen for FAB toggle from MobileBottomNav
-  useEffect(() => {
-    const handler = () => {
-      setIsMenuOpen((prev) => !prev);
-      setAccountSubMenuOpen(false);
-    };
-    window.addEventListener("ibbra:fab-toggle", handler);
-    return () => window.removeEventListener("ibbra:fab-toggle", handler);
-  }, []);
   const openPluggyConnect = useOpenPluggyConnect();
   const savePluggyItem = useSavePluggyItem();
   const syncConnection = useSyncBankConnection();
@@ -341,7 +331,7 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
       <>
         {/* Quick actions menu */}
         {isMenuOpen && (
-          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:bottom-[5.5rem] md:right-6 z-50 flex flex-col gap-1.5 animate-in fade-in slide-in-from-bottom-2 duration-200 w-[calc(100%-2rem)] max-w-[380px] md:w-auto">
+          <div className="fixed bottom-20 right-4 md:bottom-[5.5rem] md:right-6 z-50 flex flex-col gap-1.5 animate-in fade-in slide-in-from-bottom-2 duration-200">
             {quickActions.map((action) => (
               <div key={action.label}>
                 <button
@@ -393,11 +383,11 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
           />
         )}
 
-        {/* FAB - hidden on mobile (integrated in bottom nav) */}
+        {/* FAB */}
         <Button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           className={cn(
-            "fixed bottom-4 right-4 md:bottom-6 md:right-6 h-14 w-14 rounded-full shadow-lg z-50 transition-transform hidden md:flex",
+            "fixed bottom-4 right-4 md:bottom-6 md:right-6 h-14 w-14 rounded-full shadow-lg z-50 transition-transform",
             isMenuOpen && "rotate-45"
           )}
           size="icon"

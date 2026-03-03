@@ -84,28 +84,10 @@ export function AppSidebar() {
   const renderNavItem = (item: typeof navItems[0]) => (
     <SidebarMenuItem key={item.title} className="relative">
       <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={collapsed ? item.title : undefined}>
-        <NavLink
-          to={item.url}
-          end={item.url === "/"}
-          className={`flex items-center transition-all duration-200 rounded-lg ${collapsed ? "justify-center px-0 py-3" : "gap-3 px-3 py-2.5"} ${
-            isActive(item.url)
-              ? "text-sidebar-accent-foreground"
-              : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/20"
-          } relative`}
-          activeClassName="text-sidebar-accent-foreground"
-        >
-          {/* Active indicator — vertical line */}
-          {isActive(item.url) && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-accent" />
-          )}
-          <item.icon
-            className={`h-[18px] w-[18px] shrink-0 transition-colors ${
-              isActive(item.url) ? "text-accent" : "text-sidebar-muted/70"
-            }`}
-            strokeWidth={isActive(item.url) ? 2 : 1.6}
-          />
+        <NavLink to={item.url} end={item.url === "/"} className={`flex items-center transition-all duration-200 text-sm py-3 rounded-xl ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${isActive(item.url) ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
+          <item.icon className={`h-[19px] w-[19px] shrink-0 ${isActive(item.url) ? "text-sidebar-primary" : ""}`} />
           {!collapsed && (
-            <span className={`whitespace-nowrap flex-1 text-[13px] tracking-tight ${isActive(item.url) ? "font-medium" : "font-normal"}`}>
+            <span className="whitespace-nowrap flex-1 text-[13.5px]">
               {item.title}
             </span>
           )}
@@ -140,11 +122,11 @@ export function AppSidebar() {
         {!collapsed && (
           <button
             onClick={() => openUpgradeModal("general")}
-            className="group mx-1 mb-1 px-3 py-2.5 rounded-lg bg-sidebar-accent/20 hover:bg-sidebar-accent/30 border border-sidebar-border/15 hover:border-sidebar-border/30 transition-all duration-300 text-left cursor-pointer"
+            className="group mx-1 mb-1 px-3 py-2.5 rounded-xl bg-gradient-to-r from-sidebar-accent/40 to-sidebar-accent/20 hover:from-sidebar-accent/60 hover:to-sidebar-accent/30 border border-sidebar-border/20 hover:border-sidebar-primary/30 transition-all duration-300 text-left cursor-pointer"
           >
             <div className="flex items-center gap-2">
               {currentPlan?.slug?.toLowerCase() === 'pro' ? (
-                <Crown className="h-3.5 w-3.5 text-warning shrink-0" />
+                <Crown className="h-3.5 w-3.5 text-amber-400 shrink-0" />
               ) : currentPlan?.slug?.toLowerCase() === 'plus' ? (
                 <Zap className="h-3.5 w-3.5 text-sidebar-primary shrink-0" />
               ) : (
@@ -167,7 +149,7 @@ export function AppSidebar() {
             title={currentPlan?.name || "Starter"}
           >
             {currentPlan?.slug?.toLowerCase() === 'pro' ? (
-              <Crown className="h-3.5 w-3.5 text-warning" />
+              <Crown className="h-3.5 w-3.5 text-amber-400" />
             ) : currentPlan?.slug?.toLowerCase() === 'plus' ? (
               <Zap className="h-3.5 w-3.5 text-sidebar-primary" />
             ) : (
@@ -177,7 +159,7 @@ export function AppSidebar() {
         )}
       </SidebarHeader>
 
-      <SidebarContent className="px-3 py-3">
+      <SidebarContent className="px-3 py-2">
         <SidebarMenu>
           {navItems.map(renderNavItem)}
 
@@ -191,10 +173,9 @@ export function AppSidebar() {
               <>
                 <button
                   onClick={() => setReportsOpen(!reportsOpen)}
-                  className={`flex items-center w-full transition-all duration-200 text-sm py-2.5 rounded-lg gap-3 px-3 relative ${isReportActive ? "text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/20"}`}
+                  className={`flex items-center w-full transition-all duration-200 text-sm py-3 rounded-xl gap-3 px-3 ${isReportActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`}
                 >
-                  {isReportActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-accent" />}
-                  <BarChart3 className={`h-[18px] w-[18px] shrink-0 ${isReportActive ? "text-accent" : "text-sidebar-muted/70"}`} strokeWidth={isReportActive ? 2 : 1.6} />
+                  <BarChart3 className={`h-[19px] w-[19px] shrink-0 ${isReportActive ? "text-sidebar-primary" : ""}`} />
                   <span className="whitespace-nowrap flex-1 text-[13.5px] text-left">Relatórios</span>
                   {reportsOpen ? (
                     <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-muted" />
@@ -235,10 +216,9 @@ export function AppSidebar() {
               <>
                 <button
                   onClick={() => setCadastrosOpen(!cadastrosOpen)}
-                  className={`flex items-center w-full transition-all duration-200 text-sm py-2.5 rounded-lg gap-3 px-3 relative ${isCadastrosActive ? "text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/20"}`}
+                  className={`flex items-center w-full transition-all duration-200 text-sm py-3 rounded-xl gap-3 px-3 ${isCadastrosActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`}
                 >
-                  {isCadastrosActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-accent" />}
-                  <Settings2 className={`h-[18px] w-[18px] shrink-0 ${isCadastrosActive ? "text-accent" : "text-sidebar-muted/70"}`} strokeWidth={isCadastrosActive ? 2 : 1.6} />
+                  <Settings2 className={`h-[19px] w-[19px] shrink-0 ${isCadastrosActive ? "text-sidebar-primary" : ""}`} />
                   <span className="whitespace-nowrap flex-1 text-[13.5px] text-left">Cadastros</span>
                   {cadastrosOpen ? (
                     <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-muted" />
