@@ -47,7 +47,7 @@ export function MobileHeader() {
   const displayName = profile?.full_name || "Usuário";
 
   return (
-    <header className="px-5 pt-[calc(env(safe-area-inset-top)+12px)] pb-4 max-w-[420px] mx-auto w-full">
+    <header className="px-5 pt-[calc(env(safe-area-inset-top)+12px)] pb-3 max-w-[420px] mx-auto w-full">
       <div className="flex items-center justify-between">
         {/* Logo */}
         <img
@@ -57,47 +57,47 @@ export function MobileHeader() {
         />
 
         {/* Right actions */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <Button
             variant="ghost"
             size="icon"
             onClick={toggleValues}
-            className="h-10 w-10 rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-200"
+            className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-all duration-200"
           >
-            {showValues ? <Eye className="h-[18px] w-[18px]" /> : <EyeOff className="h-[18px] w-[18px]" />}
+            {showValues ? <Eye className="h-[17px] w-[17px]" /> : <EyeOff className="h-[17px] w-[17px]" />}
           </Button>
 
           <Button
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
-            className="h-10 w-10 rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-200"
+            className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-all duration-200"
           >
-            {theme === "light" ? <Moon className="h-[18px] w-[18px]" /> : <Sun className="h-[18px] w-[18px]" />}
+            {theme === "light" ? <Moon className="h-[17px] w-[17px]" /> : <Sun className="h-[17px] w-[17px]" />}
           </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="ml-0.5">
-                <Avatar className="h-9 w-9 border-2 border-primary/20 transition-all duration-300 hover:border-primary/40 shadow-sm">
+              <button className="ml-1">
+                <Avatar className="h-8 w-8 border border-[#011E41]/20 transition-all duration-300 shadow-sm">
                   <AvatarImage src={profile?.avatar_url || undefined} />
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+                  <AvatarFallback className="bg-[#011E41] text-white text-xs font-medium" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                     {getInitials(profile?.full_name)}
                   </AvatarFallback>
                 </Avatar>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 rounded-[20px] p-2.5 shadow-executive-lg border-border/30">
-              <div className="px-3 py-3 mb-1.5 bg-muted/40 rounded-2xl">
-                <p className="text-sm font-semibold">{displayName}</p>
+            <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 shadow-fintech-lg border-border/20">
+              <div className="px-3 py-3 mb-1 bg-muted/30 rounded-xl">
+                <p className="text-sm font-semibold text-foreground">{displayName}</p>
                 <p className="text-xs text-muted-foreground truncate mt-0.5">{user?.email}</p>
               </div>
-              <DropdownMenuSeparator className="bg-border/30" />
-              <DropdownMenuItem onClick={() => navigate("/perfil")} className="rounded-xl py-3 cursor-pointer text-sm">
+              <DropdownMenuSeparator className="bg-border/20" />
+              <DropdownMenuItem onClick={() => navigate("/perfil")} className="rounded-lg py-2.5 cursor-pointer text-sm">
                 <User className="mr-2.5 h-4 w-4" /> Meu Perfil
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-border/30" />
-              <DropdownMenuItem onClick={signOut} className="rounded-xl py-3 text-destructive cursor-pointer text-sm">
+              <DropdownMenuSeparator className="bg-border/20" />
+              <DropdownMenuItem onClick={signOut} className="rounded-lg py-2.5 text-destructive cursor-pointer text-sm">
                 <LogOut className="mr-2.5 h-4 w-4" /> Sair
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -105,13 +105,19 @@ export function MobileHeader() {
         </div>
       </div>
 
-      {/* Greeting — only on home */}
+      {/* Institutional greeting — only on home */}
       {isHome && (
-        <div className="mt-5">
-          <p className="text-muted-foreground text-sm">Olá,</p>
-          <h2 className="text-2xl font-bold tracking-tight mt-0.5">
-            {displayName.split(" ")[0]} 👋
+        <div className="mt-5 mb-1">
+          <p className="text-muted-foreground text-xs uppercase tracking-[0.12em] font-medium">Olá,</p>
+          <h2
+            className="text-[22px] font-light tracking-tight mt-0.5 text-foreground"
+            style={{ fontFamily: "'Playfair Display', Georgia, 'Times New Roman', serif", letterSpacing: "-0.01em" }}
+          >
+            {displayName.split(" ")[0]}
           </h2>
+          <p className="text-[11px] text-muted-foreground/70 mt-1 italic" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            Mais que pensar em números, pensar em você.
+          </p>
         </div>
       )}
     </header>
