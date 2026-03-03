@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Home, CreditCard, BarChart3, Plus, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { AppSidebar } from "./AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { motion, AnimatePresence } from "framer-motion";
@@ -67,9 +67,10 @@ export function MobileBottomNav() {
                       </button>
                     </SheetTrigger>
                     <SheetContent side="bottom" className="rounded-t-[24px] max-h-[85vh] p-0 border-0">
+                      <SheetTitle className="sr-only">Menu</SheetTitle>
+                      <div className="mx-auto w-10 h-1 rounded-full bg-muted-foreground/20 mt-3 mb-2" />
                       <SidebarProvider defaultOpen>
-                        <div className="w-full overflow-y-auto">
-                          <div className="mx-auto w-10 h-1 rounded-full bg-muted-foreground/20 mt-3 mb-2" />
+                        <div className="w-full overflow-y-auto max-h-[80vh]">
                           <AppSidebar />
                         </div>
                       </SidebarProvider>
