@@ -107,15 +107,15 @@ export function MobileHeader() {
 
       {/* Institutional greeting — only on home */}
       {isHome && (
-        <div className="mt-5 mb-1">
-          <p className="text-muted-foreground text-xs uppercase tracking-[0.12em] font-medium">Olá,</p>
+        <div className="mt-4 mb-1">
+          <p className="text-muted-foreground/60 text-xs font-medium">Olá,</p>
           <h2
-            className="text-[22px] font-light tracking-tight mt-0.5 text-foreground"
-            style={{ fontFamily: "'Playfair Display', Georgia, 'Times New Roman', serif", letterSpacing: "-0.01em" }}
+            className="text-[24px] font-light tracking-tight text-foreground"
+            style={{ fontFamily: "'Playfair Display', Georgia, serif", letterSpacing: "-0.015em" }}
           >
             {displayName.split(" ")[0]}
           </h2>
-          <p className="text-[11px] text-muted-foreground/70 mt-1 italic" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <p className="text-[10px] text-muted-foreground/50 mt-0.5 italic" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             Mais que pensar em números, pensar em você.
           </p>
         </div>
