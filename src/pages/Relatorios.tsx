@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Loader2 } from "lucide-react";
 
 // Report components
@@ -13,6 +14,7 @@ import { FluxoCaixaContent } from "@/components/reports/FluxoCaixaContent";
 import { MovimentacoesReportContent } from "@/components/reports/MovimentacoesReportContent";
 import { FinancialTypeReportContent } from "@/components/reports/FinancialTypeReportContent";
 import { CategoryAnalysisContent } from "@/components/reports/CategoryAnalysisContent";
+import { ReportsHub } from "@/components/reports/ReportsHub";
 
 // Strategic analysis cards
 import { StructuredLiquidityCard } from "@/components/dashboard/StructuredLiquidityCard";
@@ -41,8 +43,9 @@ export default function Relatorios() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { hasFeature } = useFeatureFlags();
+  const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
-  const tab = searchParams.get("tab") || "movimentacoes";
+  const tab = searchParams.get("tab");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -60,11 +63,15 @@ export default function Relatorios() {
 
   if (!user) return null;
 
-  const pageTitle = TITLE_MAP[tab] || "Relatórios";
+  const pageTitle = tab ? (TITLE_MAP[tab] || "Relatórios") : "Relatórios";
+
+  // On mobile with no tab selected, show the reports hub
+  const showHub = !tab && isMobile;
 
   return (
     <AppLayout title={pageTitle}>
       <div className="space-y-4">
+        {showHub && <ReportsHub />}
         {tab === "movimentacoes" && <MovimentacoesReportContent />}
         {tab === "analise" && <AnaliseOrcamentoContent />}
         {tab === "dre" && <DREContent />}
@@ -103,6 +110,8 @@ export default function Relatorios() {
             {hasFeature("financial_simulator") && <FinancialSimulatorCard />}
           </div>
         )}
+        {/* Desktop fallback: if no tab and not mobile, show movimentacoes */}
+        {!tab && !isMobile && <MovimentacoesReportContent />}
       </div>
     </AppLayout>
   );
