@@ -47,7 +47,7 @@ export function MobileHeader() {
   const displayName = profile?.full_name || "Usuário";
 
   return (
-    <header className="sticky top-0 z-40 px-5 pt-[calc(env(safe-area-inset-top)+12px)] pb-4 max-w-[420px] mx-auto w-full">
+    <header className="px-5 pt-[calc(env(safe-area-inset-top)+12px)] pb-4 max-w-[420px] mx-auto w-full">
       <div className="flex items-center justify-between">
         {/* Logo */}
         <img
