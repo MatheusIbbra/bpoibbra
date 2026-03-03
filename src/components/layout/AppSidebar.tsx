@@ -81,13 +81,25 @@ export function AppSidebar() {
   // "Relatórios" and "Cadastros" are handled separately as submenus
   const isCadastrosActive = cadastrosPages.includes(location.pathname);
 
-  const renderNavItem = (item: typeof navItems[0]) => (
+  const renderNavItem = (item: typeof navItems[0]) => {
+    const active = isActive(item.url);
+    return (
     <SidebarMenuItem key={item.title} className="relative">
-      <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={collapsed ? item.title : undefined}>
-        <NavLink to={item.url} end={item.url === "/"} className={`flex items-center transition-all duration-200 text-sm py-3 rounded-xl ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${isActive(item.url) ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
-          <item.icon className={`h-[19px] w-[19px] shrink-0 ${isActive(item.url) ? "text-sidebar-primary" : ""}`} />
+      <SidebarMenuButton asChild isActive={active} tooltip={collapsed ? item.title : undefined}>
+        <NavLink
+          to={item.url}
+          end={item.url === "/"}
+          className={`flex items-center transition-all duration-200 py-2.5 rounded-lg ${collapsed ? "justify-center px-2" : "gap-3 px-3"} ${active ? "text-white" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/25"}`}
+          activeClassName="text-white"
+          style={active && !collapsed ? { borderLeft: "2px solid hsl(210 100% 50%)", paddingLeft: "10px" } : {}}
+        >
+          <item.icon
+            className={`shrink-0 transition-all ${active ? "text-sidebar-primary" : "text-sidebar-muted"}`}
+            style={{ width: "17px", height: "17px" }}
+            strokeWidth={active ? 2 : 1.5}
+          />
           {!collapsed && (
-            <span className="whitespace-nowrap flex-1 text-[13.5px]">
+            <span className={`whitespace-nowrap flex-1 text-[13px] ${active ? "font-semibold" : "font-normal"}`}>
               {item.title}
             </span>
           )}
@@ -105,6 +117,7 @@ export function AppSidebar() {
       )}
     </SidebarMenuItem>
   );
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r-0 transition-all duration-300 sidebar-premium">
