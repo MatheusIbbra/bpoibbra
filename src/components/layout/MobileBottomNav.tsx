@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, CreditCard, BarChart3, Plus, Menu } from "lucide-react";
+import { Home, CreditCard, Target, Plus, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
@@ -8,10 +8,10 @@ import { MobileMenuScreen } from "./MobileMenuScreen";
 
 const navItems = [
   { label: "Visão", icon: Home, path: "/" },
-  { label: "Patrimônio", icon: CreditCard, path: "/cartoes" },
+  { label: "Cartões", icon: CreditCard, path: "/cartoes" },
   { label: "", icon: Plus, path: "__fab__" },
-  { label: "Relatórios", icon: BarChart3, path: "/relatorios" },
-  { label: "Mais", icon: Menu, path: "__more__" },
+  { label: "Orçamentos", icon: Target, path: "/orcamentos" },
+  { label: "Menu", icon: Menu, path: "__more__" },
 ];
 
 export function MobileBottomNav() {
