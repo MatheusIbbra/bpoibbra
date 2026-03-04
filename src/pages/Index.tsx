@@ -500,10 +500,12 @@ const Index = () => {
                 </Card>
               </AnimatedCard>
 
-              {/* DISCIPLINA FINANCEIRA */}
-              <AnimatedCard delay={0.18}>
-                <FinancialDisciplineScore selectedMonth={selectedMonth} />
-              </AnimatedCard>
+              {/* DISCIPLINA FINANCEIRA — desktop only */}
+              <div className="hidden lg:block">
+                <AnimatedCard delay={0.18}>
+                  <FinancialDisciplineScore selectedMonth={selectedMonth} />
+                </AnimatedCard>
+              </div>
 
               {/* 7 — ALERTAS FINANCEIROS */}
               <AnimatedCard delay={0.2}>
