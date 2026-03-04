@@ -1,5 +1,4 @@
-import { Eye, EyeOff, User, LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { User, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -58,15 +57,6 @@ export function MobileHeader() {
 
         {/* Right actions */}
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleValues}
-            className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-all duration-200"
-          >
-            {showValues ? <Eye className="h-[17px] w-[17px]" /> : <EyeOff className="h-[17px] w-[17px]" />}
-          </Button>
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="ml-1">
