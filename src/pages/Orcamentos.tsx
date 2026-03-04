@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -28,6 +28,7 @@ import { useBudgets, useCreateBudget, useUpdateBudget, useDeleteBudget, Budget }
 import { useCategoriesHierarchy } from "@/hooks/useCategories";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { useMonthlyPlan, useUpsertMonthlyPlan } from "@/hooks/useMonthlyPlan";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
 import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
@@ -69,6 +70,23 @@ export default function Orcamentos() {
   const { data: hierarchyCategories } = useCategoriesHierarchy();
   const { data: transactions } = useTransactions({ startDate: startOfMonth, endDate: endOfMonth });
   const { data: stats } = useDashboardStats(selectedMonth);
+  const { data: monthlyPlan } = useMonthlyPlan(month, year);
+  const upsertPlan = useUpsertMonthlyPlan();
+
+  const [editingPlan, setEditingPlan] = useState(false);
+  const [planIncome, setPlanIncome] = useState(0);
+  const [planInvestment, setPlanInvestment] = useState(0);
+
+  // Sync plan fields when data loads
+  const planSynced = React.useRef<string>("");
+  React.useEffect(() => {
+    const key = `${month}-${year}-${monthlyPlan?.id}`;
+    if (planSynced.current !== key) {
+      planSynced.current = key;
+      setPlanIncome(monthlyPlan?.income_target ?? 0);
+      setPlanInvestment(monthlyPlan?.investment_target ?? 0);
+    }
+  }, [monthlyPlan, month, year]);
 
   const createBudget = useCreateBudget();
   const updateBudget = useUpdateBudget();
@@ -146,14 +164,21 @@ export default function Orcamentos() {
   const totalBudget = budgets?.reduce((acc, b) => acc + Number(b.amount), 0) || 0;
   const totalSpent = budgets?.reduce((acc, b) => acc + getSpentForCategory(b.category_id), 0) || 0;
   const income = stats?.monthlyIncome ?? 0;
+
+  // Zero-based budget equation
+  const effectiveIncome = planIncome > 0 ? planIncome : income;
+  const freeBalance = effectiveIncome - planInvestment - totalBudget;
+  const isZeroBased = Math.abs(freeBalance) < 0.01 && effectiveIncome > 0;
   const budgetPct = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
   const budgetRemaining = totalBudget - totalSpent;
 
-  // Projection
+  // Projection — only extrapolate for the current month
   const today = new Date();
-  const daysPassed = today.getDate();
   const totalDays = getDaysInMonth(selectedMonth);
-  const projectedExpenses = daysPassed > 0 ? (totalSpent / daysPassed) * totalDays : 0;
+  const isCurrentMonth = selectedMonth.getMonth() === today.getMonth() && selectedMonth.getFullYear() === today.getFullYear();
+  const isPastMonth = selectedMonth < new Date(today.getFullYear(), today.getMonth(), 1);
+  const daysPassed = isPastMonth ? totalDays : isCurrentMonth ? today.getDate() : 0;
+  const projectedExpenses = daysPassed > 0 ? (totalSpent / daysPassed) * totalDays : totalSpent;
   const projectionDiff = projectedExpenses - totalBudget;
 
   if (!canCreate) {
@@ -176,16 +201,89 @@ export default function Orcamentos() {
           </div>
         </div>
 
-        {/* ── RENDA MENSAL ── */}
+        {/* ── PLANO DO MÊS ── */}
         <AnimatedCard>
           <Card className="overflow-hidden">
             <div className="bg-primary p-6">
-              <p className="text-[10px] uppercase tracking-[0.2em] font-medium text-primary-foreground/40 mb-2">
-                Renda Mensal
-              </p>
-              <p className="text-3xl font-bold text-primary-foreground leading-none tracking-tight">
-                <MaskedValue>{formatCurrency(income)}</MaskedValue>
-              </p>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[10px] uppercase tracking-[0.2em] font-medium text-primary-foreground/40">
+                  Plano do Mês
+                </p>
+                <div className="flex items-center gap-2">
+                  {isZeroBased && (
+                    <Badge className="bg-success/20 text-success border-0 text-[10px]">
+                      Orçamento Base Zero ✓
+                    </Badge>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-[10px] text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/10"
+                    onClick={() => setEditingPlan(!editingPlan)}
+                  >
+                    <Pencil className="h-3 w-3 mr-1" />
+                    {editingPlan ? "Fechar" : "Editar"}
+                  </Button>
+                </div>
+              </div>
+
+              {editingPlan ? (
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-[10px] text-primary-foreground/50 mb-1">Meta de Receita</p>
+                    <CurrencyInput value={planIncome} onChange={setPlanIncome} className="bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/30" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-primary-foreground/50 mb-1">Meta de Investimento</p>
+                    <CurrencyInput value={planInvestment} onChange={setPlanInvestment} className="bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/30" />
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground text-xs"
+                    onClick={() => {
+                      upsertPlan.mutate({ month, year, income_target: planIncome, investment_target: planInvestment });
+                      setEditingPlan(false);
+                    }}
+                    disabled={upsertPlan.isPending}
+                  >
+                    {upsertPlan.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Salvar Plano"}
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div>
+                      <p className="text-[10px] text-primary-foreground/50 mb-0.5">Receita</p>
+                      <p className="text-lg font-bold text-primary-foreground">
+                        <MaskedValue>{formatCurrency(effectiveIncome)}</MaskedValue>
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-primary-foreground/50 mb-0.5">Investimento</p>
+                      <p className="text-lg font-bold text-primary-foreground">
+                        <MaskedValue>{formatCurrency(planInvestment)}</MaskedValue>
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-primary-foreground/50 mb-0.5">Despesas</p>
+                      <p className="text-lg font-bold text-primary-foreground">
+                        <MaskedValue>{formatCurrency(totalBudget)}</MaskedValue>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="border-t border-primary-foreground/10 pt-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] text-primary-foreground/50">Saldo Livre</p>
+                      <p className={cn("text-xl font-bold", freeBalance >= 0 ? "text-primary-foreground" : "text-destructive")}>
+                        <MaskedValue>{formatCurrency(freeBalance)}</MaskedValue>
+                      </p>
+                    </div>
+                    <p className="text-[10px] text-primary-foreground/40 mt-1">
+                      Receita − Investimento − Despesas = Saldo Livre
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           </Card>
         </AnimatedCard>
@@ -488,7 +586,7 @@ export default function Orcamentos() {
               )}
               {!editingBudget && isRecurring && (
                 <p className="text-[10px] text-muted-foreground">
-                  Será criado de {MONTHS[month - 1]} até Dezembro de {year}
+                  Será criado para 12 meses a partir de {MONTHS[month - 1]} de {year}
                 </p>
               )}
               {editingBudget?.recurring_group_id && (
