@@ -19,8 +19,8 @@
     --brand-cream-deep: 18 14% 77%;
     --brand-coral: 14 100% 54%;
 
-    /* ── Core surfaces — Clean white fintech ── */
-    --background: 0 0% 97.5%;
+    /* ── Core surfaces — Institutional cream fintech ── */
+    --background: 30 27% 95%;
     --foreground: 213 80% 13%;
 
     --card: 0 0% 100%;
@@ -210,9 +210,9 @@
   /* ── Fintech Shadows ── */
   .shadow-fintech {
     box-shadow:
-      0 0 0 1px hsl(var(--border) / 0.5),
+      0 0 0 1px hsl(var(--border) / 0.4),
       0 2px 8px -2px rgb(0 0 0 / 0.04),
-      0 6px 20px -4px rgb(0 0 0 / 0.06);
+      0 6px 20px -4px rgb(0 0 0 / 0.05);
   }
 
   .shadow-fintech-lg {
