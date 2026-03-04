@@ -128,7 +128,7 @@ export default function Movimentacoes() {
   // for the "transacoes" tab
   type CombinedRow =
     | (Transaction & { _kind: "transaction" })
-    | (Transfer & { _kind: "transfer"; type: "transfer"; is_ignored?: boolean; categories?: null });
+    | (Transfer & { _kind: "transfer"; type: "transfer"; is_ignored?: boolean; categories?: null; date: string });
 
   const getFilteredTransactions = (): CombinedRow[] => {
     if (!allTransactions) return [];
