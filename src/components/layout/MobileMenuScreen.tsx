@@ -15,14 +15,14 @@ import {
 } from "lucide-react";
 
 const reportItems = [
-  { label: "Movimentações", icon: BarChart3, path: "/movimentacoes" },
-  { label: "Fluxo de Caixa", icon: TrendingUp, path: "/relatorio-fluxo-caixa" },
-  { label: "DRE", icon: FileText, path: "/relatorio-dre" },
-  { label: "Orçamento", icon: Target, path: "/analise-orcamento" },
-  { label: "Demonstrativo", icon: LayoutDashboard, path: "/demonstrativo-financeiro" },
-  { label: "Tipo Financeiro", icon: PieChart, path: "/relatorios?tab=financial-type" },
-  { label: "Análise Categorias", icon: CreditCard, path: "/relatorios?tab=category-analysis" },
-  { label: "Análises Estratégicas", icon: Brain, path: "/relatorios?tab=strategic" },
+  { label: "Movimentações", icon: BarChart3, path: "/relatorios?tab=movimentacoes" },
+  { label: "Fluxo de Caixa", icon: TrendingUp, path: "/relatorios?tab=fluxo" },
+  { label: "DRE", icon: FileText, path: "/relatorios?tab=dre" },
+  { label: "Orçamento", icon: Target, path: "/relatorios?tab=analise" },
+  { label: "Demonstrativo", icon: LayoutDashboard, path: "/relatorios?tab=demonstrativo" },
+  { label: "Tipo Financeiro", icon: PieChart, path: "/relatorios?tab=tipo-financeiro" },
+  { label: "Análise Categorias", icon: CreditCard, path: "/relatorios?tab=categorias" },
+  { label: "Análises Estratégicas", icon: Brain, path: "/relatorios?tab=estrategico" },
 ];
 
 const cadastroItems = [

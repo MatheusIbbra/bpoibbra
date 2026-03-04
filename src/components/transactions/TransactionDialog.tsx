@@ -305,6 +305,7 @@ export function TransactionDialog({
                       <SelectContent>
                         <SelectItem value="income">Receita</SelectItem>
                         <SelectItem value="expense">Despesa</SelectItem>
+                        <SelectItem value="transfer">Transferência entre Contas</SelectItem>
                         <SelectItem value="investment">Aporte (Investimento)</SelectItem>
                         <SelectItem value="redemption">Resgate (Desinvestimento)</SelectItem>
                       </SelectContent>

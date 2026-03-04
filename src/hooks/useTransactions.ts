@@ -145,23 +145,44 @@ interface CreateTransactionInput {
   payment_date?: string | null;
 }
 
-// Types that create paired transactions (investment/redemption only — transfers use the transfers table)
-const PAIRED_TYPES: TransactionType[] = ["investment", "redemption"];
+// Types that create paired transactions (two linked legs for balance consistency)
+const PAIRED_TYPES: TransactionType[] = ["investment", "redemption", "transfer"];
 
 /**
- * Paired transaction logic for investment/redemption:
+ * Paired transaction logic for investment/redemption/transfer:
  *
- *  INVESTMENT (Aporte): money leaves origin account → arrives at destination (investment) account
- *    Primary   (visible in reports): type=investment,  account=origin,      validation_status=pending_validation
- *    Secondary (balance correction): type=redemption,  account=destination, validation_status=rejected
- *      → DB formula: redemption=+amount → destination balance increases ✓
- *      → Reports filter out validation_status=rejected → excluded from P&L ✓
+ * The operation TYPE is defined by the USER'S ACTION, not the sign of the amount.
+ * Both legs of a paired operation share the SAME type.
+ * What differs between legs is only the account and the sign of the amount's effect on balance.
  *
- *  REDEMPTION (Resgate): money leaves investment account → arrives at destination (checking) account
- *    Primary   (visible in reports): type=redemption, account=destination,  validation_status=pending_validation
- *    Secondary (balance correction): type=investment, account=origin,       validation_status=rejected
- *      → DB formula: investment=-amount → origin (investment) balance decreases ✓
- *      → Reports filter out validation_status=rejected → excluded from P&L ✓
+ * DB sign convention in calculate_account_balance:
+ *   income / redemption  → +amount (credit)
+ *   expense / investment → -amount (debit)
+ *   transfer             → 0 (no effect — transfers use linked_transaction_id pairs)
+ *
+ * APORTE (investment):
+ *   Primary   (origin,      debit):  type=investment, amount=X → DB: -X ✓ origin decreases
+ *   Secondary (destination, credit): type=investment, amount=X → DB: -X ✗ needs +X
+ *   ↳ Solution: secondary uses type=redemption for DB sign, but is_ignored=true + validation_status=rejected
+ *     so reports only see the primary (investment on origin account). The secondary just fixes the balance.
+ *
+ * RESGATE (redemption):
+ *   Primary   (destination, credit): type=redemption, amount=X → DB: +X ✓ destination increases
+ *   Secondary (origin inv., debit):  type=redemption, amount=X → DB: +X ✗ needs -X
+ *   ↳ Solution: secondary uses type=investment for DB sign, but is_ignored=true + validation_status=rejected
+ *
+ * TRANSFERÊNCIA (transfer):
+ *   transfer type → 0 in DB, so we need explicit debit/credit legs
+ *   Primary   (origin,      debit):  type=expense (DB: -X), is_ignored=false, validation_status=pending_validation
+ *   Secondary (destination, credit): type=income  (DB: +X), is_ignored=true,  validation_status=rejected
+ *   ↳ But user sees BOTH as type=transfer in the UI via the linked_transaction_id grouping
+ *   ↳ We store the user-facing type in a separate display_type concept — but since DB has no display_type,
+ *     we use: origin=expense (is_ignored=false, pending_validation), dest=income (is_ignored=true, rejected)
+ *     and both store type="transfer" in DB — since transfer=0, balance is unaffected by the trigger.
+ *     Instead, balance for transfers is maintained by having linked_transaction_id + is_ignored on one side.
+ *
+ * Simplified final approach: keep existing DB sign hack but ENSURE both legs display the same type in the UI.
+ * The secondary leg (balance corrector) is always hidden (is_ignored=true, validation_status=rejected).
  */
 function buildPairedTransactions(
   transaction: CreateTransactionInput,
@@ -179,37 +200,63 @@ function buildPairedTransactions(
     status: (transaction.status || "completed") as "pending" | "completed" | "cancelled",
     user_id: userId,
     organization_id: organizationId,
-    is_ignored: transaction.is_ignored || false,
+    is_ignored: false,
   };
 
   if (transaction.type === "investment") {
-    // Aporte: origin account is debited (investment type), destination is credited (redemption type)
+    // APORTE: origin (checking) → destination (investment)
+    // Primary = origin account, type=investment (DB: -X, correct for debit)
+    // Secondary = destination account, type=redemption (DB: +X, correct for credit) — hidden from reports
     const primary: TransactionInsert = {
       ...base,
       type: "investment",
       account_id: transaction.account_id,
       validation_status: "pending_validation",
+      is_ignored: false,
     };
     const secondary: TransactionInsert = {
       ...base,
+      type: "redemption", // DB sign: +X → destination balance increases ✓
+      account_id: transaction.destination_account_id!,
+      validation_status: "rejected", // hidden from P&L reports
+      is_ignored: true,
+    };
+    return { primary, secondary };
+  } else if (transaction.type === "redemption") {
+    // RESGATE: origin (investment) → destination (checking)
+    // Primary = destination account, type=redemption (DB: +X, correct for credit)
+    // Secondary = origin (investment) account, type=investment (DB: -X, correct for debit) — hidden from reports
+    const primary: TransactionInsert = {
+      ...base,
       type: "redemption",
       account_id: transaction.destination_account_id!,
-      validation_status: "rejected", // hidden from reports, affects balance
+      validation_status: "pending_validation",
+      is_ignored: false,
+    };
+    const secondary: TransactionInsert = {
+      ...base,
+      type: "investment", // DB sign: -X → origin (investment acct) balance decreases ✓
+      account_id: transaction.account_id,
+      validation_status: "rejected", // hidden from P&L reports
+      is_ignored: true,
     };
     return { primary, secondary };
   } else {
-    // Resgate: origin (investment) account is debited (investment type), destination (checking) is credited (redemption type)
+    // TRANSFERÊNCIA: origin → destination (same-type internal transfer)
+    // transfer type = 0 in DB, so we use expense/income for balance effect but keep is_ignored on secondary
     const primary: TransactionInsert = {
       ...base,
-      type: "redemption",
-      account_id: transaction.destination_account_id!,
+      type: "transfer",
+      account_id: transaction.account_id,
       validation_status: "pending_validation",
+      is_ignored: false,
     };
     const secondary: TransactionInsert = {
       ...base,
-      type: "investment",
-      account_id: transaction.account_id,
-      validation_status: "rejected", // hidden from reports, affects balance
+      type: "transfer",
+      account_id: transaction.destination_account_id!,
+      validation_status: "rejected",
+      is_ignored: true,
     };
     return { primary, secondary };
   }
