@@ -1,17 +1,15 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
-  Plus, Loader2, AlertCircle, Wallet, Pencil, Trash2, Check,
+  Plus, Loader2, AlertCircle, Pencil, Trash2, Check,
   ChevronsUpDown, Repeat, TrendingUp, TrendingDown, Target, PiggyBank,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -25,6 +23,7 @@ import {
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { MonthSelector } from "@/components/dashboard/MonthSelector";
 import { useBudgets, useCreateBudget, useUpdateBudget, useDeleteBudget, Budget } from "@/hooks/useBudgets";
+import { useBudgetAnalysis } from "@/hooks/useBudgetAnalysis";
 import { useCategoriesHierarchy } from "@/hooks/useCategories";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
@@ -50,6 +49,34 @@ const MONTHS = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
 ];
 
+/* ────────────────────────────────────────────
+   Playfair section title
+   ──────────────────────────────────────────── */
+function SectionTitle({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  return (
+    <h2
+      className="text-xl font-bold tracking-tight text-foreground animate-in fade-in slide-in-from-bottom-2 duration-500"
+      style={{ fontFamily: "'Playfair Display', Georgia, serif", animationDelay: `${delay}ms` }}
+    >
+      {children}
+    </h2>
+  );
+}
+
+/* ────────────────────────────────────────────
+   Animated card wrapper with stagger
+   ──────────────────────────────────────────── */
+function FadeCard({ children, delay = 0, className }: { children: React.ReactNode; delay?: number; className?: string }) {
+  return (
+    <div
+      className={cn("animate-in fade-in slide-in-from-bottom-3 duration-600", className)}
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function Orcamentos() {
   const { requiresBaseSelection } = useBaseFilter();
   const { canCreate } = useCanCreate();
@@ -71,13 +98,13 @@ export default function Orcamentos() {
   const { data: transactions } = useTransactions({ startDate: startOfMonth, endDate: endOfMonth });
   const { data: stats } = useDashboardStats(selectedMonth);
   const { data: monthlyPlan } = useMonthlyPlan(month, year);
+  const { data: analysis } = useBudgetAnalysis(month, year);
   const upsertPlan = useUpsertMonthlyPlan();
 
   const [editingPlan, setEditingPlan] = useState(false);
   const [planIncome, setPlanIncome] = useState(0);
   const [planInvestment, setPlanInvestment] = useState(0);
 
-  // Sync plan fields when data loads
   const planSynced = React.useRef<string>("");
   React.useEffect(() => {
     const key = `${month}-${year}-${monthlyPlan?.id}`;
@@ -98,7 +125,7 @@ export default function Orcamentos() {
   });
 
   const getSpentForCategory = (categoryId: string) =>
-    transactions?.filter((t) => t.category_id === categoryId && t.type === 'expense')
+    transactions?.filter((t) => t.category_id === categoryId && t.type === "expense")
       .reduce((acc, t) => acc + Math.abs(Number(t.amount)), 0) || 0;
 
   const handleEdit = (budget: Budget) => {
@@ -143,7 +170,6 @@ export default function Orcamentos() {
   const onSubmit = async (data: FormData) => {
     const validCategory = allChildCategories.find(c => c.id === data.category_id);
     if (!validCategory) { toast.error("A categoria selecionada não existe ou não pertence a esta base"); return; }
-    
     if (editingBudget) {
       await updateBudget.mutateAsync({
         id: editingBudget.id, amount: data.amount,
@@ -165,14 +191,12 @@ export default function Orcamentos() {
   const totalSpent = budgets?.reduce((acc, b) => acc + getSpentForCategory(b.category_id), 0) || 0;
   const income = stats?.monthlyIncome ?? 0;
 
-  // Zero-based budget equation
   const effectiveIncome = planIncome > 0 ? planIncome : income;
   const freeBalance = effectiveIncome - planInvestment - totalBudget;
   const isZeroBased = Math.abs(freeBalance) < 0.01 && effectiveIncome > 0;
   const budgetPct = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
   const budgetRemaining = totalBudget - totalSpent;
 
-  // Projection — only extrapolate for the current month
   const today = new Date();
   const totalDays = getDaysInMonth(selectedMonth);
   const isCurrentMonth = selectedMonth.getMonth() === today.getMonth() && selectedMonth.getFullYear() === today.getFullYear();
@@ -181,43 +205,132 @@ export default function Orcamentos() {
   const projectedExpenses = daysPassed > 0 ? (totalSpent / daysPassed) * totalDays : totalSpent;
   const projectionDiff = projectedExpenses - totalBudget;
 
+  // Discipline score (inline for the score ring)
+  const disciplineScore = React.useMemo(() => {
+    if (!analysis || !stats) return 0;
+    let total = 0;
+    const totalCategories = analysis.items.length;
+    const withinBudget = analysis.items.filter(i => i.status !== "over").length;
+    total += totalCategories > 0 ? Math.round((withinBudget / totalCategories) * 40) : 40;
+    const investmentTarget = monthlyPlan?.investment_target ?? 0;
+    if (investmentTarget > 0) {
+      const invested = (transactions || [])
+        .filter(t => t.type === "expense" && t.categories?.name?.toLowerCase().includes("investimento"))
+        .reduce((s, t) => s + Number(t.amount), 0);
+      total += invested >= investmentTarget ? 30 : 0;
+    } else { total += 15; }
+    const incomeTarget = monthlyPlan?.income_target ?? 0;
+    const actualIncome = stats.monthlyIncome ?? 0;
+    if (incomeTarget > 0) { total += actualIncome >= incomeTarget * 0.9 ? 20 : 0; } else { total += 10; }
+    const uncategorized = (transactions || []).filter(t => !t.category_id && t.type !== "transfer" && !t.is_ignored).length;
+    if (uncategorized === 0) total += 10;
+    return Math.min(100, Math.max(0, total));
+  }, [analysis, stats, monthlyPlan, transactions]);
+
+  const scoreColor = disciplineScore >= 70 ? "text-success" : disciplineScore >= 40 ? "text-warning" : "text-destructive";
+  const scoreRing = disciplineScore >= 70 ? "stroke-success" : disciplineScore >= 40 ? "stroke-warning" : "stroke-destructive";
+  const circumference = 2 * Math.PI * 54;
+  const scoreOffset = circumference - (disciplineScore / 100) * circumference;
+
   if (!canCreate) {
     return (
       <AppLayout title="Orçamentos">
-        <div className="space-y-4">
-          <BaseRequiredAlert action="gerenciar orçamentos" />
-        </div>
+        <div className="space-y-4"><BaseRequiredAlert action="gerenciar orçamentos" /></div>
       </AppLayout>
     );
   }
 
   return (
-    <AppLayout title="Planejamento Financeiro">
-      <div className="space-y-6">
-        {/* Month Selector */}
-        <div className="flex items-center justify-center">
-          <div className="inline-flex items-center rounded-full border border-border/40 bg-card px-4 py-1.5 shadow-fintech">
-            <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
-          </div>
-        </div>
+    <AppLayout title="Planejamento">
+      <div className="space-y-8 max-w-5xl mx-auto pb-8">
 
-        {/* ── PLANO DO MÊS ── */}
-        <AnimatedCard>
-          <Card className="overflow-hidden">
-            <div className="bg-primary p-6">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-[10px] uppercase tracking-[0.2em] font-medium text-primary-foreground/40">
-                  Plano do Mês
-                </p>
-                <div className="flex items-center gap-2">
+        {/* Month Selector */}
+        <FadeCard delay={0}>
+          <div className="flex items-center justify-center">
+            <div className="inline-flex items-center rounded-full border border-border/40 bg-card px-5 py-2 shadow-fintech">
+              <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
+            </div>
+          </div>
+        </FadeCard>
+
+        {/* ═══════════════════════════════════════
+           1. DISCIPLINE SCORE — Hero Ring
+           ═══════════════════════════════════════ */}
+        <FadeCard delay={80}>
+          <Card className="overflow-hidden border-0 shadow-fintech-lg">
+            <CardContent className="p-8 flex flex-col md:flex-row items-center gap-8">
+              {/* Ring */}
+              <div className="relative h-36 w-36 shrink-0">
+                <svg className="h-36 w-36 -rotate-90" viewBox="0 0 120 120">
+                  <circle cx="60" cy="60" r="54" fill="none" className="stroke-muted/20" strokeWidth="6" />
+                  <circle
+                    cx="60" cy="60" r="54" fill="none"
+                    className={cn(scoreRing, "transition-all duration-1000")}
+                    strokeWidth="6" strokeLinecap="round"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={scoreOffset}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span
+                    className={cn("text-[40px] font-bold leading-none", scoreColor)}
+                    style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                  >
+                    {disciplineScore}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground tracking-wider uppercase mt-1">de 100</span>
+                </div>
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 text-center md:text-left space-y-3">
+                <div>
+                  <h2
+                    className="text-2xl font-bold text-foreground"
+                    style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                  >
+                    Disciplina Financeira
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {disciplineScore >= 70 ? "Excelente! Você está seguindo seu planejamento." :
+                     disciplineScore >= 40 ? "Atenção: alguns pontos podem melhorar." :
+                     "Revise seu planejamento para melhorar seu score."}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2 justify-center md:justify-start">
                   {isZeroBased && (
-                    <Badge className="bg-success/20 text-success border-0 text-[10px]">
+                    <Badge className="bg-success/10 text-success border-success/20 text-xs">
                       Orçamento Base Zero ✓
                     </Badge>
                   )}
+                  {budgetRemaining >= 0 && totalBudget > 0 && (
+                    <Badge className="bg-accent/10 text-accent border-accent/20 text-xs">
+                      Dentro do orçamento
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </FadeCard>
+
+        {/* ═══════════════════════════════════════
+           2. PLANEJAMENTO — Monthly Plan
+           ═══════════════════════════════════════ */}
+        <div className="space-y-3">
+          <FadeCard delay={160}>
+            <SectionTitle delay={160}>Planejamento</SectionTitle>
+          </FadeCard>
+
+          <FadeCard delay={200}>
+            <Card className="border-0 shadow-fintech overflow-hidden">
+              <div className="bg-gradient-to-r from-[hsl(var(--brand-deep))] to-[hsl(var(--brand-highlight))] p-7">
+                <div className="flex items-center justify-between mb-5">
+                  <p className="text-[11px] uppercase tracking-[0.2em] font-medium text-primary-foreground/50">
+                    Plano do Mês — {MONTHS[month - 1]}
+                  </p>
                   <Button
-                    size="sm"
-                    variant="ghost"
+                    size="sm" variant="ghost"
                     className="h-7 text-[10px] text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/10"
                     onClick={() => setEditingPlan(!editingPlan)}
                   >
@@ -225,218 +338,258 @@ export default function Orcamentos() {
                     {editingPlan ? "Fechar" : "Editar"}
                   </Button>
                 </div>
-              </div>
 
-              {editingPlan ? (
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-[10px] text-primary-foreground/50 mb-1">Meta de Receita</p>
-                    <CurrencyInput value={planIncome} onChange={setPlanIncome} className="bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/30" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-primary-foreground/50 mb-1">Meta de Investimento</p>
-                    <CurrencyInput value={planInvestment} onChange={setPlanInvestment} className="bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/30" />
-                  </div>
-                  <Button
-                    size="sm"
-                    className="w-full bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground text-xs"
-                    onClick={() => {
-                      upsertPlan.mutate({ month, year, income_target: planIncome, investment_target: planInvestment });
-                      setEditingPlan(false);
-                    }}
-                    disabled={upsertPlan.isPending}
-                  >
-                    {upsertPlan.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Salvar Plano"}
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-3 gap-3 mb-4">
+                {editingPlan ? (
+                  <div className="space-y-4">
                     <div>
-                      <p className="text-[10px] text-primary-foreground/50 mb-0.5">Receita</p>
-                      <p className="text-lg font-bold text-primary-foreground">
-                        <MaskedValue>{formatCurrency(effectiveIncome)}</MaskedValue>
-                      </p>
+                      <p className="text-[10px] text-primary-foreground/50 mb-1">Meta de Receita</p>
+                      <CurrencyInput value={planIncome} onChange={setPlanIncome} className="bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/30" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-primary-foreground/50 mb-0.5">Investimento</p>
-                      <p className="text-lg font-bold text-primary-foreground">
-                        <MaskedValue>{formatCurrency(planInvestment)}</MaskedValue>
-                      </p>
+                      <p className="text-[10px] text-primary-foreground/50 mb-1">Meta de Investimento</p>
+                      <CurrencyInput value={planInvestment} onChange={setPlanInvestment} className="bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/30" />
                     </div>
-                    <div>
-                      <p className="text-[10px] text-primary-foreground/50 mb-0.5">Despesas</p>
-                      <p className="text-lg font-bold text-primary-foreground">
-                        <MaskedValue>{formatCurrency(totalBudget)}</MaskedValue>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="border-t border-primary-foreground/10 pt-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[10px] text-primary-foreground/50">Saldo Livre</p>
-                      <p className={cn("text-xl font-bold", freeBalance >= 0 ? "text-primary-foreground" : "text-destructive")}>
-                        <MaskedValue>{formatCurrency(freeBalance)}</MaskedValue>
-                      </p>
-                    </div>
-                    <p className="text-[10px] text-primary-foreground/40 mt-1">
-                      Receita − Investimento − Despesas = Saldo Livre
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
-          </Card>
-        </AnimatedCard>
-
-        {/* ── DISTRIBUIÇÃO DA RENDA ── */}
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-[1.6fr_1fr]">
-          {/* Left: Budget control */}
-          <div className="space-y-6">
-            {/* Summary card */}
-            <Card>
-              <CardHeader className="pb-2 pt-5 px-6 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-base font-semibold">Controle do Mês</CardTitle>
-                  <p className="text-xs text-muted-foreground">Planejado × Realizado × Disponível</p>
-                </div>
-                <Button size="sm" className="h-8 text-xs" onClick={() => { setEditingBudget(null); setIsRecurring(false); form.reset(); setDialogOpen(true); }}>
-                  <Plus className="h-3.5 w-3.5 mr-1" />
-                  Novo
-                </Button>
-              </CardHeader>
-              <CardContent className="px-6 pb-6 space-y-5">
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Planejado</p>
-                    <p className="text-lg font-bold"><MaskedValue>{formatCurrency(totalBudget)}</MaskedValue></p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Realizado</p>
-                    <p className={cn("text-lg font-bold", totalSpent > totalBudget && "text-destructive")}>
-                      <MaskedValue>{formatCurrency(totalSpent)}</MaskedValue>
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Disponível</p>
-                    <p className={cn("text-lg font-bold", budgetRemaining >= 0 ? "text-success" : "text-destructive")}>
-                      <MaskedValue>{formatCurrency(budgetRemaining)}</MaskedValue>
-                    </p>
-                  </div>
-                </div>
-                <div>
-                  <Progress value={budgetPct} className={cn("h-3 rounded-full", totalSpent > totalBudget && "[&>div]:bg-destructive")} />
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-xs text-muted-foreground">{budgetPct.toFixed(0)}% utilizado</p>
-                    <Badge variant={budgetRemaining >= 0 ? "outline" : "destructive"} className="text-[10px]">
-                      {budgetRemaining >= 0 ? "Dentro do planejamento" : "Acima do limite"}
-                    </Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Budget List */}
-            <Card>
-              <CardHeader className="pb-2 pt-5 px-6">
-                <CardTitle className="text-base font-semibold">Distribuição por Categoria</CardTitle>
-              </CardHeader>
-              <CardContent className="px-6 pb-6">
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : budgets?.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <Target className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                    <p className="text-sm text-muted-foreground">Nenhum orçamento definido para {MONTHS[month - 1]}</p>
-                    <Button size="sm" className="mt-3 text-xs" onClick={() => { setEditingBudget(null); form.reset(); setDialogOpen(true); }}>
-                      <Plus className="h-3.5 w-3.5 mr-1" />
-                      Criar primeiro orçamento
+                    <Button
+                      size="sm"
+                      className="w-full bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground text-xs"
+                      onClick={() => {
+                        upsertPlan.mutate({ month, year, income_target: planIncome, investment_target: planInvestment });
+                        setEditingPlan(false);
+                      }}
+                      disabled={upsertPlan.isPending}
+                    >
+                      {upsertPlan.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Salvar Plano"}
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {budgets?.map((budget) => {
-                      const spent = getSpentForCategory(budget.category_id);
-                      const percentage = Math.min((spent / Number(budget.amount)) * 100, 100);
-                      const isOverBudget = spent > Number(budget.amount);
-                      const remaining = Number(budget.amount) - spent;
-
-                      return (
-                        <div key={budget.id} className="group">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                              <div className="h-8 w-8 rounded-xl flex items-center justify-center text-primary-foreground text-[10px] font-bold shrink-0"
-                                style={{ backgroundColor: budget.categories?.color || "#6366f1" }}>
-                                {budget.categories?.name?.charAt(0) || "?"}
-                              </div>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-sm font-medium truncate">{budget.categories?.name}</span>
-                                  {budget.recurring_group_id && <Repeat className="h-3 w-3 text-muted-foreground shrink-0" />}
-                                </div>
-                                <p className="text-[10px] text-muted-foreground">
-                                  {isOverBudget
-                                    ? `Excedido em ${formatCurrency(Math.abs(remaining))}`
-                                    : `Disponível: ${formatCurrency(remaining)}`
-                                  }
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span className={cn("text-sm font-semibold tabular-nums", isOverBudget && "text-destructive")}>
-                                {formatCurrency(spent)}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground">/ {formatCurrency(Number(budget.amount))}</span>
-                              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5 ml-1">
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(budget)}>
-                                  <Pencil className="h-3 w-3" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteTarget(budget)}>
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                          <Progress value={percentage} className={cn("h-2 rounded-full", isOverBudget && "[&>div]:bg-destructive")} />
+                  <>
+                    <div className="grid grid-cols-3 gap-4 mb-5">
+                      {[
+                        { label: "Receita", value: effectiveIncome },
+                        { label: "Investimento", value: planInvestment },
+                        { label: "Despesas", value: totalBudget },
+                      ].map(({ label, value }) => (
+                        <div key={label}>
+                          <p className="text-[10px] text-primary-foreground/40 mb-1">{label}</p>
+                          <p
+                            className="text-2xl font-bold text-primary-foreground leading-none"
+                            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                          >
+                            <MaskedValue>{formatCurrency(value)}</MaskedValue>
+                          </p>
                         </div>
-                      );
-                    })}
-                  </div>
+                      ))}
+                    </div>
+                    <div className="border-t border-primary-foreground/10 pt-4 flex items-end justify-between">
+                      <div>
+                        <p className="text-[10px] text-primary-foreground/40">Saldo Livre</p>
+                        <p
+                          className={cn("text-3xl font-bold leading-none mt-1", freeBalance >= 0 ? "text-primary-foreground" : "text-destructive")}
+                          style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                        >
+                          <MaskedValue>{formatCurrency(freeBalance)}</MaskedValue>
+                        </p>
+                      </div>
+                      <p className="text-[10px] text-primary-foreground/30">
+                        Receita − Investimento − Despesas
+                      </p>
+                    </div>
+                  </>
                 )}
+              </div>
+            </Card>
+          </FadeCard>
+        </div>
+
+        {/* ═══════════════════════════════════════
+           3. REALIZADO — Budget Execution
+           ═══════════════════════════════════════ */}
+        <div className="space-y-3">
+          <FadeCard delay={280}>
+            <div className="flex items-center justify-between">
+              <SectionTitle delay={280}>Realizado</SectionTitle>
+              <Button size="sm" className="h-8 text-xs rounded-full px-4" onClick={() => { setEditingBudget(null); setIsRecurring(false); form.reset(); setDialogOpen(true); }}>
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                Nova Categoria
+              </Button>
+            </div>
+          </FadeCard>
+
+          {/* Summary numbers */}
+          <FadeCard delay={320}>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                { label: "Planejado", value: totalBudget, color: "" },
+                { label: "Realizado", value: totalSpent, color: totalSpent > totalBudget ? "text-destructive" : "" },
+                { label: "Disponível", value: budgetRemaining, color: budgetRemaining >= 0 ? "text-success" : "text-destructive" },
+              ].map(({ label, value, color }, i) => (
+                <Card key={label} className="border-0 shadow-fintech">
+                  <CardContent className="p-6">
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">{label}</p>
+                    <p
+                      className={cn("text-[32px] font-bold leading-none", color)}
+                      style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                    >
+                      <MaskedValue>{formatCurrency(value)}</MaskedValue>
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </FadeCard>
+
+          {/* Progress bar */}
+          <FadeCard delay={360}>
+            <Card className="border-0 shadow-fintech">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs text-muted-foreground">Consumo total</span>
+                  <span className="text-sm font-semibold tabular-nums">{budgetPct.toFixed(0)}%</span>
+                </div>
+                <div className="h-3 w-full rounded-full bg-muted/40 overflow-hidden">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all duration-700",
+                      totalSpent > totalBudget
+                        ? "bg-destructive"
+                        : "bg-gradient-to-r from-[hsl(210,100%,75%)] to-[hsl(210,100%,36%)]"
+                    )}
+                    style={{ width: `${Math.min(budgetPct, 100)}%` }}
+                  />
+                </div>
               </CardContent>
             </Card>
-          </div>
+          </FadeCard>
 
-          {/* Right: Diagnosis + Projection */}
-          <div className="space-y-6">
-            <div className="lg:sticky lg:top-4 space-y-6">
-              {/* Projeção */}
-              <Card>
-                <CardHeader className="pb-2 pt-5 px-6">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+          {/* Category cards */}
+          <div className="space-y-3">
+            {isLoading ? (
+              <FadeCard delay={400}>
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              </FadeCard>
+            ) : budgets?.length === 0 ? (
+              <FadeCard delay={400}>
+                <Card className="border-0 shadow-fintech">
+                  <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                    <Target className="h-12 w-12 text-muted-foreground/20 mb-4" />
+                    <p className="text-sm text-muted-foreground">Nenhum orçamento para {MONTHS[month - 1]}</p>
+                    <Button size="sm" className="mt-4 text-xs rounded-full px-4" onClick={() => { setEditingBudget(null); form.reset(); setDialogOpen(true); }}>
+                      <Plus className="h-3.5 w-3.5 mr-1" />
+                      Criar primeiro orçamento
+                    </Button>
+                  </CardContent>
+                </Card>
+              </FadeCard>
+            ) : (
+              budgets?.map((budget, idx) => {
+                const spent = getSpentForCategory(budget.category_id);
+                const pct = Math.min((spent / Number(budget.amount)) * 100, 100);
+                const isOverBudget = spent > Number(budget.amount);
+                const remaining = Number(budget.amount) - spent;
+
+                return (
+                  <FadeCard key={budget.id} delay={400 + idx * 60}>
+                    <Card className="border-0 shadow-fintech group">
+                      <CardContent className="p-5">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div
+                              className="h-10 w-10 rounded-2xl flex items-center justify-center text-primary-foreground text-xs font-bold shrink-0"
+                              style={{ backgroundColor: budget.categories?.color || "hsl(var(--accent))" }}
+                            >
+                              {budget.categories?.name?.charAt(0) || "?"}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm font-semibold truncate">{budget.categories?.name}</span>
+                                {budget.recurring_group_id && <Repeat className="h-3 w-3 text-muted-foreground shrink-0" />}
+                              </div>
+                              <p className="text-[11px] text-muted-foreground">
+                                {isOverBudget
+                                  ? `Excedido em ${formatCurrency(Math.abs(remaining))}`
+                                  : `Disponível: ${formatCurrency(remaining)}`
+                                }
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="text-right">
+                              <span className={cn("text-base font-bold tabular-nums", isOverBudget && "text-destructive")}>
+                                <MaskedValue>{formatCurrency(spent)}</MaskedValue>
+                              </span>
+                              <span className="text-[10px] text-muted-foreground block">
+                                de <MaskedValue>{formatCurrency(Number(budget.amount))}</MaskedValue>
+                              </span>
+                            </div>
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5">
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(budget)}>
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(budget)}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="h-2.5 w-full rounded-full bg-muted/30 overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all duration-700",
+                              isOverBudget
+                                ? "bg-destructive"
+                                : "bg-gradient-to-r from-[hsl(210,100%,75%)] to-[hsl(210,100%,36%)]"
+                            )}
+                            style={{ width: `${Math.min(pct, 100)}%` }}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </FadeCard>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* ═══════════════════════════════════════
+           4. DIAGNÓSTICO
+           ═══════════════════════════════════════ */}
+        <div className="space-y-3">
+          <FadeCard delay={600}>
+            <SectionTitle delay={600}>Diagnóstico</SectionTitle>
+          </FadeCard>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Projection */}
+            <FadeCard delay={640}>
+              <Card className="border-0 shadow-fintech h-full">
+                <CardContent className="p-7 space-y-4">
+                  <div className="flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    Projeção do Mês
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-6 pb-6 space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-4 rounded-2xl bg-secondary/50">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Orçamento</p>
-                      <p className="text-lg font-bold"><MaskedValue>{formatCurrency(totalBudget)}</MaskedValue></p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Projeção do Mês</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground mb-1">Orçamento</p>
+                      <p className="text-2xl font-bold" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                        <MaskedValue>{formatCurrency(totalBudget)}</MaskedValue>
+                      </p>
                     </div>
-                    <div className="p-4 rounded-2xl bg-secondary/50">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Projeção</p>
-                      <p className={cn("text-lg font-bold", projectionDiff > 0 ? "text-destructive" : "text-success")}>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground mb-1">Projeção</p>
+                      <p
+                        className={cn("text-2xl font-bold", projectionDiff > 0 ? "text-destructive" : "text-success")}
+                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                      >
                         <MaskedValue>{formatCurrency(projectedExpenses)}</MaskedValue>
                       </p>
                     </div>
                   </div>
                   {totalBudget > 0 && (
-                    <div className={cn("p-3 rounded-xl text-sm font-medium flex items-center gap-2",
-                      projectionDiff > 0
-                        ? "bg-destructive/8 text-destructive"
-                        : "bg-success/8 text-success"
+                    <div className={cn("p-4 rounded-2xl text-sm font-medium flex items-center gap-2",
+                      projectionDiff > 0 ? "bg-destructive/8 text-destructive" : "bg-success/8 text-success"
                     )}>
                       {projectionDiff > 0 ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
                       {projectionDiff > 0
@@ -447,52 +600,42 @@ export default function Orcamentos() {
                   )}
                 </CardContent>
               </Card>
+            </FadeCard>
 
-              {/* Diagnóstico */}
-              <Card>
-                <CardHeader className="pb-2 pt-5 px-6">
-                  <CardTitle className="text-base font-semibold">Diagnóstico</CardTitle>
-                  <p className="text-xs text-muted-foreground">Diferença entre planejamento e realidade</p>
-                </CardHeader>
-                <CardContent className="px-6 pb-6 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-4 rounded-2xl bg-secondary/50">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Planejado</p>
-                      <p className="text-base font-bold"><MaskedValue>{formatCurrency(totalBudget)}</MaskedValue></p>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-secondary/50">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Realizado</p>
-                      <p className={cn("text-base font-bold", totalSpent > totalBudget && "text-destructive")}>
-                        <MaskedValue>{formatCurrency(totalSpent)}</MaskedValue>
-                      </p>
-                    </div>
-                  </div>
-                  <div className={cn("p-4 rounded-2xl text-center",
-                    budgetRemaining >= 0 ? "bg-success/8" : "bg-destructive/8"
+            {/* Variance */}
+            <FadeCard delay={700}>
+              <Card className="border-0 shadow-fintech h-full">
+                <CardContent className="p-7 space-y-4">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Planejado × Realizado</p>
+                  <div className={cn("p-6 rounded-2xl text-center",
+                    budgetRemaining >= 0 ? "bg-success/6" : "bg-destructive/6"
                   )}>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Diferença</p>
-                    <p className={cn("text-xl font-bold", budgetRemaining >= 0 ? "text-success" : "text-destructive")}>
-                      {budgetRemaining >= 0 ? "-" : "+"}{formatCurrency(Math.abs(budgetRemaining))}
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Diferença</p>
+                    <p
+                      className={cn("text-[36px] font-bold leading-none", budgetRemaining >= 0 ? "text-success" : "text-destructive")}
+                      style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                    >
+                      {budgetRemaining >= 0 ? "-" : "+"}<MaskedValue>{formatCurrency(Math.abs(budgetRemaining))}</MaskedValue>
                     </p>
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Alertas */}
-              <Card>
-                <CardHeader className="pb-2 pt-5 px-6">
-                  <CardTitle className="text-base font-semibold">Alertas</CardTitle>
-                </CardHeader>
-                <CardContent className="px-6 pb-6">
-                  <BudgetAlerts showNotifications={false} compact selectedMonth={selectedMonth} />
-                </CardContent>
-              </Card>
-            </div>
+            </FadeCard>
           </div>
+
+          {/* Alerts */}
+          <FadeCard delay={760}>
+            <Card className="border-0 shadow-fintech">
+              <CardContent className="p-7">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Alertas</p>
+                <BudgetAlerts showNotifications={false} compact selectedMonth={selectedMonth} />
+              </CardContent>
+            </Card>
+          </FadeCard>
         </div>
       </div>
 
-      {/* Create/Edit Dialog */}
+      {/* ══════════ DIALOGS ══════════ */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -512,8 +655,7 @@ export default function Orcamentos() {
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
-                            variant="outline"
-                            role="combobox"
+                            variant="outline" role="combobox"
                             className={cn("w-full justify-between font-normal h-10 text-sm", !field.value && "text-muted-foreground")}
                           >
                             {field.value ? findCategoryName(field.value) : "Buscar categoria..."}
@@ -523,7 +665,7 @@ export default function Orcamentos() {
                       </PopoverTrigger>
                       <PopoverContent
                         className="w-[--radix-popover-trigger-width] p-0 max-h-[60vh] overflow-hidden"
-                        align="start" side="bottom" avoidCollisions={true}
+                        align="start" side="bottom" avoidCollisions
                         onWheel={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}
                       >
                         <Command filter={(value, search) => {
@@ -580,14 +722,10 @@ export default function Orcamentos() {
                 </div>
               )}
               {!editingBudget && !isRecurring && (
-                <p className="text-[10px] text-muted-foreground">
-                  Será criado apenas para {MONTHS[month - 1]} de {year}
-                </p>
+                <p className="text-[10px] text-muted-foreground">Será criado apenas para {MONTHS[month - 1]} de {year}</p>
               )}
               {!editingBudget && isRecurring && (
-                <p className="text-[10px] text-muted-foreground">
-                  Será criado para 12 meses a partir de {MONTHS[month - 1]} de {year}
-                </p>
+                <p className="text-[10px] text-muted-foreground">Será criado para 12 meses a partir de {MONTHS[month - 1]} de {year}</p>
               )}
               {editingBudget?.recurring_group_id && (
                 <p className="text-[10px] text-accent flex items-center gap-1">
@@ -596,13 +734,9 @@ export default function Orcamentos() {
                 </p>
               )}
               <div className="flex gap-2 pt-2">
-                <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => setDialogOpen(false)}>
-                  Cancelar
-                </Button>
+                <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => setDialogOpen(false)}>Cancelar</Button>
                 <Button type="submit" size="sm" className="flex-1" disabled={createBudget.isPending || updateBudget.isPending}>
-                  {createBudget.isPending || updateBudget.isPending ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : editingBudget ? "Salvar" : "Criar"}
+                  {createBudget.isPending || updateBudget.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : editingBudget ? "Salvar" : "Criar"}
                 </Button>
               </div>
             </form>
@@ -610,15 +744,12 @@ export default function Orcamentos() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Dialog */}
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base">Excluir orçamento?</AlertDialogTitle>
             <AlertDialogDescription className="text-sm">
-              {deleteTarget?.recurring_group_id
-                ? "Este orçamento é recorrente. O que deseja fazer?"
-                : "Esta ação não pode ser desfeita."}
+              {deleteTarget?.recurring_group_id ? "Este orçamento é recorrente. O que deseja fazer?" : "Esta ação não pode ser desfeita."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className={deleteTarget?.recurring_group_id ? "flex-col gap-2 sm:flex-col" : ""}>
@@ -628,27 +759,14 @@ export default function Orcamentos() {
                 <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10" onClick={() => handleDelete(false)}>
                   Excluir só este mês
                 </Button>
-                <Button variant="destructive" onClick={() => handleDelete(true)}>
-                  Excluir este e os próximos
-                </Button>
+                <Button variant="destructive" onClick={() => handleDelete(true)}>Excluir este e os próximos</Button>
               </>
             ) : (
-              <Button variant="destructive" onClick={() => handleDelete(false)}>
-                Excluir
-              </Button>
+              <Button variant="destructive" onClick={() => handleDelete(false)}>Excluir</Button>
             )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </AppLayout>
-  );
-}
-
-// Simple animated wrapper
-function AnimatedCard({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
-  return (
-    <div className="animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: `${delay}s` }}>
-      {children}
-    </div>
   );
 }

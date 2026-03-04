@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PrivacySection } from "@/components/profile/PrivacySection";
 import { ChangePasswordCard } from "@/components/profile/ChangePasswordCard";
 import { PushNotificationSettings } from "@/components/profile/PushNotificationSettings";
+import { AchievementsBadges } from "@/components/profile/AchievementsBadges";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
@@ -233,6 +234,7 @@ export default function Perfil() {
           </CardContent>
         </Card>
 
+        <AchievementsBadges />
         <ChangePasswordCard />
         <PrivacySection />
         <PushNotificationSettings />

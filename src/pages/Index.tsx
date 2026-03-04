@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
 import { UnclassifiedTransactionsAlert } from "@/components/dashboard/UnclassifiedTransactionsAlert";
 import { FinancialDisciplineScore } from "@/components/dashboard/FinancialDisciplineScore";
+import { useAchievementChecker } from "@/hooks/useAchievementChecker";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
@@ -47,6 +48,9 @@ const Index = () => {
   const [showExpenseDialog, setShowExpenseDialog] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  // Achievement checker
+  useAchievementChecker(selectedMonth);
 
   const { data: allTransactions } = useTransactions({});
   const selMonth = selectedMonth.getMonth();
