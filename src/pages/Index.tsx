@@ -249,6 +249,13 @@ const Index = () => {
               </Card>
             </AnimatedCard>
 
+            {/* DISCIPLINA FINANCEIRA — mobile only (abaixo de Patrimônio) */}
+            <div className="lg:hidden">
+              <AnimatedCard delay={0.03}>
+                <FinancialDisciplineScore selectedMonth={selectedMonth} />
+              </AnimatedCard>
+            </div>
+
             {/* 2 — EVOLUÇÃO FINANCEIRA (12 meses) */}
             <AnimatedCard delay={0.05}>
               <Card>
