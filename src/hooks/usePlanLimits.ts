@@ -27,9 +27,9 @@ export interface PlanUsage {
 }
 
 const DEFAULT_FREE_LIMITS = {
-  max_transactions: 1000,
+  max_transactions: 5000,
   max_ai_requests: 0,
-  max_bank_connections: 20,
+  max_bank_connections: 10,
   allow_forecast: false,
   allow_simulator: false,
   allow_anomaly_detection: false,

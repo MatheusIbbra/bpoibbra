@@ -345,17 +345,20 @@ export default function Orcamentos() {
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-3 gap-4 mb-5">
+                   <div className="grid grid-cols-3 gap-3 mb-5">
                       {[
                         { label: "Receita", value: effectiveIncome },
                         { label: "Investimento", value: planInvestment },
                         { label: "Despesas", value: totalBudget },
                       ].map(({ label, value }) => (
-                        <div key={label}>
-                          <p className="text-[10px] text-primary-foreground/40 mb-1">{label}</p>
+                        <div key={label} className="min-w-0">
+                          <p className="text-[9px] text-primary-foreground/40 mb-1 uppercase tracking-wider">{label}</p>
                           <p
-                            className="text-2xl font-bold text-primary-foreground leading-none"
-                            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                            className="font-bold text-primary-foreground leading-none truncate tabular-nums"
+                            style={{
+                              fontFamily: "'Playfair Display', Georgia, serif",
+                              fontSize: "clamp(0.75rem, 3.5vw, 1.35rem)",
+                            }}
                           >
                             <MaskedValue>{formatCurrency(value)}</MaskedValue>
                           </p>
@@ -366,8 +369,11 @@ export default function Orcamentos() {
                       <div>
                         <p className="text-[10px] text-primary-foreground/40">Saldo Livre</p>
                         <p
-                          className={cn("text-3xl font-bold leading-none mt-1", freeBalance >= 0 ? "text-primary-foreground" : "text-destructive")}
-                          style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                          className={cn("font-bold leading-none mt-1", freeBalance >= 0 ? "text-primary-foreground" : "text-destructive")}
+                          style={{
+                            fontFamily: "'Playfair Display', Georgia, serif",
+                            fontSize: "clamp(1.3rem, 6vw, 2rem)",
+                          }}
                         >
                           <MaskedValue>{formatCurrency(freeBalance)}</MaskedValue>
                         </p>
@@ -406,11 +412,14 @@ export default function Orcamentos() {
                 { label: "Disponível", value: budgetRemaining, color: budgetRemaining >= 0 ? "text-success" : "text-destructive" },
               ].map(({ label, value, color }, i) => (
                 <Card key={label} className="border-0 shadow-fintech">
-                  <CardContent className="p-6">
+                  <CardContent className="p-5">
                     <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">{label}</p>
                     <p
-                      className={cn("text-[32px] font-bold leading-none", color)}
-                      style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                      className={cn("font-bold leading-none tabular-nums min-w-0", color)}
+                      style={{
+                        fontFamily: "'Playfair Display', Georgia, serif",
+                        fontSize: "clamp(1.1rem, 5vw, 2rem)",
+                      }}
                     >
                       <MaskedValue>{formatCurrency(value)}</MaskedValue>
                     </p>
@@ -553,17 +562,17 @@ export default function Orcamentos() {
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Projeção do Mês</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-[10px] text-muted-foreground mb-1">Orçamento</p>
-                      <p className="text-2xl font-bold" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                      <p className="font-bold tabular-nums truncate" style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "clamp(1rem, 4vw, 1.5rem)" }}>
                         <MaskedValue>{formatCurrency(totalBudget)}</MaskedValue>
                       </p>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-[10px] text-muted-foreground mb-1">Projeção</p>
                       <p
-                        className={cn("text-2xl font-bold", projectionDiff > 0 ? "text-destructive" : "text-success")}
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                        className={cn("font-bold tabular-nums truncate", projectionDiff > 0 ? "text-destructive" : "text-success")}
+                        style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "clamp(1rem, 4vw, 1.5rem)" }}
                       >
                         <MaskedValue>{formatCurrency(projectedExpenses)}</MaskedValue>
                       </p>
