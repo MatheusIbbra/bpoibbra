@@ -360,8 +360,15 @@ const Index = () => {
           <div className="space-y-6">
             <div className="lg:sticky lg:top-4 space-y-6">
 
+              {/* DISCIPLINA FINANCEIRA — desktop only */}
+              <div className="hidden lg:block">
+                <AnimatedCard delay={0.05}>
+                  <FinancialDisciplineScore selectedMonth={selectedMonth} />
+                </AnimatedCard>
+              </div>
+
               {/* 4 — PROJEÇÃO DO MÊS */}
-              <AnimatedCard delay={0.05}>
+              <AnimatedCard delay={0.08}>
                 <Card>
                   <CardHeader className="pb-2 pt-5 px-6">
                     <CardTitle className="text-base font-semibold">Projeção do Mês</CardTitle>
@@ -499,13 +506,6 @@ const Index = () => {
                   </CardContent>
                 </Card>
               </AnimatedCard>
-
-              {/* DISCIPLINA FINANCEIRA — desktop only */}
-              <div className="hidden lg:block">
-                <AnimatedCard delay={0.18}>
-                  <FinancialDisciplineScore selectedMonth={selectedMonth} />
-                </AnimatedCard>
-              </div>
 
               {/* 7 — ALERTAS FINANCEIROS */}
               <AnimatedCard delay={0.2}>
