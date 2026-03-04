@@ -1,7 +1,7 @@
 import { ReactNode, useState, useCallback } from "react";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "./AppSidebar";
-import { AppHeader } from "./AppHeader";
+import { IconSidebar } from "./IconSidebar";
+import { MainSidebar } from "./MainSidebar";
+import { DesktopTopBar } from "./DesktopTopBar";
 import { MobileHeader } from "./MobileHeader";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { BrandBackground } from "./BrandBackground";
@@ -28,7 +28,6 @@ export function AppLayout({ children, title }: AppLayoutProps) {
   useOpenFinanceLoginToast();
 
   const [sidebarOpen, setSidebarOpen] = useState(() => {
-    if (isMobile) return false;
     try {
       const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
       if (stored !== null) return stored === "expanded";
@@ -36,80 +35,78 @@ export function AppLayout({ children, title }: AppLayoutProps) {
     return true;
   });
 
-  const handleSidebarChange = useCallback((open: boolean) => {
-    setSidebarOpen(open);
-    try {
-      localStorage.setItem(SIDEBAR_STORAGE_KEY, open ? "expanded" : "collapsed");
-    } catch {}
+  const handleToggleSidebar = useCallback(() => {
+    setSidebarOpen((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(SIDEBAR_STORAGE_KEY, next ? "expanded" : "collapsed");
+      } catch {}
+      return next;
+    });
   }, []);
 
   const hasNoBases = !baseLoading && user && availableOrganizations.length === 0;
 
-  // Mobile layout — premium fintech app experience
+  const renderContent = () => {
+    if (baseLoading) {
+      return (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
+    if (hasNoBases) {
+      return (
+        <div className="flex items-center justify-center py-20">
+          <Alert variant="destructive" className="max-w-md rounded-[20px]">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Acesso restrito</AlertTitle>
+            <AlertDescription>
+              Nenhuma base vinculada ao seu cadastro. Entre em contato com seu administrador.
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
+    return children;
+  };
+
+  // Mobile layout
   if (isMobile) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <MobileHeader />
-
-        {/* Base selector */}
         <div className="px-5 pb-4 max-w-[420px] mx-auto w-full">
           <BaseSelectorEnhanced />
         </div>
-
         <main className="flex-1 w-full max-w-[420px] mx-auto px-5 pb-28 space-y-6 overflow-x-hidden">
-          {baseLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : hasNoBases ? (
-            <div className="flex items-center justify-center py-20">
-              <Alert variant="destructive" className="max-w-md rounded-[20px]">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Acesso restrito</AlertTitle>
-                <AlertDescription>
-                  Nenhuma base vinculada ao seu cadastro. Entre em contato com seu administrador.
-                </AlertDescription>
-              </Alert>
-            </div>
-          ) : (
-            children
-          )}
+          {renderContent()}
         </main>
-
         <MobileBottomNav />
         <AIAssistantChat isPaidUser={false} />
       </div>
     );
   }
 
-  // Desktop layout — sidebar experience
+  // Desktop layout — Icon Sidebar + Main Sidebar + TopBar
   return (
-    <SidebarProvider open={sidebarOpen} onOpenChange={handleSidebarChange}>
+    <div className="min-h-screen bg-background">
       <BrandBackground />
-      <AppSidebar />
-      <SidebarInset className="flex flex-1 flex-col min-w-0 relative z-[1]">
-        <AppHeader title={title} />
+      <IconSidebar />
+      <MainSidebar open={sidebarOpen} />
+
+      {/* Main area: offset by icon sidebar (64px) + main sidebar when open (240px) */}
+      <div
+        className="relative z-[1] flex flex-col min-h-screen transition-all duration-300 ease-in-out"
+        style={{ marginLeft: sidebarOpen ? "304px" : "64px" }}
+      >
+        <DesktopTopBar sidebarOpen={sidebarOpen} onToggleSidebar={handleToggleSidebar} />
         <main className="flex-1 w-full overflow-auto p-6 lg:p-8 xl:p-10">
-          {baseLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : hasNoBases ? (
-            <div className="flex items-center justify-center py-20">
-              <Alert variant="destructive" className="max-w-md rounded-[20px]">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Acesso restrito</AlertTitle>
-                <AlertDescription>
-                  Nenhuma base vinculada ao seu cadastro. Entre em contato com seu administrador.
-                </AlertDescription>
-              </Alert>
-            </div>
-          ) : (
-            children
-          )}
+          {renderContent()}
         </main>
-      </SidebarInset>
+      </div>
+
       <AIAssistantChat isPaidUser={false} />
-    </SidebarProvider>
+    </div>
   );
 }
