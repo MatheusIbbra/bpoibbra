@@ -6,17 +6,14 @@ import { MonthlyEvolutionChart } from "@/components/dashboard/MonthlyEvolutionCh
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
-import { CategoryDonutChart } from "@/components/dashboard/CategoryDonutChart";
-import { MultiCurrencyBalanceSection } from "@/components/dashboard/MultiCurrencyBalanceSection";
 import { UnclassifiedTransactionsAlert } from "@/components/dashboard/UnclassifiedTransactionsAlert";
 
-import { StatCard } from "@/components/dashboard/StatCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useBudgets } from "@/hooks/useBudgets";
 import { useTransactions, Transaction } from "@/hooks/useTransactions";
-import { formatCurrency, parseLocalDate, shortenAccountName } from "@/lib/formatters";
+import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -26,21 +23,17 @@ import { StatCardSkeleton } from "@/components/ui/premium-skeleton";
 import { TransactionDialog } from "@/components/transactions/TransactionDialog";
 import {
   Loader2, RefreshCw, Wallet, ArrowUpRight, ArrowDownRight,
-  TrendingUp, Building2, ChevronDown, ChevronUp, CalendarDays,
-  Target, AlertTriangle, BarChart3, Brain
+  TrendingUp, ChevronDown, ChevronUp, CalendarDays,
+  Target, AlertTriangle, PiggyBank, Gauge, Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, startOfMonth, endOfMonth, differenceInDays, eachDayOfInterval, isWeekend } from "date-fns";
+import { format, startOfMonth, endOfMonth, differenceInDays, eachDayOfInterval, isWeekend, getDaysInMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useBaseFilter, useBaseFilterState, useBaseFilterActions } from "@/contexts/BaseFilterContext";
 import { MonthSelector } from "@/components/dashboard/MonthSelector";
 import { useQuery } from "@tanstack/react-query";
 import { WelcomeModal } from "@/components/dashboard/WelcomeModal";
 import { MaskedValue } from "@/contexts/ValuesVisibilityContext";
-
-// ── Paleta institucional IBBRA ──
-const BRAND_DEEP = "hsl(var(--brand-deep))";      // #011E41
-const BRAND_HL   = "hsl(var(--brand-highlight))"; // #005CB9
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -61,6 +54,12 @@ const Index = () => {
     const d = parseLocalDate(t.date);
     return d.getMonth() === selMonth && d.getFullYear() === selYear;
   }) || [];
+
+  const startDate = format(startOfMonth(selectedMonth), "yyyy-MM-dd");
+  const endDate = format(endOfMonth(selectedMonth), "yyyy-MM-dd");
+
+  const { data: budgets } = useBudgets(selectedMonth.getMonth() + 1, selectedMonth.getFullYear());
+  const { data: expenseTransactions } = useTransactions({ type: "expense", startDate, endDate });
 
   const { isLoading: baseLoading, availableOrganizations, userRole } = useBaseFilterState();
   const { refreshOrganizations } = useBaseFilterActions();
@@ -105,16 +104,10 @@ const Index = () => {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-xl font-semibold text-foreground" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-              Configurando sua plataforma
-            </h2>
+            <h2 className="text-xl font-semibold text-foreground">Configurando sua plataforma</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Estamos preparando seu ambiente patrimonial personalizado.
+              Estamos preparando seu ambiente personalizado.
             </p>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground/60">
-            <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-            <span>Finalizando configuração...</span>
           </div>
         </div>
       </div>
@@ -131,11 +124,10 @@ const Index = () => {
 
   if (error) {
     return (
-      <AppLayout title="Posição Patrimonial">
+      <AppLayout title="Visão Geral">
         <div className="flex flex-col items-center justify-center h-[50vh]">
           <div className="text-center space-y-4">
             <div className="text-destructive text-lg font-medium">Erro ao carregar dados</div>
-            <p className="text-muted-foreground">Não foi possível carregar as informações patrimoniais.</p>
             <Button onClick={() => window.location.reload()} variant="outline">
               <RefreshCw className="h-4 w-4 mr-2" />
               Recarregar
@@ -150,176 +142,365 @@ const Index = () => {
     a => a.account_type !== 'credit_card' && a.account_type !== 'investment' && a.status === 'active'
   ) || [];
 
-  // Strategic indicator
+  const income = stats?.monthlyIncome ?? 0;
+  const expenses = stats?.monthlyExpenses ?? 0;
   const savings = stats?.monthlySavings ?? 0;
-  const strategicStatus = savings > 0
-    ? { label: "Crescimento", color: "text-success" }
-    : savings < 0
-    ? { label: "Atenção", color: "text-destructive" }
-    : { label: "Estável", color: "text-muted-foreground" };
+  const totalBalance = stats?.totalBalance ?? 0;
+  const evolutionPct = income > 0 ? ((savings / income) * 100) : 0;
+
+  // Budget calculations
+  const spentByCategory = new Map<string, number>();
+  expenseTransactions?.forEach((tx) => {
+    if (tx.category_id) {
+      spentByCategory.set(tx.category_id, (spentByCategory.get(tx.category_id) || 0) + tx.amount);
+    }
+  });
+
+  const currentBudgets = budgets
+    ?.filter(b => b.month === selectedMonth.getMonth() + 1 && b.year === selectedMonth.getFullYear())
+    .map(b => ({ ...b, spent: spentByCategory.get(b.category_id) || 0 })) || [];
+
+  const totalBudget = currentBudgets.reduce((s, b) => s + Number(b.amount), 0);
+  const totalSpent = currentBudgets.reduce((s, b) => s + b.spent, 0);
+  const budgetPct = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
+  const budgetRemaining = totalBudget - totalSpent;
+
+  // Month projection
+  const today = new Date();
+  const daysPassed = today.getDate();
+  const totalDays = getDaysInMonth(selectedMonth);
+  const projectedExpenses = daysPassed > 0 ? (totalSpent / daysPassed) * totalDays : 0;
+  const projectionDiff = projectedExpenses - totalBudget;
+
+  // Investment accounts
+  const investmentAccounts = accounts?.filter(a => a.account_type === 'investment' && a.status === 'active') || [];
+  const totalInvested = investmentAccounts.reduce((s, a) => s + (a.current_balance || 0), 0);
+  const investmentRate = income > 0 ? ((totalInvested / income) * 100) : 0;
+
+  // KPIs
+  const disciplineScore = totalBudget > 0 ? Math.max(0, Math.min(100, Math.round(100 - Math.abs(budgetPct - 100)))) : 0;
+  const accumulationRate = income > 0 ? Math.round((savings / income) * 100) : 0;
+  const fixedExpenseRatio = income > 0 ? Math.round((expenses / income) * 100) : 0;
+  const independenceMonths = expenses > 0 ? Math.round(totalBalance / expenses) : 0;
+
+  // Critical categories (top 5 by spend vs budget)
+  const criticalCategories = [...currentBudgets]
+    .sort((a, b) => (b.spent / Number(b.amount)) - (a.spent / Number(a.amount)))
+    .slice(0, 5);
 
   return (
-    <AppLayout title="Posição Patrimonial">
+    <AppLayout title="Visão Geral">
       <WelcomeModal />
-      <div className="space-y-5 w-full">
+      <div className="space-y-8 w-full">
+
+        {/* ── Month selector ── */}
+        <div className="flex items-center justify-center">
+          <div className="inline-flex items-center rounded-full border border-border/40 bg-card px-4 py-1.5 shadow-fintech">
+            <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
+          </div>
+        </div>
 
         {/* ══════════════════════════════════════════
-            BLOCO 1 — POSIÇÃO PATRIMONIAL
-            Painel institucional azul profundo
+            DASHBOARD — Layout 1.6fr / 1fr
             ══════════════════════════════════════════ */}
-        <div className="rounded-[20px] overflow-hidden relative"
-          style={{ backgroundColor: BRAND_DEEP }}
-        >
-          {/* Guilloche texture — 3% opacity */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage: "url('/ibbra-grafismo.svg')",
-              backgroundRepeat: "repeat",
-              backgroundSize: "260px",
-              backgroundPosition: "center",
-              opacity: 0.03,
-            }}
-          />
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-[1.6fr_1fr]">
 
-          <div className="relative px-5 pt-5 pb-6 md:px-10 md:pt-7 md:pb-8">
-            {/* Top row: month selector */}
-            <div className="flex items-center justify-end mb-5">
-              <div className="rounded-full border px-3 py-1 flex items-center"
-                style={{ borderColor: "rgba(255,255,255,0.12)", backgroundColor: "rgba(255,255,255,0.04)" }}>
-                <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} variant="overlay-mobile" />
-              </div>
-            </div>
+          {/* ── LEFT COLUMN ── */}
+          <div className="space-y-6 min-w-0">
 
-            {/* ── Patrimônio Consolidado — valor principal ── */}
-            {statsLoading ? (
-              <div className="mb-6"><StatCardSkeleton /></div>
-            ) : (
-              <button
-                className="w-full text-left mb-6 group"
-                onClick={() => setShowAccountsDialog(true)}
-              >
-                <p className="text-[8px] uppercase tracking-[0.22em] font-semibold mb-3"
-                  style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  Patrimônio Consolidado
-                </p>
-                <p
-                  className="font-light text-white leading-none mb-3 group-hover:opacity-90 transition-opacity"
-                  style={{
-                    fontFamily: "'Playfair Display', Georgia, serif",
-                    letterSpacing: "-0.025em",
-                    fontSize: "clamp(2.2rem, 10vw, 3.5rem)",
-                  }}
-                >
-                  <MaskedValue>{formatCurrency(stats?.totalBalance ?? 0)}</MaskedValue>
-                </p>
-
-                {/* Strategic indicator row */}
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[8px] font-semibold uppercase tracking-wide"
-                      style={{
-                        backgroundColor: savings >= 0 ? "rgba(34,197,94,0.15)" : "rgba(255,70,20,0.15)",
-                        color: savings >= 0 ? "rgb(134,239,172)" : "rgb(252,165,165)",
-                        border: `1px solid ${savings >= 0 ? "rgba(34,197,94,0.2)" : "rgba(255,70,20,0.2)"}`,
-                      }}>
-                      {strategicStatus.label}
-                    </span>
-                  </div>
-                  <p className="text-[9px] uppercase tracking-[0.1em]"
-                    style={{ color: "rgba(255,255,255,0.22)" }}>
-                    Toque para detalhar contas
-                  </p>
+            {/* 1 — PATRIMÔNIO CONSOLIDADO */}
+            <AnimatedCard>
+              <Card className="overflow-hidden">
+                <div className="bg-primary p-6 md:p-8">
+                  <button className="w-full text-left group" onClick={() => setShowAccountsDialog(true)}>
+                    <p className="text-[10px] uppercase tracking-[0.2em] font-medium text-primary-foreground/40 mb-3">
+                      Patrimônio Consolidado
+                    </p>
+                    <p className="text-3xl md:text-4xl font-bold text-primary-foreground leading-none mb-4 tracking-tight">
+                      <MaskedValue>{formatCurrency(totalBalance)}</MaskedValue>
+                    </p>
+                    <div className="grid grid-cols-3 gap-4">
+                      <button onClick={(e) => { e.stopPropagation(); setShowIncomeDialog(true); }} className="text-left">
+                        <p className="text-[9px] uppercase tracking-wider text-primary-foreground/30 mb-1">Receitas</p>
+                        <p className="text-sm font-semibold text-primary-foreground/90">
+                          <MaskedValue>{formatCurrency(income)}</MaskedValue>
+                        </p>
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); setShowExpenseDialog(true); }} className="text-left">
+                        <p className="text-[9px] uppercase tracking-wider text-primary-foreground/30 mb-1">Despesas</p>
+                        <p className="text-sm font-semibold text-primary-foreground/90">
+                          <MaskedValue>{formatCurrency(expenses)}</MaskedValue>
+                        </p>
+                      </button>
+                      <div>
+                        <p className="text-[9px] uppercase tracking-wider text-primary-foreground/30 mb-1">Evolução</p>
+                        <p className={cn("text-sm font-semibold", evolutionPct >= 0 ? "text-emerald-300" : "text-red-300")}>
+                          {evolutionPct >= 0 ? "+" : ""}{evolutionPct.toFixed(1)}%
+                        </p>
+                      </div>
+                    </div>
+                  </button>
                 </div>
-              </button>
+              </Card>
+            </AnimatedCard>
+
+            {/* 2 — EVOLUÇÃO FINANCEIRA (12 meses) */}
+            <AnimatedCard delay={0.05}>
+              <Card>
+                <CardHeader className="pb-2 pt-5 px-6">
+                  <CardTitle className="text-base font-semibold">Evolução Financeira</CardTitle>
+                  <p className="text-xs text-muted-foreground">Patrimônio, aportes e crescimento — 12 meses</p>
+                </CardHeader>
+                <CardContent className="px-6 pb-6">
+                  <MonthlyEvolutionChart selectedMonthFilter={selectedMonth} />
+                </CardContent>
+              </Card>
+            </AnimatedCard>
+
+            {/* 3 — CONTROLE ORÇAMENTÁRIO (card principal) */}
+            <AnimatedCard delay={0.1}>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2 pt-5 px-6">
+                  <div>
+                    <CardTitle className="text-base font-semibold">Controle Orçamentário</CardTitle>
+                    <p className="text-xs text-muted-foreground">Planejado vs realizado no mês</p>
+                  </div>
+                  <Link to="/orcamentos">
+                    <Badge variant="outline" className="cursor-pointer hover:bg-secondary text-xs">Ver plano</Badge>
+                  </Link>
+                </CardHeader>
+                <CardContent className="px-6 pb-6 space-y-5">
+                  {/* Summary numbers */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Planejado</p>
+                      <p className="text-lg font-bold"><MaskedValue>{formatCurrency(totalBudget)}</MaskedValue></p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Realizado</p>
+                      <p className={cn("text-lg font-bold", totalSpent > totalBudget && "text-destructive")}>
+                        <MaskedValue>{formatCurrency(totalSpent)}</MaskedValue>
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Disponível</p>
+                      <p className={cn("text-lg font-bold", budgetRemaining >= 0 ? "text-success" : "text-destructive")}>
+                        <MaskedValue>{formatCurrency(budgetRemaining)}</MaskedValue>
+                      </p>
+                    </div>
+                  </div>
+                  {/* Progress bar */}
+                  <div>
+                    <Progress value={budgetPct} className={cn("h-3 rounded-full", totalSpent > totalBudget && "[&>div]:bg-destructive")} />
+                    <div className="flex items-center justify-between mt-2">
+                      <p className="text-xs text-muted-foreground">{budgetPct.toFixed(0)}% utilizado</p>
+                      <Badge variant={budgetRemaining >= 0 ? "outline" : "destructive"} className="text-[10px]">
+                        {budgetRemaining >= 0 ? "Dentro do planejamento" : "Acima do limite"}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </AnimatedCard>
+
+            {/* 6 — CATEGORIAS CRÍTICAS */}
+            {criticalCategories.length > 0 && (
+              <AnimatedCard delay={0.15}>
+                <Card>
+                  <CardHeader className="pb-2 pt-5 px-6">
+                    <CardTitle className="text-base font-semibold">Categorias Críticas</CardTitle>
+                    <p className="text-xs text-muted-foreground">Maior impacto no orçamento</p>
+                  </CardHeader>
+                  <CardContent className="px-6 pb-6 space-y-3">
+                    {criticalCategories.map((b) => {
+                      const pct = Math.min((b.spent / Number(b.amount)) * 100, 100);
+                      const over = b.spent > Number(b.amount);
+                      return (
+                        <div key={b.id}>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-sm font-medium">{b.categories?.name || "Categoria"}</span>
+                            <span className={cn("text-xs font-semibold tabular-nums", over && "text-destructive")}>
+                              {formatCurrency(b.spent)} / {formatCurrency(Number(b.amount))}
+                            </span>
+                          </div>
+                          <Progress value={pct} className={cn("h-2 rounded-full", over && "[&>div]:bg-destructive")} />
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              </AnimatedCard>
             )}
 
-            {/* ── Separador institucional ── */}
-            <div className="mb-5" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }} />
+            {/* 8 — MOVIMENTAÇÕES RECENTES */}
+            <AnimatedCard delay={0.2}>
+              <Card>
+                <CardHeader className="pb-2 pt-5 px-6">
+                  <CardTitle className="text-base font-semibold">Movimentações Recentes</CardTitle>
+                  <p className="text-xs text-muted-foreground">Últimas transações do período</p>
+                </CardHeader>
+              </Card>
+              <FintechTransactionsList selectedMonth={selectedMonth} />
+            </AnimatedCard>
+          </div>
 
-            {/* ── Métricas secundárias: Resultado do mês · Receitas · Despesas ── */}
-            <div className="grid grid-cols-3 gap-3">
-              {statsLoading ? (
-                <><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /></>
-              ) : (
-                <>
-                  {/* Resultado do mês */}
-                  <div className="rounded-[10px] px-3 py-3"
-                    style={{
-                      backgroundColor: savings < 0 ? "rgba(255,70,20,0.1)" : "rgba(255,255,255,0.04)",
-                      border: `1px solid ${savings < 0 ? "rgba(255,70,20,0.2)" : "rgba(255,255,255,0.08)"}`,
-                    }}>
-                    <p className="text-[7px] uppercase tracking-[0.16em] mb-2 font-semibold"
-                      style={{ color: "rgba(255,255,255,0.28)", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                      Resultado do mês
-                    </p>
-                    <p className="font-light leading-none"
-                      style={{
-                        fontFamily: "'Playfair Display', Georgia, serif",
-                        fontSize: "clamp(0.75rem, 3.5vw, 0.9rem)",
-                        color: savings < 0 ? "rgb(252,165,165)" : "rgba(255,255,255,0.9)",
-                      }}>
-                      <MaskedValue>{formatCurrency(savings)}</MaskedValue>
-                    </p>
-                  </div>
+          {/* ── RIGHT COLUMN ── */}
+          <div className="space-y-6">
+            <div className="lg:sticky lg:top-4 space-y-6">
 
-                  {/* Receitas Operacionais */}
-                  <button
-                    className="rounded-[10px] px-3 py-3 text-left transition-all"
-                    style={{
-                      backgroundColor: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }}
-                    onClick={() => setShowIncomeDialog(true)}
-                  >
-                    <p className="text-[7px] uppercase tracking-[0.16em] mb-2 font-semibold"
-                      style={{ color: "rgba(255,255,255,0.28)", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                      Receitas
-                    </p>
-                    <p className="font-light text-white leading-none"
-                      style={{
-                        fontFamily: "'Playfair Display', Georgia, serif",
-                        fontSize: "clamp(0.75rem, 3.5vw, 0.9rem)",
-                      }}>
-                      <MaskedValue>{formatCurrency(stats?.monthlyIncome ?? 0)}</MaskedValue>
-                    </p>
-                    {stats?.incomeChange !== undefined && (
-                      <p className="text-[7px] mt-1.5 font-semibold"
-                        style={{ color: stats.incomeChange >= 0 ? "rgb(134,239,172)" : "rgb(252,165,165)" }}>
-                        {stats.incomeChange >= 0 ? "▲" : "▼"} {Math.abs(stats.incomeChange).toFixed(1)}%
-                      </p>
+              {/* 4 — PROJEÇÃO DO MÊS */}
+              <AnimatedCard delay={0.05}>
+                <Card>
+                  <CardHeader className="pb-2 pt-5 px-6">
+                    <CardTitle className="text-base font-semibold">Projeção do Mês</CardTitle>
+                    <p className="text-xs text-muted-foreground">Previsão baseada no ritmo atual</p>
+                  </CardHeader>
+                  <CardContent className="px-6 pb-6 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 rounded-2xl bg-secondary/50">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Orçamento</p>
+                        <p className="text-lg font-bold"><MaskedValue>{formatCurrency(totalBudget)}</MaskedValue></p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-secondary/50">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Projeção</p>
+                        <p className={cn("text-lg font-bold", projectionDiff > 0 ? "text-destructive" : "text-success")}>
+                          <MaskedValue>{formatCurrency(projectedExpenses)}</MaskedValue>
+                        </p>
+                      </div>
+                    </div>
+                    {totalBudget > 0 && (
+                      <div className={cn("p-3 rounded-xl text-sm font-medium flex items-center gap-2",
+                        projectionDiff > 0
+                          ? "bg-destructive/8 text-destructive"
+                          : "bg-success/8 text-success"
+                      )}>
+                        <AlertTriangle className="h-4 w-4 shrink-0" />
+                        {projectionDiff > 0
+                          ? `Previsão de estouro de ${formatCurrency(projectionDiff)}`
+                          : `Economia projetada de ${formatCurrency(Math.abs(projectionDiff))}`
+                        }
+                      </div>
                     )}
-                  </button>
+                  </CardContent>
+                </Card>
+              </AnimatedCard>
 
-                  {/* Despesas Operacionais */}
-                  <button
-                    className="rounded-[10px] px-3 py-3 text-left transition-all"
-                    style={{
-                      backgroundColor: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }}
-                    onClick={() => setShowExpenseDialog(true)}
-                  >
-                    <p className="text-[7px] uppercase tracking-[0.16em] mb-2 font-semibold"
-                      style={{ color: "rgba(255,255,255,0.28)", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                      Despesas
-                    </p>
-                    <p className="font-light text-white leading-none"
-                      style={{
-                        fontFamily: "'Playfair Display', Georgia, serif",
-                        fontSize: "clamp(0.75rem, 3.5vw, 0.9rem)",
-                      }}>
-                      <MaskedValue>{formatCurrency(stats?.monthlyExpenses ?? 0)}</MaskedValue>
-                    </p>
-                    {stats?.expenseChange !== undefined && (
-                      <p className="text-[7px] mt-1.5 font-semibold"
-                        style={{ color: stats.expenseChange <= 0 ? "rgb(134,239,172)" : "rgb(252,165,165)" }}>
-                        {stats.expenseChange <= 0 ? "▼" : "▲"} {Math.abs(stats.expenseChange).toFixed(1)}%
-                      </p>
-                    )}
-                  </button>
-                </>
-              )}
+              {/* 5 — INVESTIMENTOS */}
+              <AnimatedCard delay={0.1}>
+                <Card>
+                  <CardHeader className="pb-2 pt-5 px-6">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <PiggyBank className="h-4 w-4 text-muted-foreground" />
+                      Investimentos
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">Acumulação patrimonial</p>
+                  </CardHeader>
+                  <CardContent className="px-6 pb-6 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Total investido</p>
+                        <p className="text-lg font-bold"><MaskedValue>{formatCurrency(totalInvested)}</MaskedValue></p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Taxa acumulação</p>
+                        <p className="text-lg font-bold">{investmentRate.toFixed(0)}%</p>
+                        <p className="text-[10px] text-muted-foreground">investimentos ÷ renda</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </AnimatedCard>
+
+              {/* KPIs — INDICADORES FINANCEIROS */}
+              <AnimatedCard delay={0.15}>
+                <Card>
+                  <CardHeader className="pb-2 pt-5 px-6">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Gauge className="h-4 w-4 text-muted-foreground" />
+                      Indicadores Financeiros
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-6 pb-6 space-y-4">
+                    {/* Discipline Score */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">Disciplina Financeira</p>
+                        <p className="text-[10px] text-muted-foreground">planejado vs realizado</p>
+                      </div>
+                      <div className={cn(
+                        "text-lg font-bold",
+                        disciplineScore >= 80 ? "text-success" : disciplineScore >= 50 ? "text-warning" : "text-destructive"
+                      )}>
+                        {disciplineScore}
+                        <span className="text-xs text-muted-foreground font-normal">/100</span>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-border/30" />
+
+                    {/* Accumulation Rate */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">Acumulação Patrimonial</p>
+                        <p className="text-[10px] text-muted-foreground">poupança ÷ renda</p>
+                      </div>
+                      <div className={cn(
+                        "text-lg font-bold",
+                        accumulationRate >= 20 ? "text-success" : accumulationRate >= 0 ? "text-warning" : "text-destructive"
+                      )}>
+                        {accumulationRate}%
+                      </div>
+                    </div>
+
+                    <div className="border-t border-border/30" />
+
+                    {/* Fixed Expense Ratio */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">Estabilidade Financeira</p>
+                        <p className="text-[10px] text-muted-foreground">despesas ÷ renda</p>
+                      </div>
+                      <div className={cn(
+                        "text-lg font-bold",
+                        fixedExpenseRatio <= 70 ? "text-success" : fixedExpenseRatio <= 90 ? "text-warning" : "text-destructive"
+                      )}>
+                        {fixedExpenseRatio}%
+                      </div>
+                    </div>
+
+                    <div className="border-t border-border/30" />
+
+                    {/* Financial Independence */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">Independência</p>
+                          <p className="text-[10px] text-muted-foreground">patrimônio ÷ despesas mensais</p>
+                        </div>
+                      </div>
+                      <div className="text-lg font-bold">
+                        {independenceMonths}
+                        <span className="text-xs text-muted-foreground font-normal"> meses</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </AnimatedCard>
+
+              {/* 7 — ALERTAS FINANCEIROS */}
+              <AnimatedCard delay={0.2}>
+                <Card>
+                  <CardHeader className="pb-2 pt-5 px-6">
+                    <CardTitle className="text-base font-semibold">Alertas Financeiros</CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-6 pb-6">
+                    <BudgetAlerts showNotifications={false} compact selectedMonth={selectedMonth} />
+                    <UnclassifiedTransactionsAlert />
+                  </CardContent>
+                </Card>
+              </AnimatedCard>
+
             </div>
           </div>
         </div>
@@ -340,7 +521,7 @@ const Index = () => {
         <TransactionsListDialog
           open={showIncomeDialog}
           onOpenChange={setShowIncomeDialog}
-          title="Receitas Operacionais do Período"
+          title="Receitas do Período"
           transactions={monthTransactions.filter(t => t.type === "income").sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime())}
           variant="success"
           onEditTransaction={(tx) => { setEditingTransaction(tx); setEditDialogOpen(true); }}
@@ -349,7 +530,7 @@ const Index = () => {
         <TransactionsListDialog
           open={showExpenseDialog}
           onOpenChange={setShowExpenseDialog}
-          title="Despesas Operacionais do Período"
+          title="Despesas do Período"
           transactions={monthTransactions.filter(t => t.type === "expense").sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime())}
           variant="destructive"
           onEditTransaction={(tx) => { setEditingTransaction(tx); setEditDialogOpen(true); }}
@@ -361,377 +542,10 @@ const Index = () => {
           transaction={editingTransaction}
           defaultType="expense"
         />
-
-        {/* ══════════════════════════════════════════
-            LAYOUT PRINCIPAL — grid institucional
-            ══════════════════════════════════════════ */}
-        <div className="grid gap-5 grid-cols-1 lg:grid-cols-[1fr_300px]">
-
-          {/* ── Coluna esquerda ── */}
-          <div className="space-y-5 min-w-0">
-
-            {/* BLOCO MOBILE — Acompanhamento Estratégico */}
-            <div className="block lg:hidden">
-              <AnimatedCard delay={0.05}>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-5">
-                    <div>
-                      <CardTitle className="text-sm font-semibold tracking-tight"
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                        Acompanhamento Estratégico
-                      </CardTitle>
-                      <p className="text-[9px] text-muted-foreground mt-0.5 uppercase tracking-wide">
-                        Planejamento e correções mensais
-                      </p>
-                    </div>
-                    <Link to="/orcamentos">
-                      <Badge variant="outline" className="cursor-pointer hover:bg-secondary text-xs">Ver plano</Badge>
-                    </Link>
-                  </CardHeader>
-                  <CardContent className="space-y-4 px-5 pb-5">
-                    <InteractiveBudgetList selectedMonth={selectedMonth} />
-                    <BudgetAlerts showNotifications={true} compact selectedMonth={selectedMonth} />
-                    <UnclassifiedTransactionsAlert />
-                  </CardContent>
-                </Card>
-              </AnimatedCard>
-            </div>
-
-            {/* Posição Multimoeda */}
-            <AnimatedCard delay={0.1}>
-              <MultiCurrencyBalanceSection />
-            </AnimatedCard>
-
-            {/* ══ BLOCO 2: Evolução + Distribuição ══ */}
-            <div className="grid gap-5 grid-cols-1 lg:grid-cols-2">
-              <AnimatedCard delay={0.15}>
-                <Card>
-                  <CardHeader className="pb-1 pt-4 px-5">
-                    <CardTitle className="text-sm font-semibold"
-                      style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                      Evolução Patrimonial
-                    </CardTitle>
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-wide">
-                      Tendência mensal consolidada
-                    </p>
-                  </CardHeader>
-                  <CardContent className="px-5 pb-5">
-                    <MonthlyEvolutionChart selectedMonthFilter={selectedMonth} />
-                  </CardContent>
-                </Card>
-              </AnimatedCard>
-              <AnimatedCard delay={0.2}>
-                <Card>
-                  <CardHeader className="pb-1 pt-4 px-5">
-                    <CardTitle className="text-sm font-semibold"
-                      style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                      Distribuição Estratégica
-                    </CardTitle>
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-wide">
-                      Alocação por categoria
-                    </p>
-                  </CardHeader>
-                  <CardContent className="px-5 pb-5">
-                    <CategoryDonutChart selectedMonth={selectedMonth} />
-                  </CardContent>
-                </Card>
-              </AnimatedCard>
-            </div>
-          </div>
-
-          {/* ── Coluna direita — desktop only ── */}
-          <div className="hidden lg:flex flex-col gap-5">
-            <div className="sticky top-4 space-y-5">
-
-              {/* Acompanhamento Estratégico */}
-              <AnimatedCard delay={0.1}>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-5">
-                    <div>
-                      <CardTitle className="text-sm font-semibold"
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                        Acompanhamento Estratégico
-                      </CardTitle>
-                      <p className="text-[9px] text-muted-foreground mt-0.5 uppercase tracking-wide">
-                        Monitoramento e correções mensais
-                      </p>
-                    </div>
-                    <Link to="/orcamentos">
-                      <Badge variant="outline" className="cursor-pointer hover:bg-secondary text-[10px]">Ver plano</Badge>
-                    </Link>
-                  </CardHeader>
-                  <CardContent className="px-5 pb-5 space-y-4">
-                    <InteractiveBudgetList selectedMonth={selectedMonth} />
-                    <div className="border-t pt-3">
-                      <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Alertas</p>
-                      <BudgetAlerts showNotifications={false} compact selectedMonth={selectedMonth} />
-                    </div>
-                    <UnclassifiedTransactionsAlert />
-                  </CardContent>
-                </Card>
-              </AnimatedCard>
-
-              {/* Centro de Decisão Estratégica */}
-              <AnimatedCard delay={0.18}>
-                <Card>
-                  <CardHeader className="pb-1 pt-4 px-5">
-                    <CardTitle className="text-sm font-semibold"
-                      style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                      Centro de Decisão
-                    </CardTitle>
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-wide">
-                      Ações estratégicas rápidas
-                    </p>
-                  </CardHeader>
-                  <CardContent className="px-5 pb-5">
-                    <div className="grid grid-cols-2 gap-2">
-                      {([
-                        { label: "Nova Receita", icon: ArrowUpRight, href: "/receitas" },
-                        { label: "Nova Despesa", icon: ArrowDownRight, href: "/despesas" },
-                        { label: "Planejamento", icon: Target, href: "/orcamentos" },
-                        { label: "Relatórios", icon: BarChart3, href: "/relatorios" },
-                      ] as const).map((item) => (
-                        <Link key={item.label} to={item.href}>
-                          <button className="w-full flex flex-col items-center gap-2 p-3 rounded-xl border border-border/30 bg-secondary/30 hover:bg-primary/5 hover:border-primary/20 transition-all duration-200 text-center group">
-                            <item.icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" strokeWidth={1.5} />
-                            <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors leading-tight">
-                              {item.label}
-                            </span>
-                          </button>
-                        </Link>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </AnimatedCard>
-            </div>
-          </div>
-        </div>
-
-        {/* ══════════════════════════════════════════
-            BLOCO 3 — MONITORAMENTO OPERACIONAL
-            ══════════════════════════════════════════ */}
-        <AnimatedCard delay={0.08}>
-          <Card>
-            <CardHeader className="pb-1 pt-4 px-5">
-              <CardTitle className="text-sm font-semibold"
-                style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                Monitoramento Operacional
-              </CardTitle>
-              <p className="text-[9px] text-muted-foreground uppercase tracking-wide">
-                Movimentações recentes do período selecionado
-              </p>
-            </CardHeader>
-          </Card>
-          <FintechTransactionsList selectedMonth={selectedMonth} />
-        </AnimatedCard>
-
-        {/* ══════════════════════════════════════════
-            MOBILE — Centro de Decisão
-            ══════════════════════════════════════════ */}
-        <div className="block lg:hidden">
-          <AnimatedCard delay={0.12}>
-            <Card>
-              <CardHeader className="pb-1 pt-4 px-5">
-                <CardTitle className="text-sm font-semibold"
-                  style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                  Centro de Decisão
-                </CardTitle>
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wide">
-                  Ações estratégicas rápidas
-                </p>
-              </CardHeader>
-              <CardContent className="px-5 pb-5">
-                <div className="grid grid-cols-2 gap-2.5">
-                  {([
-                    { label: "Nova Receita", icon: ArrowUpRight, href: "/receitas" },
-                    { label: "Nova Despesa", icon: ArrowDownRight, href: "/despesas" },
-                    { label: "Planejamento", icon: Target, href: "/orcamentos" },
-                    { label: "Relatórios", icon: BarChart3, href: "/relatorios" },
-                  ] as const).map((item) => (
-                    <Link key={item.label} to={item.href}>
-                      <button className="w-full flex items-center gap-3 p-3.5 rounded-xl border border-border/30 bg-secondary/20 hover:bg-primary/5 hover:border-primary/20 transition-all duration-200 group">
-                        <item.icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" strokeWidth={1.5} />
-                        <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-                          {item.label}
-                        </span>
-                      </button>
-                    </Link>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </AnimatedCard>
-        </div>
-
       </div>
     </AppLayout>
   );
 };
-
-// ── Interactive Budget List ──
-function InteractiveBudgetList({ selectedMonth }: { selectedMonth?: Date } = {}) {
-  const { requiresBaseSelection } = useBaseFilter();
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  const refDate = selectedMonth || new Date();
-  const startDate = format(startOfMonth(refDate), "yyyy-MM-dd");
-  const endDate = format(endOfMonth(refDate), "yyyy-MM-dd");
-
-  const { data: budgets, isLoading: budgetsLoading } = useBudgets();
-  const { data: transactions, isLoading: transactionsLoading } = useTransactions({
-    type: "expense", startDate, endDate,
-  });
-
-  const isLoading = budgetsLoading || transactionsLoading;
-
-  const spentByCategory = useMemo(() => {
-    const map = new Map<string, { total: number; dates: string[] }>();
-    transactions?.forEach((tx) => {
-      if (tx.category_id) {
-        const current = map.get(tx.category_id) || { total: 0, dates: [] };
-        current.total += tx.amount;
-        current.dates.push(tx.date);
-        map.set(tx.category_id, current);
-      }
-    });
-    return map;
-  }, [transactions]);
-
-  const currentMonthBudgets = useMemo(() => {
-    return budgets
-      ?.filter((b) => b.month === refDate.getMonth() + 1 && b.year === refDate.getFullYear())
-      .map((budget) => {
-        const catData = spentByCategory.get(budget.category_id) || { total: 0, dates: [] };
-        return { ...budget, spent: catData.total, txDates: catData.dates };
-      })
-      .slice(0, 8) || [];
-  }, [budgets, spentByCategory, refDate]);
-
-  if (requiresBaseSelection) return null;
-
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="space-y-2">
-            <div className="h-3.5 w-24 rounded-md bg-muted animate-pulse" />
-            <div className="h-2 w-full rounded-full bg-muted animate-pulse" />
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (!currentMonthBudgets || currentMonthBudgets.length === 0) {
-    return (
-      <div className="flex h-20 items-center justify-center text-muted-foreground text-sm">
-        Nenhum orçamento definido
-      </div>
-    );
-  }
-
-  const monthEnd = endOfMonth(refDate);
-  const remainingDays = differenceInDays(monthEnd, refDate);
-  const remainingBusinessDays = eachDayOfInterval({ start: refDate, end: monthEnd }).filter(d => !isWeekend(d)).length;
-
-  return (
-    <div className="space-y-1">
-      {currentMonthBudgets.map((budget) => {
-        const percentage = Math.min((budget.spent / budget.amount) * 100, 100);
-        const isOverBudget = budget.spent > budget.amount;
-        const remaining = budget.amount - budget.spent;
-        const dailyAvgRemaining = remainingBusinessDays > 0 ? remaining / remainingBusinessDays : 0;
-        const isExpanded = expandedId === budget.id;
-
-        let exceededDate: string | null = null;
-        if (isOverBudget && budget.txDates.length > 0) {
-          const txsByDate = transactions?.filter(tx => tx.category_id === budget.category_id)
-            .sort((a, b) => a.date.localeCompare(b.date)) || [];
-          let runningTotal = 0;
-          for (const tx of txsByDate) {
-            runningTotal += tx.amount;
-            if (runningTotal > budget.amount) { exceededDate = tx.date; break; }
-          }
-        }
-
-        return (
-          <div key={budget.id}>
-            <button
-              className={cn("w-full text-left px-2 py-2 rounded-lg transition-colors hover:bg-muted/50", isExpanded && "bg-muted/40")}
-              onClick={() => setExpandedId(prev => prev === budget.id ? null : budget.id)}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-md text-primary-foreground text-[9px] font-bold shrink-0"
-                    style={{ backgroundColor: budget.categories?.color || "#6366f1" }}>
-                    {budget.categories?.name?.charAt(0) || "?"}
-                  </div>
-                  <span className="text-xs font-medium truncate">{budget.categories?.name || "Categoria"}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className={cn("text-xs font-semibold tabular-nums", isOverBudget && "text-destructive")}>
-                    {formatCurrency(budget.spent)}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">/ {formatCurrency(budget.amount)}</span>
-                  {isExpanded ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />}
-                </div>
-              </div>
-              <Progress value={percentage} className={cn("h-1.5", isOverBudget && "[&>div]:bg-destructive")} />
-            </button>
-
-            {isExpanded && (
-              <div className="mx-2 mb-2 mt-1 p-3 rounded-lg bg-muted/30 border border-border/40 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="flex items-start gap-2">
-                    <Target className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-[10px] text-muted-foreground">Utilizado</p>
-                      <p className="text-xs font-semibold">{percentage.toFixed(0)}%</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CalendarDays className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-[10px] text-muted-foreground">Dias restantes</p>
-                      <p className="text-xs font-semibold">{remainingDays}d ({remainingBusinessDays} úteis)</p>
-                    </div>
-                  </div>
-                </div>
-
-                {!isOverBudget && remaining > 0 && (
-                  <div className="flex items-start gap-2 pt-1 border-t border-border/30">
-                    <TrendingUp className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-[10px] text-muted-foreground">Média diária disponível</p>
-                      <p className="text-xs font-semibold text-success">{formatCurrency(Math.max(dailyAvgRemaining, 0))}/dia útil</p>
-                      <p className="text-[10px] text-muted-foreground">Restam {formatCurrency(remaining)}</p>
-                    </div>
-                  </div>
-                )}
-
-                {isOverBudget && (
-                  <div className="flex items-start gap-2 pt-1 border-t border-border/30">
-                    <AlertTriangle className="h-3.5 w-3.5 text-destructive mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-[10px] text-muted-foreground">Limite excedido</p>
-                      <p className="text-xs font-semibold text-destructive">{formatCurrency(Math.abs(remaining))} acima</p>
-                      {exceededDate && (
-                        <p className="text-[10px] text-muted-foreground">
-                          Excedido em {format(parseLocalDate(exceededDate), "dd 'de' MMMM", { locale: ptBR })}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 // ── Accounts breakdown ──
 function AccountsBreakdown({ accounts }: { accounts: Array<{ id: string; name: string; bank_name: string | null; current_balance: number | null; account_type: string; color: string | null }> }) {
@@ -748,46 +562,45 @@ function AccountsBreakdown({ accounts }: { accounts: Array<{ id: string; name: s
       case 'checking': return 'Conta Corrente';
       case 'savings': return 'Poupança';
       case 'cash': return 'Dinheiro';
-      default: return 'Conta';
+      case 'investment': return 'Investimento';
+      default: return t;
     }
   };
 
   return (
-    <div className="p-2 space-y-1">
-      {accounts.map((acc) => (
-        <div key={acc.id} className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-muted/40 transition-colors">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="h-6 w-6 rounded-md flex items-center justify-center shrink-0"
-              style={{ backgroundColor: acc.color || "#3b82f6" }}>
-              <Building2 className="h-3 w-3 text-white" />
+    <div className="space-y-2 max-h-[50vh] overflow-y-auto overscroll-contain">
+      {accounts.map((a) => (
+        <div key={a.id} className="flex items-center justify-between p-3 rounded-xl bg-secondary/30">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
+              style={{ backgroundColor: a.color || "hsl(var(--primary))" }}>
+              <Wallet className="h-3.5 w-3.5 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-medium truncate">{shortenAccountName(acc.name, acc.account_type)}</p>
-              <p className="text-[10px] text-muted-foreground truncate">{acc.bank_name || typeLabel(acc.account_type)}</p>
+              <p className="text-sm font-medium truncate">{a.name}</p>
+              <p className="text-[10px] text-muted-foreground">{a.bank_name || typeLabel(a.account_type)}</p>
             </div>
           </div>
-          <span className={cn("text-xs font-semibold tabular-nums shrink-0",
-            (acc.current_balance || 0) >= 0 ? "text-success" : "text-destructive")}>
-            {formatCurrency(acc.current_balance || 0)}
-          </span>
+          <p className="text-sm font-semibold tabular-nums shrink-0 ml-3">
+            <MaskedValue>{formatCurrency(a.current_balance ?? 0)}</MaskedValue>
+          </p>
         </div>
       ))}
-      <div className="border-t pt-1.5 mt-1.5 flex items-center justify-between px-2">
-        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Patrimônio Total</span>
-        <span className="text-xs font-bold tabular-nums">
-          {formatCurrency(accounts.reduce((s, a) => s + (a.current_balance || 0), 0))}
-        </span>
-      </div>
     </div>
   );
 }
 
-// ── Transactions list modal ──
+// ── Transactions list dialog ──
 function TransactionsListDialog({
-  open, onOpenChange, title, transactions, variant, onEditTransaction,
+  open,
+  onOpenChange,
+  title,
+  transactions,
+  variant,
+  onEditTransaction,
 }: {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange: (o: boolean) => void;
   title: string;
   transactions: Transaction[];
   variant: "success" | "destructive";
@@ -795,36 +608,34 @@ function TransactionsListDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[70vh] overflow-hidden flex flex-col w-[calc(100vw-2rem)] sm:w-full">
+      <DialogContent className="max-w-sm w-[calc(100vw-2rem)] sm:w-full max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle className="text-sm flex items-center gap-2">
-            {variant === "success" ? <ArrowUpRight className="h-4 w-4 text-success" /> : <ArrowDownRight className="h-4 w-4 text-destructive" />}
-            {title}
-          </DialogTitle>
+          <DialogTitle className="text-sm">{title}</DialogTitle>
         </DialogHeader>
-        <div className="overflow-y-auto flex-1 -mx-2 px-2">
+        <div className="space-y-1.5 max-h-[60vh] overflow-y-auto overscroll-contain">
           {transactions.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-6">Sem movimentações no período</p>
+            <p className="text-sm text-muted-foreground text-center py-6">Nenhuma movimentação</p>
           ) : (
-            <div className="space-y-0.5">
-              {transactions.slice(0, 30).map((tx) => (
-                <button
-                  key={tx.id}
-                  onClick={() => { onOpenChange(false); setTimeout(() => onEditTransaction(tx), 200); }}
-                  className="flex items-center justify-between gap-2 w-full px-2 py-2 rounded-lg hover:bg-muted/50 transition-colors text-left"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium truncate">{tx.description || "—"}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {tx.categories?.name || "Sem categoria"} · {format(parseLocalDate(tx.date), "dd/MM", { locale: ptBR })}
-                    </p>
-                  </div>
-                  <span className={cn("text-xs font-semibold tabular-nums shrink-0", variant === "success" ? "text-success" : "text-destructive")}>
-                    {variant === "success" ? "+ " : "− "}{formatCurrency(Math.abs(Number(tx.amount)))}
-                  </span>
-                </button>
-              ))}
-            </div>
+            transactions.map((tx) => (
+              <button
+                key={tx.id}
+                onClick={() => { onEditTransaction(tx); onOpenChange(false); }}
+                className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-secondary/40 transition-colors text-left"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate">{tx.description || "Sem descrição"}</p>
+                  <p className="text-[10px] text-muted-foreground">{tx.categories?.name}</p>
+                </div>
+                <div className="text-right shrink-0 ml-3">
+                  <p className={cn("text-sm font-semibold tabular-nums", variant === "success" ? "text-success" : "text-destructive")}>
+                    <MaskedValue>{formatCurrency(tx.amount)}</MaskedValue>
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {format(parseLocalDate(tx.date), "dd/MM", { locale: ptBR })}
+                  </p>
+                </div>
+              </button>
+            ))
           )}
         </div>
       </DialogContent>
