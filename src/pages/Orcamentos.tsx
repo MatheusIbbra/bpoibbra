@@ -29,6 +29,7 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useMonthlyPlan, useUpsertMonthlyPlan } from "@/hooks/useMonthlyPlan";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
+import { useDisciplineScore } from "@/hooks/useDisciplineScore";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
 import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
 import { Badge } from "@/components/ui/badge";
@@ -205,27 +206,8 @@ export default function Orcamentos() {
   const projectedExpenses = daysPassed > 0 ? (totalSpent / daysPassed) * totalDays : totalSpent;
   const projectionDiff = projectedExpenses - totalBudget;
 
-  // Discipline score (inline for the score ring)
-  const disciplineScore = React.useMemo(() => {
-    if (!analysis || !stats) return 0;
-    let total = 0;
-    const totalCategories = analysis.items.length;
-    const withinBudget = analysis.items.filter(i => i.status !== "over").length;
-    total += totalCategories > 0 ? Math.round((withinBudget / totalCategories) * 40) : 40;
-    const investmentTarget = monthlyPlan?.investment_target ?? 0;
-    if (investmentTarget > 0) {
-      const invested = (transactions || [])
-        .filter(t => t.type === "expense" && t.categories?.name?.toLowerCase().includes("investimento"))
-        .reduce((s, t) => s + Number(t.amount), 0);
-      total += invested >= investmentTarget ? 30 : 0;
-    } else { total += 15; }
-    const incomeTarget = monthlyPlan?.income_target ?? 0;
-    const actualIncome = stats.monthlyIncome ?? 0;
-    if (incomeTarget > 0) { total += actualIncome >= incomeTarget * 0.9 ? 20 : 0; } else { total += 10; }
-    const uncategorized = (transactions || []).filter(t => !t.category_id && t.type !== "transfer" && !t.is_ignored).length;
-    if (uncategorized === 0) total += 10;
-    return Math.min(100, Math.max(0, total));
-  }, [analysis, stats, monthlyPlan, transactions]);
+  // Discipline score from shared hook
+  const { score: disciplineScore } = useDisciplineScore(selectedMonth);
 
   const scoreColor = disciplineScore >= 70 ? "text-success" : disciplineScore >= 40 ? "text-warning" : "text-destructive";
   const scoreRing = disciplineScore >= 70 ? "stroke-success" : disciplineScore >= 40 ? "stroke-warning" : "stroke-destructive";
