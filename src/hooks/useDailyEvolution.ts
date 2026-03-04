@@ -41,7 +41,9 @@ export function useDailyEvolution(selectedMonth?: Date) {
         .from("transactions")
         .select("amount, type")
         .lt("date", format(startDate, "yyyy-MM-dd"))
-        .in("type", ["income", "expense", "investment", "redemption"]);
+        .in("type", ["income", "expense", "investment", "redemption"])
+        .neq("is_ignored", true)
+        .in("validation_status", ["validated", "pending_validation"]);
       
       if (orgFilter.type === 'single') {
         priorQuery = priorQuery.eq("organization_id", orgFilter.ids[0]);
@@ -73,9 +75,10 @@ export function useDailyEvolution(selectedMonth?: Date) {
         .select("date, amount, type")
         .gte("date", format(startDate, "yyyy-MM-dd"))
         .lte("date", format(endDate, "yyyy-MM-dd"))
-        // Transfers are net-zero on consolidated balance, but we include
-        // all types that affect cash balance.
+        // Exclude secondary paired sides and ignored transactions
         .in("type", ["income", "expense", "investment", "redemption"])
+        .neq("is_ignored", true)
+        .in("validation_status", ["validated", "pending_validation"])
         .order("date", { ascending: true });
 
       // Apply organization filter
