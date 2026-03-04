@@ -59,8 +59,11 @@ export function StatCard({
               {title}
             </p>
             <p
-              className="text-lg sm:text-xl font-bold tracking-tight truncate leading-tight"
-              style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+              className="font-bold tracking-tight leading-tight"
+              style={{
+                fontFamily: "'Playfair Display', Georgia, serif",
+                fontSize: value.length > 14 ? "0.85rem" : value.length > 11 ? "1rem" : "1.15rem",
+              }}
             >
               <MaskedValue>{value}</MaskedValue>
             </p>
