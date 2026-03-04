@@ -70,11 +70,13 @@ export default function Transacoes() {
   // Exclude is_ignored=true rows — those are internal balance-correction legs
   // (e.g. the "redemption" leg created for the credit side of an APORTE),
   // not user-facing transactions.
-  const transactions = allTransactions?.filter(t => 
-    ["transfer", "investment", "redemption"].includes(t.type) &&
-    !t.is_ignored &&
-    (typeFilter === "all" || t.type === typeFilter)
-  ) || [];
+  // Use operation_type (user-facing) for filtering; fall back to DB type
+  const transactions = allTransactions?.filter(t => {
+    const displayType = t.operation_type ?? t.type;
+    return ["transfer", "investment", "redemption"].includes(displayType) &&
+      !t.is_ignored &&
+      (typeFilter === "all" || displayType === typeFilter);
+  }) || [];
 
   const deleteTransaction = useDeleteTransaction();
 
@@ -107,6 +109,8 @@ export default function Transacoes() {
       }
     }
   };
+
+  const getDisplayType = (t: Transaction) => t.operation_type ?? t.type;
 
   const getTransactionIcon = (type: string) => {
     switch (type) {
@@ -221,69 +225,47 @@ export default function Transacoes() {
               </div>
             ) : (
               <div className="space-y-2">
-                {transactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center gap-3 md:gap-4 rounded-lg border p-3 md:p-4 hover:bg-muted/50 transition-colors"
-                  >
+                {transactions.map((transaction) => {
+                  const displayType = getDisplayType(transaction);
+                  return (
                     <div
-                      className={cn(
-                        "hidden sm:flex h-10 w-10 items-center justify-center rounded-full shrink-0",
-                        getTransactionColor(transaction.type)
-                      )}
+                      key={transaction.id}
+                      className="flex items-center gap-3 md:gap-4 rounded-lg border p-3 md:p-4 hover:bg-muted/50 transition-colors"
                     >
-                      {getTransactionIcon(transaction.type)}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 md:gap-2">
-                        <p className="font-medium text-sm md:text-base truncate">{transaction.description}</p>
-                        <Badge variant="outline" className="shrink-0 text-[10px] md:text-xs">
-                          {getTransactionLabel(transaction.type)}
-                        </Badge>
-                        {transaction.status === "pending" && (
+                      <div className={cn("hidden sm:flex h-10 w-10 items-center justify-center rounded-full shrink-0", getTransactionColor(displayType))}>
+                        {getTransactionIcon(displayType)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 md:gap-2">
+                          <p className="font-medium text-sm md:text-base truncate">{transaction.description}</p>
                           <Badge variant="outline" className="shrink-0 text-[10px] md:text-xs">
-                            Pendente
+                            {getTransactionLabel(displayType)}
                           </Badge>
-                        )}
+                          {transaction.status === "pending" && (
+                            <Badge variant="outline" className="shrink-0 text-[10px] md:text-xs">Pendente</Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
+                          <span className="truncate">{transaction.accounts?.name || "Conta"}</span>
+                          <span>•</span>
+                          <span className="shrink-0">{format(parseLocalDate(transaction.date), "dd/MM/yyyy", { locale: ptBR })}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
-                        <span className="truncate">{transaction.accounts?.name || "Conta"}</span>
-                        <span>•</span>
-                        <span className="shrink-0">
-                          {format(parseLocalDate(transaction.date), "dd/MM/yyyy", { locale: ptBR })}
-                        </span>
+                      <div className="text-right shrink-0">
+                        <p className="font-semibold text-sm md:text-base">{formatCurrency(Number(transaction.amount))}</p>
                       </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="shrink-0"><MoreHorizontal className="h-4 w-4" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(transaction)}><Pencil className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setDeleteId(transaction.id)} className="text-destructive"><Trash2 className="h-4 w-4 mr-2" />Excluir</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-
-                    <div className="text-right shrink-0">
-                      <p className="font-semibold text-sm md:text-base">
-                        {formatCurrency(Number(transaction.amount))}
-                      </p>
-                    </div>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="shrink-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(transaction)}>
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setDeleteId(transaction.id)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
