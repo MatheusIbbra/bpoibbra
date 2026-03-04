@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
 import { UnclassifiedTransactionsAlert } from "@/components/dashboard/UnclassifiedTransactionsAlert";
+import { FinancialDisciplineScore } from "@/components/dashboard/FinancialDisciplineScore";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
@@ -486,6 +487,11 @@ const Index = () => {
                     </div>
                   </CardContent>
                 </Card>
+              </AnimatedCard>
+
+              {/* DISCIPLINA FINANCEIRA */}
+              <AnimatedCard delay={0.18}>
+                <FinancialDisciplineScore selectedMonth={selectedMonth} />
               </AnimatedCard>
 
               {/* 7 — ALERTAS FINANCEIROS */}
