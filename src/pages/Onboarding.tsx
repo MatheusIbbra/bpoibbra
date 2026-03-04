@@ -444,7 +444,7 @@ export default function Onboarding() {
           await supabase.functions.invoke("seed-categories", {
             body: { organization_id: orgId },
           });
-          console.log("[Onboarding] Categories seeded successfully");
+          // Categories seeded successfully
         } catch (seedErr) {
           console.warn("[Onboarding] Failed to seed categories:", seedErr);
         }
@@ -452,7 +452,7 @@ export default function Onboarding() {
           await supabase.functions.invoke("seed-reconciliation-rules", {
             body: { organization_id: orgId },
           });
-          console.log("[Onboarding] Reconciliation rules seeded successfully");
+          // Reconciliation rules seeded successfully
         } catch (seedErr) {
           console.warn("[Onboarding] Failed to seed rules:", seedErr);
         }
