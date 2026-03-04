@@ -5,8 +5,6 @@ import { FintechTransactionsList } from "@/components/dashboard/FintechTransacti
 import { MonthlyEvolutionChart } from "@/components/dashboard/MonthlyEvolutionChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
-import { UnclassifiedTransactionsAlert } from "@/components/dashboard/UnclassifiedTransactionsAlert";
 import { FinancialDisciplineScore } from "@/components/dashboard/FinancialDisciplineScore";
 import { useAchievementChecker } from "@/hooks/useAchievementChecker";
 
@@ -490,21 +488,6 @@ const Index = () => {
                 </Card>
               </AnimatedCard>
 
-              {/* 7 — ALERTAS FINANCEIROS */}
-              <AnimatedCard delay={0.2}>
-                <Card>
-                  <CardHeader className="pb-2 pt-5 px-6">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-                      <CardTitle className="text-sm font-semibold">Alertas Financeiros</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="px-6 pb-6">
-                    <BudgetAlerts showNotifications={false} compact selectedMonth={selectedMonth} />
-                    <UnclassifiedTransactionsAlert />
-                  </CardContent>
-                </Card>
-              </AnimatedCard>
 
             </div>
           </div>
