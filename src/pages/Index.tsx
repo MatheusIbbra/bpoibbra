@@ -397,39 +397,6 @@ const Index = () => {
                 </Card>
               </AnimatedCard>
 
-              {/* 5 — INVESTIMENTOS */}
-              <AnimatedCard delay={0.1}>
-                <Card>
-                  <CardHeader className="pb-2 pt-5 px-6">
-                    <div className="flex items-center gap-2">
-                      <PiggyBank className="h-4 w-4 text-muted-foreground" />
-                      <CardTitle className="text-sm font-semibold">Investimentos</CardTitle>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Acumulação patrimonial</p>
-                  </CardHeader>
-                  <CardContent className="px-6 pb-6 space-y-3">
-                    <div className="p-4 rounded-xl bg-success/8 border border-success/15">
-                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1">Total investido</p>
-                      <p className="text-xl font-bold tabular-nums min-w-0 break-all text-success" style={{ fontSize: "clamp(1rem, 4vw, 1.35rem)" }}>
-                        <MaskedValue>{formatCurrency(totalInvested)}</MaskedValue>
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between py-1">
-                      <div>
-                        <p className="text-xs font-medium text-foreground">Taxa de acumulação</p>
-                        <p className="text-[10px] text-muted-foreground">investimentos ÷ renda do mês</p>
-                      </div>
-                      <span className={cn(
-                        "text-xl font-bold tabular-nums",
-                        investmentRate >= 20 ? "text-success" : investmentRate >= 10 ? "text-warning" : "text-muted-foreground"
-                      )}>
-                        {investmentRate.toFixed(0)}%
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </AnimatedCard>
-
               {/* KPIs — INDICADORES FINANCEIROS */}
               <AnimatedCard delay={0.15}>
                 <Card>
