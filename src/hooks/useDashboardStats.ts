@@ -113,12 +113,16 @@ export function useDashboardStats(selectedMonth?: Date) {
           }
           
           // Prefer official_balance (from Open Finance API) when available
-          // to avoid double-counting initial_balance + imported transactions
           if (account.official_balance !== null && account.official_balance !== undefined) {
             totalAccountBalance += Number(account.official_balance);
           } else {
-            // Fallback: Use current_balance from snapshot (maintained by trigger)
-            totalAccountBalance += account.current_balance ?? account.initial_balance ?? 0;
+            // current_balance is maintained by trigger (initial_balance + net transactions).
+            // However, for brand-new manual accounts with no transactions, the trigger never fired
+            // so current_balance = 0 (DB default) even though initial_balance > 0.
+            // Fix: if current_balance is null/undefined/0, fall back to initial_balance.
+            const cb = account.current_balance;
+            const ib = account.initial_balance ?? 0;
+            totalAccountBalance += (cb !== null && cb !== undefined && cb !== 0) ? Number(cb) : Number(ib);
           }
         }
       }
