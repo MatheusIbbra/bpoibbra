@@ -237,13 +237,13 @@ const Index = () => {
             {/* ── Separador institucional ── */}
             <div className="mb-5" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }} />
 
-            {/* ── Métricas secundárias: Evolução · Receitas · Despesas ── */}
+            {/* ── Métricas secundárias: Resultado do mês · Receitas · Despesas ── */}
             <div className="grid grid-cols-3 gap-3">
               {statsLoading ? (
                 <><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /></>
               ) : (
                 <>
-                  {/* Evolução */}
+                  {/* Resultado do mês */}
                   <div className="rounded-[10px] px-3 py-3"
                     style={{
                       backgroundColor: savings < 0 ? "rgba(255,70,20,0.1)" : "rgba(255,255,255,0.04)",
@@ -251,7 +251,7 @@ const Index = () => {
                     }}>
                     <p className="text-[7px] uppercase tracking-[0.16em] mb-2 font-semibold"
                       style={{ color: "rgba(255,255,255,0.28)", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                      Evolução
+                      Resultado do mês
                     </p>
                     <p className="font-light leading-none"
                       style={{
