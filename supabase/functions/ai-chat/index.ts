@@ -59,6 +59,7 @@ serve(async (req) => {
       }
     }
 
+    let financialContext = "";
     if (organization_id) {
       const { data: healthData } = await supabase.rpc("generate_financial_health_score", {
         p_organization_id: organization_id,
