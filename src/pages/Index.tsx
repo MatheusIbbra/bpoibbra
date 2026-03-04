@@ -221,25 +221,25 @@ const Index = () => {
                     <p className="text-[10px] uppercase tracking-[0.2em] font-medium text-primary-foreground/40 mb-3">
                       Patrimônio Consolidado
                     </p>
-                    <p className="text-3xl md:text-4xl font-bold text-primary-foreground leading-none mb-4 tracking-tight">
+                    <p className="text-2xl md:text-4xl font-bold text-primary-foreground leading-none mb-4 tracking-tight tabular-nums min-w-0 break-all" style={{ fontSize: "clamp(1.4rem, 5vw, 2.5rem)" }}>
                       <MaskedValue>{formatCurrency(totalBalance)}</MaskedValue>
                     </p>
-                    <div className="grid grid-cols-3 gap-4">
-                      <button onClick={(e) => { e.stopPropagation(); setShowIncomeDialog(true); }} className="text-left">
+                    <div className="grid grid-cols-3 gap-3">
+                      <button onClick={(e) => { e.stopPropagation(); setShowIncomeDialog(true); }} className="text-left min-w-0">
                         <p className="text-[9px] uppercase tracking-wider text-primary-foreground/30 mb-1">Receitas</p>
-                        <p className="text-sm font-semibold text-primary-foreground/90">
+                        <p className="text-xs font-semibold text-primary-foreground/90 truncate tabular-nums">
                           <MaskedValue>{formatCurrency(income)}</MaskedValue>
                         </p>
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); setShowExpenseDialog(true); }} className="text-left">
+                      <button onClick={(e) => { e.stopPropagation(); setShowExpenseDialog(true); }} className="text-left min-w-0">
                         <p className="text-[9px] uppercase tracking-wider text-primary-foreground/30 mb-1">Despesas</p>
-                        <p className="text-sm font-semibold text-primary-foreground/90">
+                        <p className="text-xs font-semibold text-primary-foreground/90 truncate tabular-nums">
                           <MaskedValue>{formatCurrency(expenses)}</MaskedValue>
                         </p>
                       </button>
-                      <div>
-                        <p className="text-[9px] uppercase tracking-wider text-primary-foreground/30 mb-1">Evolução</p>
-                        <p className={cn("text-sm font-semibold", evolutionPct >= 0 ? "text-emerald-300" : "text-red-300")}>
+                      <div className="min-w-0">
+                        <p className="text-[9px] uppercase tracking-wider text-primary-foreground/30 mb-1">Evolução do Mês</p>
+                        <p className={cn("text-xs font-semibold truncate tabular-nums", evolutionPct >= 0 ? "text-success" : "text-destructive")}>
                           {evolutionPct >= 0 ? "+" : ""}{evolutionPct.toFixed(1)}%
                         </p>
                       </div>
@@ -261,7 +261,6 @@ const Index = () => {
               <Card>
                 <CardHeader className="pb-2 pt-5 px-6">
                   <CardTitle className="text-base font-semibold">Evolução Financeira</CardTitle>
-                  <p className="text-xs text-muted-foreground">Patrimônio, aportes e crescimento — 12 meses</p>
                 </CardHeader>
                 <CardContent className="px-6 pb-6">
                   <MonthlyEvolutionChart selectedMonthFilter={selectedMonth} />
@@ -283,20 +282,20 @@ const Index = () => {
                 </CardHeader>
                 <CardContent className="px-6 pb-6 space-y-5">
                   {/* Summary numbers */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
+                  <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))" }}>
+                    <div className="min-w-0">
                       <p className="text-xs text-muted-foreground mb-1">Planejado</p>
-                      <p className="text-lg font-bold"><MaskedValue>{formatCurrency(totalBudget)}</MaskedValue></p>
+                      <p className="font-bold tabular-nums truncate" style={{ fontSize: "clamp(0.9rem, 3.5vw, 1.15rem)" }}><MaskedValue>{formatCurrency(totalBudget)}</MaskedValue></p>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-xs text-muted-foreground mb-1">Realizado</p>
-                      <p className={cn("text-lg font-bold", totalSpent > totalBudget && "text-destructive")}>
+                      <p className={cn("font-bold tabular-nums truncate", totalSpent > totalBudget && "text-destructive")} style={{ fontSize: "clamp(0.9rem, 3.5vw, 1.15rem)" }}>
                         <MaskedValue>{formatCurrency(totalSpent)}</MaskedValue>
                       </p>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-xs text-muted-foreground mb-1">Disponível</p>
-                      <p className={cn("text-lg font-bold", budgetRemaining >= 0 ? "text-success" : "text-destructive")}>
+                      <p className={cn("font-bold tabular-nums truncate", budgetRemaining >= 0 ? "text-success" : "text-destructive")} style={{ fontSize: "clamp(0.9rem, 3.5vw, 1.15rem)" }}>
                         <MaskedValue>{formatCurrency(budgetRemaining)}</MaskedValue>
                       </p>
                     </div>
@@ -371,33 +370,36 @@ const Index = () => {
               <AnimatedCard delay={0.08}>
                 <Card>
                   <CardHeader className="pb-2 pt-5 px-6">
-                    <CardTitle className="text-base font-semibold">Projeção do Mês</CardTitle>
-                    <p className="text-xs text-muted-foreground">Previsão baseada no ritmo atual</p>
+                    <div className="flex items-center gap-2">
+                      <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                      <CardTitle className="text-sm font-semibold">Projeção do Mês</CardTitle>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Baseada no ritmo diário atual</p>
                   </CardHeader>
-                  <CardContent className="px-6 pb-6 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 rounded-2xl bg-secondary/50">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Orçamento</p>
-                        <p className="text-lg font-bold"><MaskedValue>{formatCurrency(totalBudget)}</MaskedValue></p>
+                  <CardContent className="px-6 pb-6 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-xl bg-muted/40 min-w-0">
+                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1.5">Orçamento</p>
+                        <p className="text-sm font-bold tabular-nums truncate"><MaskedValue>{formatCurrency(totalBudget)}</MaskedValue></p>
                       </div>
-                      <div className="p-4 rounded-2xl bg-secondary/50">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Projeção</p>
-                        <p className={cn("text-lg font-bold", projectionDiff > 0 ? "text-destructive" : "text-success")}>
+                      <div className="p-3 rounded-xl bg-muted/40 min-w-0">
+                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1.5">Projeção</p>
+                        <p className={cn("text-sm font-bold tabular-nums truncate", projectionDiff > 0 ? "text-destructive" : "text-success")}>
                           <MaskedValue>{formatCurrency(projectedExpenses)}</MaskedValue>
                         </p>
                       </div>
                     </div>
                     {totalBudget > 0 && (
-                      <div className={cn("p-3 rounded-xl text-sm font-medium flex items-center gap-2",
-                        projectionDiff > 0
-                          ? "bg-destructive/8 text-destructive"
-                          : "bg-success/8 text-success"
+                      <div className={cn(
+                        "p-3 rounded-xl text-xs font-medium flex items-center gap-2 leading-snug",
+                        projectionDiff > 0 ? "bg-destructive/8 text-destructive" : "bg-success/8 text-success"
                       )}>
-                        <AlertTriangle className="h-4 w-4 shrink-0" />
-                        {projectionDiff > 0
-                          ? `Previsão de estouro de ${formatCurrency(projectionDiff)}`
-                          : `Economia projetada de ${formatCurrency(Math.abs(projectionDiff))}`
-                        }
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                        <span className="min-w-0">
+                          {projectionDiff > 0
+                            ? `Estouro previsto: ${formatCurrency(projectionDiff)}`
+                            : `Economia projetada: ${formatCurrency(Math.abs(projectionDiff))}`}
+                        </span>
                       </div>
                     )}
                   </CardContent>
@@ -408,23 +410,30 @@ const Index = () => {
               <AnimatedCard delay={0.1}>
                 <Card>
                   <CardHeader className="pb-2 pt-5 px-6">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                       <PiggyBank className="h-4 w-4 text-muted-foreground" />
-                      Investimentos
-                    </CardTitle>
+                      <CardTitle className="text-sm font-semibold">Investimentos</CardTitle>
+                    </div>
                     <p className="text-xs text-muted-foreground">Acumulação patrimonial</p>
                   </CardHeader>
-                  <CardContent className="px-6 pb-6 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                  <CardContent className="px-6 pb-6 space-y-3">
+                    <div className="p-4 rounded-xl bg-success/8 border border-success/15">
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1">Total investido</p>
+                      <p className="text-xl font-bold tabular-nums min-w-0 break-all text-success" style={{ fontSize: "clamp(1rem, 4vw, 1.35rem)" }}>
+                        <MaskedValue>{formatCurrency(totalInvested)}</MaskedValue>
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between py-1">
                       <div>
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Total investido</p>
-                        <p className="text-lg font-bold"><MaskedValue>{formatCurrency(totalInvested)}</MaskedValue></p>
+                        <p className="text-xs font-medium text-foreground">Taxa de acumulação</p>
+                        <p className="text-[10px] text-muted-foreground">investimentos ÷ renda do mês</p>
                       </div>
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Taxa acumulação</p>
-                        <p className="text-lg font-bold">{investmentRate.toFixed(0)}%</p>
-                        <p className="text-[10px] text-muted-foreground">investimentos ÷ renda</p>
-                      </div>
+                      <span className={cn(
+                        "text-xl font-bold tabular-nums",
+                        investmentRate >= 20 ? "text-success" : investmentRate >= 10 ? "text-warning" : "text-muted-foreground"
+                      )}>
+                        {investmentRate.toFixed(0)}%
+                      </span>
                     </div>
                   </CardContent>
                 </Card>
@@ -434,75 +443,56 @@ const Index = () => {
               <AnimatedCard delay={0.15}>
                 <Card>
                   <CardHeader className="pb-2 pt-5 px-6">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                       <Gauge className="h-4 w-4 text-muted-foreground" />
-                      Indicadores Financeiros
-                    </CardTitle>
+                      <CardTitle className="text-sm font-semibold">Indicadores Financeiros</CardTitle>
+                    </div>
                   </CardHeader>
-                  <CardContent className="px-6 pb-6 space-y-4">
-                    {/* Discipline Score */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">Disciplina Financeira</p>
-                        <p className="text-[10px] text-muted-foreground">planejado vs realizado</p>
-                      </div>
-                      <div className={cn(
-                        "text-lg font-bold",
-                        disciplineScore >= 80 ? "text-success" : disciplineScore >= 50 ? "text-warning" : "text-destructive"
-                      )}>
-                        {disciplineScore}
-                        <span className="text-xs text-muted-foreground font-normal">/100</span>
-                      </div>
-                    </div>
-
-                    <div className="border-t border-border/30" />
-
-                    {/* Accumulation Rate */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">Acumulação Patrimonial</p>
-                        <p className="text-[10px] text-muted-foreground">poupança ÷ renda</p>
-                      </div>
-                      <div className={cn(
-                        "text-lg font-bold",
-                        accumulationRate >= 20 ? "text-success" : accumulationRate >= 0 ? "text-warning" : "text-destructive"
-                      )}>
-                        {accumulationRate}%
-                      </div>
-                    </div>
-
-                    <div className="border-t border-border/30" />
-
-                    {/* Fixed Expense Ratio */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">Estabilidade Financeira</p>
-                        <p className="text-[10px] text-muted-foreground">despesas ÷ renda</p>
-                      </div>
-                      <div className={cn(
-                        "text-lg font-bold",
-                        fixedExpenseRatio <= 70 ? "text-success" : fixedExpenseRatio <= 90 ? "text-warning" : "text-destructive"
-                      )}>
-                        {fixedExpenseRatio}%
-                      </div>
-                    </div>
-
-                    <div className="border-t border-border/30" />
-
-                    {/* Financial Independence */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Shield className="h-3.5 w-3.5 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">Independência</p>
-                          <p className="text-[10px] text-muted-foreground">patrimônio ÷ despesas mensais</p>
+                  <CardContent className="px-6 pb-5 space-y-0">
+                    {[
+                      {
+                        label: "Disciplina Financeira",
+                        sub: "planejado vs realizado",
+                        value: disciplineScore,
+                        suffix: "/100",
+                        color: disciplineScore >= 80 ? "text-success" : disciplineScore >= 50 ? "text-warning" : "text-destructive",
+                      },
+                      {
+                        label: "Acumulação Patrimonial",
+                        sub: "poupança ÷ renda",
+                        value: accumulationRate,
+                        suffix: "%",
+                        color: accumulationRate >= 20 ? "text-success" : accumulationRate >= 0 ? "text-warning" : "text-destructive",
+                      },
+                      {
+                        label: "Estabilidade Financeira",
+                        sub: "despesas ÷ renda",
+                        value: fixedExpenseRatio,
+                        suffix: "%",
+                        color: fixedExpenseRatio <= 70 ? "text-success" : fixedExpenseRatio <= 90 ? "text-warning" : "text-destructive",
+                      },
+                      {
+                        label: "Independência",
+                        sub: "patrimônio ÷ despesas mensais",
+                        value: independenceMonths,
+                        suffix: " meses",
+                        color: "text-foreground",
+                      },
+                    ].map((kpi, idx, arr) => (
+                      <div key={kpi.label}>
+                        <div className="flex items-center justify-between py-3">
+                          <div className="min-w-0 flex-1 pr-2">
+                            <p className="text-xs font-medium text-foreground leading-tight">{kpi.label}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">{kpi.sub}</p>
+                          </div>
+                          <div className={cn("text-xl font-bold tabular-nums shrink-0", kpi.color)}>
+                            {kpi.value}
+                            <span className="text-xs text-muted-foreground font-normal">{kpi.suffix}</span>
+                          </div>
                         </div>
+                        {idx < arr.length - 1 && <div className="border-t border-border/25" />}
                       </div>
-                      <div className="text-lg font-bold">
-                        {independenceMonths}
-                        <span className="text-xs text-muted-foreground font-normal"> meses</span>
-                      </div>
-                    </div>
+                    ))}
                   </CardContent>
                 </Card>
               </AnimatedCard>
@@ -511,7 +501,10 @@ const Index = () => {
               <AnimatedCard delay={0.2}>
                 <Card>
                   <CardHeader className="pb-2 pt-5 px-6">
-                    <CardTitle className="text-base font-semibold">Alertas Financeiros</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                      <CardTitle className="text-sm font-semibold">Alertas Financeiros</CardTitle>
+                    </div>
                   </CardHeader>
                   <CardContent className="px-6 pb-6">
                     <BudgetAlerts showNotifications={false} compact selectedMonth={selectedMonth} />
