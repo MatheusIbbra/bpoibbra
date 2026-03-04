@@ -3,8 +3,8 @@ import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://umqehhhpedwqdfjmdjqv.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtcWVoaGhwZWR3cWRmam1kanF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NTM0NDYsImV4cCI6MjA4NTAyOTQ0Nn0.VWsUvdzOIhLLDKYzCvGcqgJ39aGpHvSzNRJd3zIiZHE";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 const CapacitorStorage = {
   getItem: async (key: string) => {
