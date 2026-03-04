@@ -114,8 +114,8 @@ export function AppHeader({ title = "Posição Patrimonial" }: AppHeaderProps) {
     <header className="sticky top-0 z-40 border-b border-sidebar-border/20 bg-[hsl(var(--sidebar-background))]">
       {/* ── Linha funcional ── */}
       <div className="flex h-12 items-center gap-2 md:gap-3 px-3 md:px-5">
-        {/* Sidebar toggle */}
-        <SidebarTrigger className="shrink-0 h-8 w-8 md:h-9 md:w-9 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/40 rounded-lg transition-all duration-200" />
+        {/* Sidebar toggle — hidden on mobile */}
+        <SidebarTrigger className="hidden md:flex shrink-0 h-8 w-8 md:h-9 md:w-9 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/40 rounded-lg transition-all duration-200" />
 
         <div className="flex flex-1 items-center gap-2 md:gap-3 min-w-0">
           {/* Mobile: institutional greeting for clients */}
