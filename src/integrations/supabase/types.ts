@@ -1125,6 +1125,38 @@ export type Database = {
           },
         ]
       }
+      job_executions: {
+        Row: {
+          created_at: string | null
+          id: string
+          job_type: string
+          organization_id: string
+          run_date: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          job_type: string
+          organization_id: string
+          run_date?: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          job_type?: string
+          organization_id?: string
+          run_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_executions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       legal_documents: {
         Row: {
           active: boolean
