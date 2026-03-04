@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { toast } from "sonner";
+import { addMonths } from "date-fns";
 
 export interface Budget {
   id: string;
@@ -92,16 +93,17 @@ export function useCreateBudget() {
       const { is_recurring, ...budgetData } = budget;
       
       if (is_recurring) {
-        // Create for all months from selected month to December, and if < 12 months, also next year
+        // Create 12 months starting from the selected month
         const groupId = crypto.randomUUID();
         const rows: any[] = [];
+        const startDate = new Date(budget.year, budget.month - 1, 1);
         
-        // From selected month to Dec of selected year
-        for (let m = budget.month; m <= 12; m++) {
+        for (let i = 0; i < 12; i++) {
+          const d = addMonths(startDate, i);
           rows.push({
             ...budgetData,
-            month: m,
-            year: budget.year,
+            month: d.getMonth() + 1,
+            year: d.getFullYear(),
             user_id: user!.id,
             organization_id: organizationId,
             recurring_group_id: groupId,

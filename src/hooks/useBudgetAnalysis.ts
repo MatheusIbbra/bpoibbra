@@ -85,6 +85,8 @@ export function useBudgetAnalysis(month?: number, year?: number, costCenterId?: 
         .from("transactions")
         .select("category_id, cost_center_id, amount")
         .eq("type", "expense")
+        .neq("is_ignored", true)
+        .in("validation_status", ["validated", "pending_validation"])
         .gte("date", startDate)
         .lte("date", endDate);
 

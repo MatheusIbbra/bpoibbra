@@ -146,9 +146,8 @@ export function useCashFlowReport(
           openingBalance += amount;
         } else if (tx.type === "expense" || tx.type === "investment") {
           openingBalance -= amount;
-        } else if (tx.type === "transfer") {
-          openingBalance -= amount;
         }
+        // Transfers between own accounts don't affect consolidated cash flow
       });
 
       // Add legacy account initial balances (only for allowed account types)
@@ -212,10 +211,7 @@ export function useCashFlowReport(
               outflows += amount;
               totalOutflows += amount;
               break;
-            case "transfer":
-              outflows += amount;
-              totalOutflows += amount;
-              break;
+            // Transfers between own accounts are excluded from cash flow
             case "investment":
               investments += amount;
               totalInvestments += amount;

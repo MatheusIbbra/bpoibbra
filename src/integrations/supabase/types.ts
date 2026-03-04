@@ -1190,6 +1190,50 @@ export type Database = {
           },
         ]
       }
+      monthly_plans: {
+        Row: {
+          created_at: string
+          id: string
+          income_target: number
+          investment_target: number
+          month: number
+          organization_id: string
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          income_target?: number
+          investment_target?: number
+          month: number
+          organization_id: string
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          income_target?: number
+          investment_target?: number
+          month?: number
+          organization_id?: string
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_plans_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       open_finance_accounts: {
         Row: {
           account_number: string | null
