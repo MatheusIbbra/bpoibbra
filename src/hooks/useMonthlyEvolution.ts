@@ -36,11 +36,14 @@ export function useMonthlyEvolution(months: number = 6) {
       // This prevents double-counting.
 
       // Get all transactions before the start of the period to calculate opening balance
+      // Exclude: ignored, cancelled, and rejected (secondary paired sides)
       let priorQuery = supabase
         .from("transactions")
         .select("amount, type")
         .lt("date", format(startDate, "yyyy-MM-dd"))
-        .in("type", ["income", "expense", "investment", "redemption"]);
+        .in("type", ["income", "expense", "investment", "redemption"])
+        .neq("is_ignored", true)
+        .in("validation_status", ["validated", "pending_validation"]);
       
       if (orgFilter.type === 'single') {
         priorQuery = priorQuery.eq("organization_id", orgFilter.ids[0]);
@@ -71,9 +74,10 @@ export function useMonthlyEvolution(months: number = 6) {
         .from("transactions")
         .select("date, amount, type")
         .gte("date", format(startDate, "yyyy-MM-dd"))
-        // Transfers are net-zero on consolidated balance, but we include
-        // all types that affect cash balance.
+        // Exclude secondary paired sides (validation_status=rejected) and ignored transactions
         .in("type", ["income", "expense", "investment", "redemption"])
+        .neq("is_ignored", true)
+        .in("validation_status", ["validated", "pending_validation"])
         .order("date", { ascending: true });
 
       // Aplicar filtro de organização

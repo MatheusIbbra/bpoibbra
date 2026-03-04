@@ -249,9 +249,15 @@ export function TransactionDialog({
 
   const getAccountLabel = () => {
     if (type === "transfer") return "Conta de Origem (débito)";
-    if (type === "investment") return "Conta de Origem (débito)";
-    if (type === "redemption") return "Conta de Origem (débito)";
+    if (type === "investment") return "Conta de Origem — débito (ex: Conta Corrente)";
+    if (type === "redemption") return "Conta de Origem — débito (ex: Conta Investimento)";
     return "Conta Bancária";
+  };
+
+  const getDestinationAccountLabel = () => {
+    if (type === "investment") return "Conta Destino — crédito (ex: Conta Investimento)";
+    if (type === "redemption") return "Conta Destino — crédito (ex: Conta Corrente)";
+    return "Conta de Destino (crédito)";
   };
 
   const showDestinationAccount = isTransferType && !showLinkOption;
@@ -299,8 +305,8 @@ export function TransactionDialog({
                       <SelectContent>
                         <SelectItem value="income">Receita</SelectItem>
                         <SelectItem value="expense">Despesa</SelectItem>
-                        <SelectItem value="investment">Aporte</SelectItem>
-                        <SelectItem value="redemption">Resgate</SelectItem>
+                        <SelectItem value="investment">Aporte (Investimento)</SelectItem>
+                        <SelectItem value="redemption">Resgate (Desinvestimento)</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -374,7 +380,7 @@ export function TransactionDialog({
                   name="destination_account_id"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs">Conta de Destino (crédito)</FormLabel>
+                      <FormLabel className="text-xs">{getDestinationAccountLabel()}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="bg-white dark:bg-muted h-9 text-sm">

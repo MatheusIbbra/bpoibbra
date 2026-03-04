@@ -46,7 +46,9 @@ import {
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { TransactionDialog } from "@/components/transactions/TransactionDialog";
 import { useTransactions, useDeleteTransaction, Transaction } from "@/hooks/useTransactions";
+import { useTransfers, useDeleteTransfer, Transfer } from "@/hooks/useTransfers";
 import { useToggleIgnoreTransaction } from "@/hooks/useToggleIgnore";
+import { TransferDialog } from "@/components/transfers/TransferDialog";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
 import { MaskedValue } from "@/contexts/ValuesVisibilityContext";
@@ -57,11 +59,11 @@ import * as LucideIcons from "lucide-react";
 
 interface GroupedTransactions {
   label: string;
-  transactions: Transaction[];
+  transactions: { id: string; date: string; [key: string]: any }[];
 }
 
-function groupTransactionsByDate(transactions: Transaction[]): GroupedTransactions[] {
-  const groups: Record<string, Transaction[]> = {};
+function groupTransactionsByDate(transactions: { id: string; date: string; [key: string]: any }[]): GroupedTransactions[] {
+  const groups: Record<string, typeof transactions> = {};
   const order: string[] = [];
   const now = new Date();
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
@@ -113,26 +115,77 @@ export default function Movimentacoes() {
     endDate: endDateParam,
   });
 
+  const { data: allTransfers, isLoading: isLoadingTransfers } = useTransfers();
+
   const deleteTransaction = useDeleteTransaction();
+  const deleteTransfer = useDeleteTransfer();
   const toggleIgnore = useToggleIgnoreTransaction();
 
-  const getFilteredTransactions = () => {
+  // Transfer dialog state
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+
+  // Combine transfers (from transfers table) with investment/redemption transactions
+  // for the "transacoes" tab
+  type CombinedRow =
+    | (Transaction & { _kind: "transaction" })
+    | (Transfer & { _kind: "transfer"; type: "transfer"; is_ignored?: boolean; categories?: null; date: string });
+
+  const getFilteredTransactions = (): CombinedRow[] => {
     if (!allTransactions) return [];
+    const search_lower = search.toLowerCase();
+
     switch (activeTab) {
-      case "transacoes":
-        return allTransactions.filter(t =>
-          ["transfer", "investment", "redemption"].includes(t.type)
+      case "transacoes": {
+        // Investment/redemption — exclude secondary paired sides (validation_status=rejected)
+        const invRed = allTransactions
+          .filter(t =>
+            ["investment", "redemption"].includes(t.type) &&
+            (t as any).validation_status !== "rejected"
+          )
+          .filter(t => !search || t.description?.toLowerCase().includes(search_lower))
+          .map(t => ({ ...t, _kind: "transaction" as const }));
+
+        // Transfers from the transfers table
+        const transfers = (allTransfers || [])
+          .filter(t => {
+            if (!search) return true;
+            const desc = t.description || "";
+            return (
+              desc.toLowerCase().includes(search_lower) ||
+              t.origin_account?.name?.toLowerCase().includes(search_lower) ||
+              t.destination_account?.name?.toLowerCase().includes(search_lower)
+            );
+          })
+          .map(t => ({
+            ...t,
+            _kind: "transfer" as const,
+            type: "transfer" as const,
+            is_ignored: false,
+            categories: null,
+            date: t.transfer_date,
+            description: t.description || `${t.origin_account?.name ?? ""} → ${t.destination_account?.name ?? ""}`,
+          }));
+
+        // Merge and sort by date descending
+        return ([...invRed, ...transfers] as CombinedRow[]).sort(
+          (a, b) => new Date((b as any).date).getTime() - new Date((a as any).date).getTime()
         );
+      }
       case "receitas":
-        return allTransactions.filter(t => t.type === "income" && t.category_id !== null);
+        return allTransactions
+          .filter(t => t.type === "income" && t.category_id !== null)
+          .map(t => ({ ...t, _kind: "transaction" as const }));
       case "despesas":
-        return allTransactions.filter(t => t.type === "expense" && t.category_id !== null);
+        return allTransactions
+          .filter(t => t.type === "expense" && t.category_id !== null)
+          .map(t => ({ ...t, _kind: "transaction" as const }));
       default:
         return [];
     }
   };
 
   const filteredTransactions = getFilteredTransactions();
+  const isLoadingAny = isLoading || isLoadingTransfers;
   const totalPages = Math.ceil(filteredTransactions.length / PAGE_SIZE);
   const paginatedFiltered = useMemo(() => {
     const start = currentPage * PAGE_SIZE;
@@ -149,10 +202,14 @@ export default function Movimentacoes() {
   };
 
   const handleDelete = async () => {
-    if (deleteId) {
-      await deleteTransaction.mutateAsync(deleteId);
-      setDeleteId(null);
+    if (!deleteId) return;
+    const [kind, id] = deleteId.split(":");
+    if (kind === "transfer") {
+      await deleteTransfer.mutateAsync(id);
+    } else {
+      await deleteTransaction.mutateAsync(id);
     }
+    setDeleteId(null);
   };
 
   const handleDialogClose = (open: boolean) => {
@@ -165,14 +222,16 @@ export default function Movimentacoes() {
     switch (activeTab) {
       case "receitas":
         setDefaultType("income");
+        setDialogOpen(true);
         break;
       case "despesas":
         setDefaultType("expense");
+        setDialogOpen(true);
         break;
       default:
-        setDefaultType("transfer");
+        // "transacoes" tab — open the dedicated transfer/investment dialog
+        setTransferDialogOpen(true);
     }
-    setDialogOpen(true);
   };
 
   const getTransactionIcon = (type: string, categoryIcon?: string | null) => {
@@ -224,7 +283,7 @@ export default function Movimentacoes() {
     switch (activeTab) {
       case "receitas": return "Nova Receita";
       case "despesas": return "Nova Despesa";
-      default: return "Nova Movimentação";
+      default: return "Nova Transferência / Aporte";
     }
   };
 
@@ -280,7 +339,7 @@ export default function Movimentacoes() {
             <Card className="card-executive">
               <CardHeader className="py-3 px-4 flex flex-row items-center justify-between">
                 <CardTitle className="text-sm font-medium">
-                  {isLoading ? "Carregando..." : `${filteredTransactions.length} movimentações${totalPages > 1 ? ` · Pág. ${currentPage + 1}/${totalPages}` : ""}`}
+                  {isLoadingAny ? "Carregando..." : `${filteredTransactions.length} movimentações${totalPages > 1 ? ` · Pág. ${currentPage + 1}/${totalPages}` : ""}`}
                 </CardTitle>
                 {totalPages > 1 && (
                   <div className="flex items-center gap-1">
@@ -294,7 +353,7 @@ export default function Movimentacoes() {
                 )}
               </CardHeader>
               <CardContent className="p-0">
-                {isLoading ? (
+                {isLoadingAny ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
@@ -394,39 +453,51 @@ export default function Movimentacoes() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleEdit(transaction)}>
-                                    <Pencil className="h-4 w-4 mr-2" />
-                                    Editar
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      if (transaction.is_ignored) {
-                                        // Reactivate doesn't need confirmation
-                                        toggleIgnore.mutate({ id: transaction.id, is_ignored: false });
-                                      } else {
-                                        setIgnoreTarget({ id: transaction.id, is_ignored: true });
-                                      }
-                                    }}
-                                  >
-                                    {transaction.is_ignored ? (
-                                      <>
-                                        <Eye className="h-4 w-4 mr-2" />
-                                        Não Ignorar
-                                      </>
-                                    ) : (
-                                      <>
-                                        <EyeOff className="h-4 w-4 mr-2" />
-                                        Ignorar
-                                      </>
-                                    )}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => setDeleteId(transaction.id)}
-                                    className="text-destructive"
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Excluir
-                                  </DropdownMenuItem>
+                                  {(transaction as any)._kind === "transfer" ? (
+                                    // Transfer rows — edit not implemented; just delete
+                                    <DropdownMenuItem
+                                      onClick={() => setDeleteId(`transfer:${transaction.id}`)}
+                                      className="text-destructive"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Excluir
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <>
+                                      <DropdownMenuItem onClick={() => handleEdit(transaction as Transaction)}>
+                                        <Pencil className="h-4 w-4 mr-2" />
+                                        Editar
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          if ((transaction as Transaction).is_ignored) {
+                                            toggleIgnore.mutate({ id: transaction.id, is_ignored: false });
+                                          } else {
+                                            setIgnoreTarget({ id: transaction.id, is_ignored: true });
+                                          }
+                                        }}
+                                      >
+                                        {(transaction as Transaction).is_ignored ? (
+                                          <>
+                                            <Eye className="h-4 w-4 mr-2" />
+                                            Não Ignorar
+                                          </>
+                                        ) : (
+                                          <>
+                                            <EyeOff className="h-4 w-4 mr-2" />
+                                            Ignorar
+                                          </>
+                                        )}
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => setDeleteId(`transaction:${transaction.id}`)}
+                                        className="text-destructive"
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Excluir
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>
@@ -436,7 +507,7 @@ export default function Movimentacoes() {
                     ))}
                   </div>
                 )}
-                {totalPages > 1 && !isLoading && filteredTransactions.length > 0 && (
+                {totalPages > 1 && !isLoadingAny && filteredTransactions.length > 0 && (
                   <div className="flex items-center justify-center gap-2 py-3 border-t">
                     <Button variant="outline" size="sm" className="h-7 text-xs" disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)}>
                       <ChevronLeft className="h-3 w-3 mr-1" />Anterior
@@ -458,6 +529,11 @@ export default function Movimentacoes() {
         onOpenChange={handleDialogClose}
         transaction={editingTransaction}
         defaultType={defaultType}
+      />
+
+      <TransferDialog
+        open={transferDialogOpen}
+        onOpenChange={setTransferDialogOpen}
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

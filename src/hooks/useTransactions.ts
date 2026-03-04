@@ -145,8 +145,75 @@ interface CreateTransactionInput {
   payment_date?: string | null;
 }
 
-// Types that create paired transactions
-const PAIRED_TYPES: TransactionType[] = ["transfer", "investment", "redemption"];
+// Types that create paired transactions (investment/redemption only — transfers use the transfers table)
+const PAIRED_TYPES: TransactionType[] = ["investment", "redemption"];
+
+/**
+ * Paired transaction logic for investment/redemption:
+ *
+ *  INVESTMENT (Aporte): money leaves origin account → arrives at destination (investment) account
+ *    Primary   (visible in reports): type=investment,  account=origin,      validation_status=pending_validation
+ *    Secondary (balance correction): type=redemption,  account=destination, validation_status=rejected
+ *      → DB formula: redemption=+amount → destination balance increases ✓
+ *      → Reports filter out validation_status=rejected → excluded from P&L ✓
+ *
+ *  REDEMPTION (Resgate): money leaves investment account → arrives at destination (checking) account
+ *    Primary   (visible in reports): type=redemption, account=destination,  validation_status=pending_validation
+ *    Secondary (balance correction): type=investment, account=origin,       validation_status=rejected
+ *      → DB formula: investment=-amount → origin (investment) balance decreases ✓
+ *      → Reports filter out validation_status=rejected → excluded from P&L ✓
+ */
+function buildPairedTransactions(
+  transaction: CreateTransactionInput,
+  userId: string,
+  organizationId: string,
+): { primary: TransactionInsert; secondary: TransactionInsert } {
+  const base = {
+    description: transaction.description,
+    amount: transaction.amount,
+    date: transaction.date,
+    category_id: null,
+    cost_center_id: null,
+    accrual_date: transaction.accrual_date || transaction.date,
+    notes: transaction.notes,
+    status: (transaction.status || "completed") as "pending" | "completed" | "cancelled",
+    user_id: userId,
+    organization_id: organizationId,
+    is_ignored: transaction.is_ignored || false,
+  };
+
+  if (transaction.type === "investment") {
+    // Aporte: origin account is debited (investment type), destination is credited (redemption type)
+    const primary: TransactionInsert = {
+      ...base,
+      type: "investment",
+      account_id: transaction.account_id,
+      validation_status: "pending_validation",
+    };
+    const secondary: TransactionInsert = {
+      ...base,
+      type: "redemption",
+      account_id: transaction.destination_account_id!,
+      validation_status: "rejected", // hidden from reports, affects balance
+    };
+    return { primary, secondary };
+  } else {
+    // Resgate: origin (investment) account is debited (investment type), destination (checking) is credited (redemption type)
+    const primary: TransactionInsert = {
+      ...base,
+      type: "redemption",
+      account_id: transaction.destination_account_id!,
+      validation_status: "pending_validation",
+    };
+    const secondary: TransactionInsert = {
+      ...base,
+      type: "investment",
+      account_id: transaction.account_id,
+      validation_status: "rejected", // hidden from reports, affects balance
+    };
+    return { primary, secondary };
+  }
+}
 
 export function useCreateTransaction() {
   const queryClient = useQueryClient();
@@ -206,66 +273,39 @@ export function useCreateTransaction() {
         }
       }
 
-      // Check if this is a paired type requiring two transactions
+      // Check if this is a paired type (investment/redemption) requiring two transactions
       if (PAIRED_TYPES.includes(transaction.type) && transaction.destination_account_id) {
-        // Create outgoing transaction (from origin account)
-        const outgoingData: TransactionInsert = {
-          description: transaction.description,
-          amount: transaction.amount,
-          type: transaction.type,
-          date: transaction.date,
-          account_id: transaction.account_id,
-          category_id: null,
-          cost_center_id: null,
-          accrual_date: transaction.accrual_date || transaction.date,
-          notes: transaction.notes,
-          status: transaction.status || "completed",
-          user_id: user!.id,
-          organization_id: organizationId,
-          is_ignored: transaction.is_ignored || false,
-        };
-        
-        const { data: outgoingTx, error: outError } = await supabase
+        const { primary: primaryData, secondary: secondaryData } = buildPairedTransactions(
+          transaction,
+          user!.id,
+          organizationId,
+        );
+
+        // Insert primary transaction first
+        const { data: primaryTx, error: primaryError } = await supabase
           .from("transactions")
-          .insert(outgoingData)
+          .insert(primaryData)
           .select()
           .single();
         
-        if (outError) throw outError;
+        if (primaryError) throw primaryError;
 
-        // Create incoming transaction (to destination account)
-        const incomingData: TransactionInsert = {
-          description: transaction.description,
-          amount: transaction.amount,
-          type: transaction.type,
-          date: transaction.date,
-          account_id: transaction.destination_account_id,
-          category_id: null,
-          cost_center_id: null,
-          accrual_date: transaction.accrual_date || transaction.date,
-          notes: transaction.notes,
-          status: transaction.status || "completed",
-          user_id: user!.id,
-          organization_id: organizationId,
-          linked_transaction_id: outgoingTx.id,
-          is_ignored: transaction.is_ignored || false,
-        };
-        
-        const { data: incomingTx, error: inError } = await supabase
+        // Insert secondary (balance-correction) transaction linked to primary
+        const { data: secondaryTx, error: secondaryError } = await supabase
           .from("transactions")
-          .insert(incomingData)
+          .insert({ ...secondaryData, linked_transaction_id: primaryTx.id })
           .select()
           .single();
         
-        if (inError) throw inError;
+        if (secondaryError) throw secondaryError;
 
-        // Update outgoing transaction with link to incoming
+        // Link primary back to secondary
         await supabase
           .from("transactions")
-          .update({ linked_transaction_id: incomingTx.id })
-          .eq("id", outgoingTx.id);
+          .update({ linked_transaction_id: secondaryTx.id })
+          .eq("id", primaryTx.id);
 
-        return outgoingTx;
+        return primaryTx;
       }
       
       // Regular single transaction
@@ -344,6 +384,31 @@ export function useDeleteTransaction() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Fetch the transaction to check for a linked pair
+      const { data: tx } = await supabase
+        .from("transactions")
+        .select("id, linked_transaction_id")
+        .eq("id", id)
+        .single();
+
+      const linkedId = tx?.linked_transaction_id;
+
+      // If this transaction has a linked pair (investment/redemption secondary),
+      // verify the linked tx also points back to this one (true pair) and delete both
+      if (linkedId) {
+        const { data: linkedTx } = await supabase
+          .from("transactions")
+          .select("id, linked_transaction_id, validation_status")
+          .eq("id", linkedId)
+          .single();
+
+        if (linkedTx?.linked_transaction_id === id) {
+          // True bidirectional pair — delete the secondary side first
+          await supabase.from("transactions").delete().eq("id", linkedId);
+        }
+      }
+
+      // Delete the primary transaction
       const { error } = await supabase
         .from("transactions")
         .delete()
