@@ -85,7 +85,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
         </main>
 
         <MobileBottomNav />
-        {mobileMenuOpen && <MobileMenuScreen onClose={() => setMobileMenuOpen(false)} />}
+        <MobileMenuScreen onClose={() => setMobileMenuOpen(false)} isOpen={mobileMenuOpen} />
         <AIAssistantChat isPaidUser={false} />
       </div>
     );

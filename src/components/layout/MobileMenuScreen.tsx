@@ -34,6 +34,7 @@ const cadastroItems = [
 
 interface MobileMenuScreenProps {
   onClose: () => void;
+  isOpen?: boolean;
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -61,7 +62,7 @@ function MenuRow({ icon: Icon, label, onClick, trailing }: { icon: React.Element
   );
 }
 
-export function MobileMenuScreen({ onClose }: MobileMenuScreenProps) {
+export function MobileMenuScreen({ onClose, isOpen = false }: MobileMenuScreenProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -107,7 +108,20 @@ export function MobileMenuScreen({ onClose }: MobileMenuScreenProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <>
+      {/* Backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm"
+          onClick={onClose}
+        />
+      )}
+      {/* Drawer */}
+      <div
+        className={`fixed inset-x-0 bottom-0 z-[61] flex flex-col h-[90dvh] bg-background rounded-t-[24px] shadow-2xl transition-transform duration-300 ease-out ${
+          isOpen ? "translate-y-0" : "translate-y-full"
+        }`}
+      >
       {/* Drag handle */}
       <div className="mx-auto w-8 h-1 rounded-full bg-muted-foreground/15 mt-3 mb-5 shrink-0" />
 
@@ -204,5 +218,6 @@ export function MobileMenuScreen({ onClose }: MobileMenuScreenProps) {
         <div className="pb-8" />
       </div>
     </div>
+    </>
   );
 }
