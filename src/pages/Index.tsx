@@ -258,14 +258,7 @@ const Index = () => {
 
             {/* 2 — EVOLUÇÃO FINANCEIRA (12 meses) */}
             <AnimatedCard delay={0.05}>
-              <Card>
-                <CardHeader className="pb-2 pt-5 px-6">
-                  <CardTitle className="text-base font-semibold">Evolução Financeira</CardTitle>
-                </CardHeader>
-                <CardContent className="px-6 pb-6">
-                  <MonthlyEvolutionChart selectedMonthFilter={selectedMonth} />
-                </CardContent>
-              </Card>
+              <MonthlyEvolutionChart selectedMonthFilter={selectedMonth} />
             </AnimatedCard>
 
             {/* 3 — CONTROLE ORÇAMENTÁRIO (card principal) */}
