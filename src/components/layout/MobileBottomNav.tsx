@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, CreditCard, Target, Plus } from "lucide-react";
+import { Home, CreditCard, Target, Plus, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -8,6 +8,7 @@ const navItems = [
   { label: "Cartões", icon: CreditCard, path: "/cartoes" },
   { label: "", icon: Plus, path: "__fab__" },
   { label: "Orçamentos", icon: Target, path: "/orcamentos" },
+  { label: "Menu", icon: Menu, path: "__menu__" },
 ];
 
 export function MobileBottomNav() {
@@ -23,11 +24,28 @@ export function MobileBottomNav() {
     window.dispatchEvent(new CustomEvent("ibbra:fab-toggle"));
   };
 
+  const handleMenuClick = () => {
+    window.dispatchEvent(new CustomEvent("ibbra:mobile-menu-toggle"));
+  };
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
       <div className="mx-auto max-w-[420px] px-2 pb-[env(safe-area-inset-bottom)]">
         <div className="flex items-center justify-around rounded-t-[18px] bg-card/98 backdrop-blur-xl border-t border-x border-border/10 shadow-fintech-nav px-1 py-2">
           {navItems.map((item) => {
+            if (item.path === "__menu__") {
+              return (
+                <button
+                  key="menu"
+                  onClick={handleMenuClick}
+                  className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all duration-200 min-w-[50px] text-muted-foreground/55 hover:text-muted-foreground"
+                >
+                  <Menu className="h-[19px] w-[19px]" strokeWidth={1.5} />
+                  <span className="text-[9px] tracking-wide font-medium">Menu</span>
+                </button>
+              );
+            }
+
             if (item.path === "__fab__") {
               return (
                 <button
