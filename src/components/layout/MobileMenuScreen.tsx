@@ -20,9 +20,9 @@ const reportItems = [
   { label: "DRE", icon: FileText, path: "/relatorio-dre" },
   { label: "Orçamento", icon: Target, path: "/analise-orcamento" },
   { label: "Demonstrativo", icon: LayoutDashboard, path: "/demonstrativo-financeiro" },
-  { label: "Tipo Financeiro", icon: PieChart, path: "/relatorios" },
-  { label: "Análise Categorias", icon: CreditCard, path: "/relatorios" },
-  { label: "Análises Estratégicas", icon: Brain, path: "/relatorios" },
+  { label: "Tipo Financeiro", icon: PieChart, path: "/relatorios?tab=financial-type" },
+  { label: "Análise Categorias", icon: CreditCard, path: "/relatorios?tab=category-analysis" },
+  { label: "Análises Estratégicas", icon: Brain, path: "/relatorios?tab=strategic" },
 ];
 
 const cadastroItems = [

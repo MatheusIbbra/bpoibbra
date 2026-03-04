@@ -312,7 +312,7 @@ const Index = () => {
               <AnimatedCard delay={0.15}>
                 <Card>
                   <CardHeader className="pb-2 pt-5 px-6">
-                    <CardTitle className="text-base font-semibold">Categorias Críticas</CardTitle>
+                    <CardTitle className="text-base font-semibold">Resumo Orçamentário</CardTitle>
                     <p className="text-xs text-muted-foreground">Maior impacto no orçamento</p>
                   </CardHeader>
                   <CardContent className="px-6 pb-6 space-y-3">

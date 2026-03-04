@@ -1,4 +1,4 @@
-import { Moon, Sun, Eye, EyeOff, User, LogOut } from "lucide-react";
+import { Eye, EyeOff, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -65,15 +65,6 @@ export function MobileHeader() {
             className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-all duration-200"
           >
             {showValues ? <Eye className="h-[17px] w-[17px]" /> : <EyeOff className="h-[17px] w-[17px]" />}
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-all duration-200"
-          >
-            {theme === "light" ? <Moon className="h-[17px] w-[17px]" /> : <Sun className="h-[17px] w-[17px]" />}
           </Button>
 
           <DropdownMenu>
