@@ -97,7 +97,11 @@ export default function Pendencias() {
   
   // Filter transactions pending validation with all filters applied
   const pendingTransactions = useMemo(() => {
-    let filtered = allTransactions?.filter(t => t.validation_status === 'pending_validation') || [];
+    // Only imported/open-finance transactions need validation — manual entries are excluded
+    let filtered = allTransactions?.filter(t => 
+      t.validation_status === 'pending_validation' &&
+      !!t.import_batch_id
+    ) || [];
     
     // Search filter
     if (searchTerm) {

@@ -1,26 +1,18 @@
-import { User, LogOut } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useTheme } from "@/contexts/ThemeContext";
-import { useAuth } from "@/contexts/AuthContext";
 import { useValuesVisibility } from "@/contexts/ValuesVisibilityContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate, useLocation } from "react-router-dom";
-import ibbraLogoWhite from "@/assets/ibbra-logo-white.png";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "react-router-dom";
+import ibbraLogoWhite from "@/assets/ibbra-logo-full-white.png";
 import ibbraLogoIcon from "@/assets/ibbra-logo-icon.png";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export function MobileHeader() {
-  const { theme, toggleTheme } = useTheme();
-  const { user, signOut } = useAuth();
   const { showValues, toggleValues } = useValuesVisibility();
-  const navigate = useNavigate();
+  const { theme } = useTheme();
+  const { user } = useAuth();
   const location = useLocation();
   const isHome = location.pathname === "/";
 
@@ -55,35 +47,13 @@ export function MobileHeader() {
           className="h-7 object-contain"
         />
 
-        {/* Right actions */}
-        <div className="flex items-center gap-1">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="ml-1">
-                <Avatar className="h-8 w-8 border border-[#011E41]/20 transition-all duration-300 shadow-sm">
-                  <AvatarImage src={profile?.avatar_url || undefined} />
-                  <AvatarFallback className="bg-[#011E41] text-white text-xs font-medium" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                    {getInitials(profile?.full_name)}
-                  </AvatarFallback>
-                </Avatar>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 shadow-fintech-lg border-border/20">
-              <div className="px-3 py-3 mb-1 bg-muted/30 rounded-xl">
-                <p className="text-sm font-semibold text-foreground">{displayName}</p>
-                <p className="text-xs text-muted-foreground truncate mt-0.5">{user?.email}</p>
-              </div>
-              <DropdownMenuSeparator className="bg-border/20" />
-              <DropdownMenuItem onClick={() => navigate("/perfil")} className="rounded-lg py-2.5 cursor-pointer text-sm">
-                <User className="mr-2.5 h-4 w-4" /> Meu Perfil
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-border/20" />
-              <DropdownMenuItem onClick={signOut} className="rounded-lg py-2.5 text-destructive cursor-pointer text-sm">
-                <LogOut className="mr-2.5 h-4 w-4" /> Sair
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        {/* Right: only eye toggle */}
+        <button
+          onClick={toggleValues}
+          className="flex items-center justify-center h-9 w-9 rounded-xl text-foreground/60 hover:text-foreground hover:bg-accent/40 transition-all"
+        >
+          {showValues ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+        </button>
       </div>
 
       {/* Institutional greeting — only on home */}

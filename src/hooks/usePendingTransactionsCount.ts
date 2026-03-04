@@ -14,7 +14,8 @@ export function usePendingTransactionsCount() {
       let query = supabase
         .from("transactions")
         .select("id", { count: "exact", head: true })
-        .eq("validation_status", "pending_validation");
+        .eq("validation_status", "pending_validation")
+        .not("import_batch_id", "is", null);
       
       // Apply organization filter
       if (orgFilter.type === 'single') {
