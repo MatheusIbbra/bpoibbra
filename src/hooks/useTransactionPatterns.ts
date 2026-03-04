@@ -93,7 +93,7 @@ export function useLearnFromValidation() {
 
           if (updateError) throw updateError;
 
-          console.log(`[LEARN] Atualizado pattern existente: ${existing.id} (${newOccurrences} ocorrências, ${(newConfidence*100).toFixed(0)}% confiança)`);
+          // Pattern updated successfully
           return existing.id;
         } else {
           // Criar novo pattern
@@ -115,13 +115,13 @@ export function useLearnFromValidation() {
           if (insertError) {
             // Ignorar erro de duplicata (pode acontecer em race conditions)
             if (insertError.code === "23505") {
-              console.log("[LEARN] Pattern já existe (race condition), ignorando...");
+              console.warn("[LEARN] Pattern já existe (race condition), ignorando...");
               return null;
             }
             throw insertError;
           }
 
-          console.log(`[LEARN] Criado novo pattern: ${newPattern?.id}`);
+          // New pattern created successfully
           return newPattern?.id;
         }
       } catch (error) {

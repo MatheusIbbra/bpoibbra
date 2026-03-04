@@ -16,6 +16,7 @@ export function trackEvent(event: AnalyticsEvent, properties?: Record<string, un
 
   // Log local para debug
   if (import.meta.env.DEV) {
+    // eslint-disable-next-line no-console -- dev-only debug output
     console.log(`[Analytics] ${event}`, properties);
   }
 

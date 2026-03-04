@@ -40,6 +40,25 @@ serve(async (req) => {
 
     const { messages, organization_id } = await req.json();
 
+    // Rate limit: max 30 requests per hour per organization
+    if (organization_id) {
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const adminClient = createClient(supabaseUrl, serviceRoleKey);
+      const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+      const { count } = await adminClient
+        .from("api_usage_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", organization_id)
+        .eq("endpoint", "ai")
+        .gte("created_at", oneHourAgo);
+      if ((count ?? 0) >= 30) {
+        return new Response(
+          JSON.stringify({ error: "Rate limit: máximo 30 requisições/hora" }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     let financialContext = "";
     if (organization_id) {
       const { data: healthData } = await supabase.rpc("generate_financial_health_score", {

@@ -220,7 +220,7 @@ export function BankConnectionsManager() {
           setTimeout(() => {
             if (!handledRef.current) {
               // Only reset if no success/error was handled
-              console.log("[OpenFinance] Popup closed without success handler firing");
+              console.warn("[OpenFinance] Popup closed without success handler firing");
               setIsConnecting(false);
               pendingOrgIdRef.current = null;
             }

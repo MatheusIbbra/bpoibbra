@@ -39,10 +39,19 @@ async function checkUserBlocked(userId: string): Promise<{ blocked: boolean; rea
     return { blocked: false };
   }
   
-  const blockedOrgs = memberships.filter(m => (m.organizations as any)?.is_blocked === true);
+  type OrgWithDetails = {
+    is_blocked: boolean;
+    blocked_reason: string | null;
+    name: string;
+  };
+
+  const blockedOrgs = memberships.filter(m => {
+    const org = m.organizations as unknown as OrgWithDetails;
+    return org?.is_blocked === true;
+  });
   
   if (blockedOrgs.length === memberships.length && blockedOrgs.length > 0) {
-    const blockedOrg = blockedOrgs[0].organizations as any;
+    const blockedOrg = blockedOrgs[0].organizations as unknown as OrgWithDetails;
     return { 
       blocked: true, 
       reason: blockedOrg.blocked_reason || `A organização ${blockedOrg.name} está bloqueada.`

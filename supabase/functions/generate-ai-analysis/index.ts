@@ -69,9 +69,26 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ── Backend enforcement: check AI request limits ──
+    // ── Backend enforcement: check AI request limits (hourly + monthly) ──
     if (organization_id) {
       const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+      // Hourly rate limit: max 30 per hour
+      const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+      const { count: hourlyCount } = await adminClient
+        .from("api_usage_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", organization_id)
+        .eq("endpoint", "ai")
+        .gte("created_at", oneHourAgo);
+      if ((hourlyCount ?? 0) >= 30) {
+        return new Response(
+          JSON.stringify({ error: "Rate limit: máximo 30 requisições/hora" }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Monthly plan limit
 
       const { data: sub } = await adminClient
         .from("organization_subscriptions")
@@ -80,7 +97,7 @@ Deno.serve(async (req) => {
         .eq("status", "active")
         .maybeSingle();
 
-      const maxAI = (sub?.plans as any)?.max_ai_requests ?? 50;
+      const maxAI = (sub?.plans as Record<string, unknown>)?.max_ai_requests as number ?? 50;
 
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
@@ -128,7 +145,7 @@ Deno.serve(async (req) => {
       content: context ? `${context}\n\n${prompt}` : prompt,
     });
 
-    console.log("[generate-ai-analysis] Calling Lovable AI Gateway...");
+    // console.log removed per lint rules
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -181,7 +198,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`[generate-ai-analysis] Response received (${tokenUsage} tokens)`);
+    // AI response processed
 
     return new Response(
       JSON.stringify({
