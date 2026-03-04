@@ -80,6 +80,16 @@ Deno.serve(async (req) => {
     const results: Record<string, number> = { forecast: 0, recurring: 0, health: 0 };
 
     for (const org of orgs || []) {
+      // Idempotency lock: skip if already processed today
+      const lockJobType = jobType === 'all' ? 'all' : jobType;
+      const { error: lockError } = await supabaseAdmin
+        .from("job_executions")
+        .insert({ job_type: lockJobType, organization_id: org.id });
+      if (lockError) {
+        console.warn(`[JOBS] Skipping org ${org.id} — already processed today or lock error`);
+        continue;
+      }
+
       // Cashflow Forecast
       if (jobType === 'all' || jobType === 'forecast') {
         try {
