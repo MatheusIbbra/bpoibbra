@@ -249,6 +249,13 @@ const Index = () => {
               </Card>
             </AnimatedCard>
 
+            {/* DISCIPLINA FINANCEIRA — mobile only (abaixo de Patrimônio) */}
+            <div className="lg:hidden">
+              <AnimatedCard delay={0.03}>
+                <FinancialDisciplineScore selectedMonth={selectedMonth} />
+              </AnimatedCard>
+            </div>
+
             {/* 2 — EVOLUÇÃO FINANCEIRA (12 meses) */}
             <AnimatedCard delay={0.05}>
               <Card>
@@ -493,10 +500,12 @@ const Index = () => {
                 </Card>
               </AnimatedCard>
 
-              {/* DISCIPLINA FINANCEIRA */}
-              <AnimatedCard delay={0.18}>
-                <FinancialDisciplineScore selectedMonth={selectedMonth} />
-              </AnimatedCard>
+              {/* DISCIPLINA FINANCEIRA — desktop only */}
+              <div className="hidden lg:block">
+                <AnimatedCard delay={0.18}>
+                  <FinancialDisciplineScore selectedMonth={selectedMonth} />
+                </AnimatedCard>
+              </div>
 
               {/* 7 — ALERTAS FINANCEIROS */}
               <AnimatedCard delay={0.2}>
