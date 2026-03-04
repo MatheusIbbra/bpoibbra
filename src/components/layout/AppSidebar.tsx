@@ -158,7 +158,7 @@ export function AppSidebar() {
         {collapsed && (
           <button
             onClick={() => openUpgradeModal("general")}
-            className="mx-auto mb-1 h-8 w-8 rounded-lg bg-sidebar-accent/30 hover:bg-sidebar-accent/50 border border-sidebar-border/20 hover:border-sidebar-primary/30 flex items-center justify-center transition-all cursor-pointer"
+            className="mx-auto mb-1 h-8 w-8 rounded-lg bg-sidebar-accent/30 hover:bg-sidebar-accent/50 border border-sidebar-border/20 hover:border-sidebar-primary/30 flex items-center justify-center transition-all cursor-pointer self-center"
             title={currentPlan?.name || "Starter"}
           >
             {currentPlan?.slug?.toLowerCase() === 'pro' ? (

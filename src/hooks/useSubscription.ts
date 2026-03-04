@@ -41,7 +41,7 @@ export function useSubscription() {
         .from("organization_subscriptions")
         .select("*, plans(*)")
         .eq("organization_id", orgFilter.ids[0])
-        .eq("status", "active")
+        .in("status", ["active", "trialing", "past_due"])
         .maybeSingle();
 
       if (error) {

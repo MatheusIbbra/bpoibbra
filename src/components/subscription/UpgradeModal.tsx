@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, Crown, Zap, MessageCircle, Loader2, Gift } from "lucide-react";
+import { Check, X, Crown, Zap, MessageCircle, Loader2, Gift, Sparkles } from "lucide-react";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { cn } from "@/lib/utils";
@@ -20,11 +20,12 @@ const TRIGGER_MESSAGES: Record<string, string> = {
 };
 
 const PLAN_ICONS: Record<string, typeof Zap> = {
+  starter: Sparkles,
   plus: Zap,
   pro: Crown,
 };
 
-// Only these slugs can be purchased via Stripe checkout
+// These slugs can be purchased via Stripe checkout
 const PURCHASABLE_SLUGS = ["plus", "pro"];
 
 function formatLimit(value: number, suffix: string): string {
@@ -38,10 +39,9 @@ export function UpgradeModal() {
   const { currentPlan, plans } = useSubscription();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
-  // Filter only purchasable plans, sorted by sort_order
-  const purchasablePlans = plans
-    .filter((p) => PURCHASABLE_SLUGS.includes(p.slug.toLowerCase()))
-    .sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+  // Show all plans sorted by price
+  const allPlans = [...plans].sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+  const purchasablePlans = allPlans; // keep variable name for compatibility
 
   const handleContact = () => {
     const message = encodeURIComponent(
@@ -102,14 +102,17 @@ export function UpgradeModal() {
     return notIncluded;
   };
 
-  // Determine which plan is "highlight" (most expensive = pro)
+  // Determine which plan is "highlight" (most popular = Pro, the most expensive)
   const highlightSlug = purchasablePlans.length > 0
     ? purchasablePlans[purchasablePlans.length - 1].slug
-    : "pro";
+    : "Pro";
+
+  // Current plan slug for comparison
+  const currentSlugLower = (currentPlan?.slug || "starter").toLowerCase();
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeUpgradeModal()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 gap-0 border-0 [&>button.absolute]:text-white [&>button.absolute]:hover:text-white/80">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 gap-0 border-0 [&>button.absolute]:text-white [&>button.absolute]:hover:text-white/80">
         {/* Header */}
         <div className="bg-[hsl(var(--brand-deep))] text-white px-4 py-6 md:px-8 md:py-8 rounded-t-lg">
           <DialogHeader>
@@ -127,19 +130,20 @@ export function UpgradeModal() {
           <div className="flex justify-center mt-4">
             <div className="flex items-center gap-1.5 bg-white/10 text-white rounded-full px-3 py-1.5 text-xs font-medium">
               <Gift className="h-3.5 w-3.5" />
-              2 dias grátis — sem cobrança imediata
+              2 dias grátis nos planos pagos — sem cobrança imediata
             </div>
           </div>
         </div>
 
-        {/* Plans Grid */}
-        <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Plans Grid — always 3 columns on md+ */}
+        <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
           {purchasablePlans.map((plan) => {
             const slugLower = plan.slug.toLowerCase();
             const Icon = PLAN_ICONS[slugLower] || Zap;
-            const isCurrent = currentPlan?.slug?.toLowerCase() === slugLower;
+            const isCurrent = currentSlugLower === slugLower;
             const isLoading = loadingPlan === plan.slug;
             const isHighlight = plan.slug === highlightSlug;
+            const isStarter = slugLower === "starter";
             const features = buildFeatureList(plan);
             const notIncluded = buildNotIncluded(plan);
 
@@ -148,20 +152,21 @@ export function UpgradeModal() {
                 key={plan.slug}
                 className={cn(
                   "relative rounded-xl border-2 p-5 flex flex-col transition-all duration-300",
-                  isHighlight
-                    ? "border-[hsl(var(--brand-highlight))] shadow-lg"
-                    : "border-border hover:border-[hsl(var(--brand-highlight))]/50 hover:shadow-md",
-                  isCurrent && "bg-[hsl(var(--brand-light-blue))] dark:bg-accent/10"
+                  isCurrent
+                    ? "border-[hsl(var(--brand-highlight))] shadow-lg bg-[hsl(var(--brand-light-blue))] dark:bg-accent/10"
+                    : isHighlight
+                    ? "border-[hsl(var(--brand-highlight))]/60 shadow-md"
+                    : "border-border hover:border-[hsl(var(--brand-highlight))]/50 hover:shadow-md"
                 )}
               >
-                {isHighlight && (
+                {isCurrent && (
                   <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[hsl(var(--brand-highlight))] text-white border-0 px-3 text-xs">
-                    Mais popular
+                    Plano atual
                   </Badge>
                 )}
-                {isCurrent && (
-                  <Badge className="absolute -top-3 right-4 bg-muted text-foreground border border-border text-xs">
-                    Plano atual
+                {!isCurrent && isHighlight && (
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[hsl(var(--brand-deep))] text-white border-0 px-3 text-xs">
+                    Mais popular
                   </Badge>
                 )}
 
@@ -179,14 +184,22 @@ export function UpgradeModal() {
 
                 <div className="mb-4">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-bold text-foreground">
-                      R$ {plan.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </span>
-                    <span className="text-sm text-muted-foreground">/mês</span>
+                    {plan.price === 0 ? (
+                      <span className="text-3xl font-bold text-foreground">Grátis</span>
+                    ) : (
+                      <>
+                        <span className="text-3xl font-bold text-foreground">
+                          R$ {plan.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </span>
+                        <span className="text-sm text-muted-foreground">/mês</span>
+                      </>
+                    )}
                   </div>
-                  <p className="text-xs text-[hsl(var(--brand-highlight))] font-medium mt-1">
-                    Primeiros 2 dias grátis
-                  </p>
+                  {!isStarter && (
+                    <p className="text-xs text-[hsl(var(--brand-highlight))] font-medium mt-1">
+                      Primeiros 2 dias grátis
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2 flex-1 text-sm">
@@ -208,6 +221,10 @@ export function UpgradeModal() {
                   {isCurrent ? (
                     <Button variant="outline" className="w-full" disabled>
                       Plano atual
+                    </Button>
+                  ) : isStarter ? (
+                    <Button variant="outline" className="w-full" disabled>
+                      Plano gratuito
                     </Button>
                   ) : (
                     <Button
