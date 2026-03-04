@@ -9,7 +9,7 @@ import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import {
   BarChart3, TrendingUp, FileText, Brain,
   Wallet, Tag, Layers, Upload, Building,
-  User, Shield, Settings, LogOut, ChevronRight,
+  User, Shield, Settings, ChevronRight,
   Moon, Bell, ArrowUpRight, CreditCard, Target,
   PieChart, LayoutDashboard
 } from "lucide-react";
@@ -63,7 +63,7 @@ function MenuRow({ icon: Icon, label, onClick, trailing }: { icon: React.Element
 
 export function MobileMenuScreen({ onClose }: MobileMenuScreenProps) {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { openUpgradeModal } = useUpgradeModal();
 
@@ -200,16 +200,8 @@ export function MobileMenuScreen({ onClose }: MobileMenuScreenProps) {
           </div>
         </div>
 
-        {/* Sair */}
-        <div className="px-5 pb-8">
-          <button
-            onClick={async () => { onClose(); await signOut(); }}
-            className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border border-border/20 text-muted-foreground hover:text-foreground hover:bg-secondary/20 transition-colors"
-          >
-            <LogOut className="h-4 w-4" strokeWidth={1.5} />
-            <span className="text-sm font-medium">Sair do aplicativo</span>
-          </button>
-        </div>
+        {/* bottom padding */}
+        <div className="pb-8" />
       </div>
     </div>
   );
