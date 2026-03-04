@@ -58,13 +58,15 @@ export function useDisciplineScore(selectedMonth: Date): DisciplineScoreResult {
     // 20 pts: actual income >= 90% of target
     const incomeTarget = plan?.income_target ?? 0;
     const actualIncome = stats.monthlyIncome ?? 0;
-    if (incomeTarget > 0 && actualIncome >= incomeTarget * 0.9) {
-      total += 20;
-    } else if (incomeTarget > 0) {
-      tips.push("Receita abaixo de 90% da meta");
+    if (incomeTarget > 0) {
+      if (actualIncome >= incomeTarget * 0.9) {
+        total += 20;
+      } else if (actualIncome > 0) {
+        tips.push("Receita abaixo de 90% da meta");
+      }
+      // If no income at all in the month, silently skip (no false alert)
     } else {
-      total += 10;
-      tips.push("Defina uma meta de receita");
+      total += 10; // partial credit, no tip for income if no target set
     }
 
     // 10 pts: all transactions categorized
