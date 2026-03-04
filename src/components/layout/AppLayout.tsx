@@ -1,9 +1,10 @@
-import { ReactNode, useState, useCallback } from "react";
+import { ReactNode, useState, useCallback, useEffect } from "react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
 import { MobileHeader } from "./MobileHeader";
 import { MobileBottomNav } from "./MobileBottomNav";
+import { MobileMenuScreen } from "./MobileMenuScreen";
 import { BrandBackground } from "./BrandBackground";
 import { AIAssistantChat } from "@/components/ai/AIAssistantChat";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -26,6 +27,13 @@ export function AppLayout({ children, title }: AppLayoutProps) {
   const { user } = useAuth();
   const { availableOrganizations, isLoading: baseLoading } = useBaseFilter();
   useOpenFinanceLoginToast();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setMobileMenuOpen(prev => !prev);
+    window.addEventListener("ibbra:mobile-menu-toggle", handler);
+    return () => window.removeEventListener("ibbra:mobile-menu-toggle", handler);
+  }, []);
 
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     if (isMobile) return false;
@@ -77,6 +85,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
         </main>
 
         <MobileBottomNav />
+        {mobileMenuOpen && <MobileMenuScreen onClose={() => setMobileMenuOpen(false)} />}
         <AIAssistantChat isPaidUser={false} />
       </div>
     );
