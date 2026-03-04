@@ -2426,6 +2426,7 @@ export type Database = {
           linked_transaction_id: string | null
           normalized_description: string | null
           notes: string | null
+          operation_type: string | null
           organization_id: string | null
           paid_amount: number | null
           payment_date: string | null
@@ -2469,6 +2470,7 @@ export type Database = {
           linked_transaction_id?: string | null
           normalized_description?: string | null
           notes?: string | null
+          operation_type?: string | null
           organization_id?: string | null
           paid_amount?: number | null
           payment_date?: string | null
@@ -2512,6 +2514,7 @@ export type Database = {
           linked_transaction_id?: string | null
           normalized_description?: string | null
           notes?: string | null
+          operation_type?: string | null
           organization_id?: string | null
           paid_amount?: number | null
           payment_date?: string | null

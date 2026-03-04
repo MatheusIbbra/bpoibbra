@@ -136,11 +136,12 @@ export default function Movimentacoes() {
 
     switch (activeTab) {
       case "transacoes": {
-        // Investment/redemption — exclude secondary paired sides (validation_status=rejected)
+        // Investment/redemption — exclude secondary paired legs (is_ignored + rejected)
+        // Use operation_type for display (both legs show the user's intended operation)
         const invRed = allTransactions
           .filter(t =>
-            ["investment", "redemption"].includes(t.type) &&
-            (t as any).validation_status !== "rejected"
+            ["investment", "redemption"].includes(t.operation_type ?? t.type) &&
+            !t.is_ignored
           )
           .filter(t => !search || t.description?.toLowerCase().includes(search_lower))
           .map(t => ({ ...t, _kind: "transaction" as const }));

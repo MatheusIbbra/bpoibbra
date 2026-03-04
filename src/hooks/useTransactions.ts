@@ -189,6 +189,8 @@ function buildPairedTransactions(
   userId: string,
   organizationId: string,
 ): { primary: TransactionInsert; secondary: TransactionInsert } {
+  const userFacingType = transaction.type; // the operation the user chose — never changes
+
   const base = {
     description: transaction.description,
     amount: transaction.amount,
@@ -201,12 +203,20 @@ function buildPairedTransactions(
     user_id: userId,
     organization_id: organizationId,
     is_ignored: false,
+    // operation_type = what the user did. ALWAYS the same on both legs.
+    operation_type: userFacingType,
   };
 
   if (transaction.type === "investment") {
     // APORTE: origin (checking) → destination (investment)
-    // Primary = origin account, type=investment (DB: -X, correct for debit)
-    // Secondary = destination account, type=redemption (DB: +X, correct for credit) — hidden from reports
+    // Both legs show operation_type=investment.
+    // DB type differs only for balance sign math:
+    //   Primary  (origin, debit):       type=investment → calculate_account_balance: -X ✓
+    //   Secondary (destination, credit): type=redemption → calculate_account_balance: +X ✓
+    // Secondary is hidden from all reports (is_ignored=true, validation_status=rejected).
+    if (!transaction.destination_account_id) {
+      throw new Error("Aporte requer conta de origem e conta de investimento");
+    }
     const primary: TransactionInsert = {
       ...base,
       type: "investment",
@@ -216,34 +226,41 @@ function buildPairedTransactions(
     };
     const secondary: TransactionInsert = {
       ...base,
-      type: "redemption", // DB sign: +X → destination balance increases ✓
-      account_id: transaction.destination_account_id!,
-      validation_status: "rejected", // hidden from P&L reports
+      type: "redemption", // DB sign trick: +X → destination balance increases ✓
+      account_id: transaction.destination_account_id,
+      validation_status: "rejected",
       is_ignored: true,
     };
     return { primary, secondary };
   } else if (transaction.type === "redemption") {
     // RESGATE: origin (investment) → destination (checking)
-    // Primary = destination account, type=redemption (DB: +X, correct for credit)
-    // Secondary = origin (investment) account, type=investment (DB: -X, correct for debit) — hidden from reports
+    // Both legs show operation_type=redemption.
+    // DB type:
+    //   Primary  (destination, credit): type=redemption → +X ✓
+    //   Secondary (origin, debit):       type=investment  → -X ✓
+    if (!transaction.destination_account_id) {
+      throw new Error("Resgate requer conta de investimento e conta de destino");
+    }
     const primary: TransactionInsert = {
       ...base,
       type: "redemption",
-      account_id: transaction.destination_account_id!,
+      account_id: transaction.destination_account_id,
       validation_status: "pending_validation",
       is_ignored: false,
     };
     const secondary: TransactionInsert = {
       ...base,
-      type: "investment", // DB sign: -X → origin (investment acct) balance decreases ✓
+      type: "investment", // DB sign trick: -X → origin (investment acct) balance decreases ✓
       account_id: transaction.account_id,
-      validation_status: "rejected", // hidden from P&L reports
+      validation_status: "rejected",
       is_ignored: true,
     };
     return { primary, secondary };
   } else {
-    // TRANSFERÊNCIA: origin → destination (same-type internal transfer)
-    // transfer type = 0 in DB, so we use expense/income for balance effect but keep is_ignored on secondary
+    // TRANSFERÊNCIA: origin → destination
+    if (!transaction.destination_account_id) {
+      throw new Error("Transferência requer conta de origem e conta de destino");
+    }
     const primary: TransactionInsert = {
       ...base,
       type: "transfer",
@@ -254,7 +271,7 @@ function buildPairedTransactions(
     const secondary: TransactionInsert = {
       ...base,
       type: "transfer",
-      account_id: transaction.destination_account_id!,
+      account_id: transaction.destination_account_id,
       validation_status: "rejected",
       is_ignored: true,
     };
@@ -401,19 +418,42 @@ export function useUpdateTransaction() {
 
   return useMutation({
     mutationFn: async ({ id, ...transaction }: { id: string } & Partial<CreateTransactionInput>) => {
-      // Remove fields that don't exist in the transactions table
       const { destination_account_id, linked_existing_id, ...validFields } = transaction;
-      
       const updateData: TransactionUpdate = validFields;
-      
+
       const { data, error } = await supabase
         .from("transactions")
         .update(updateData)
         .eq("id", id)
-        .select()
+        .select("id, linked_transaction_id, validation_status, is_ignored")
         .single();
-      
+
       if (error) throw error;
+
+      // Sync shared fields to the linked secondary leg (description, amount, date, notes, status)
+      if (data?.linked_transaction_id) {
+        const { data: linkedTx } = await supabase
+          .from("transactions")
+          .select("id, validation_status, is_ignored, linked_transaction_id")
+          .eq("id", data.linked_transaction_id)
+          .single();
+
+        // Only sync to the hidden secondary leg (the balance-correction counterpart)
+        if (linkedTx?.is_ignored && linkedTx.validation_status === "rejected" &&
+            linkedTx.linked_transaction_id === id) {
+          const syncFields: Partial<TransactionUpdate> = {};
+          if (validFields.description !== undefined) syncFields.description = validFields.description;
+          if (validFields.amount !== undefined) syncFields.amount = validFields.amount;
+          if (validFields.date !== undefined) syncFields.date = validFields.date;
+          if (validFields.notes !== undefined) syncFields.notes = validFields.notes;
+          if (validFields.status !== undefined) syncFields.status = validFields.status;
+
+          if (Object.keys(syncFields).length > 0) {
+            await supabase.from("transactions").update(syncFields).eq("id", linkedTx.id);
+          }
+        }
+      }
+
       return data;
     },
     onSuccess: () => {
