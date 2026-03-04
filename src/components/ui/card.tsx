@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({
   className,
   ...props
-}, ref) => <div ref={ref} data-slot="card" className={cn("rounded-[20px] border border-border/30 bg-card text-card-foreground shadow-fintech transition-all duration-200", className)} {...props} />);
+}, ref) => <div ref={ref} data-slot="card" className={cn("rounded-[20px] bg-card text-card-foreground shadow-fintech transition-all duration-200", className)} {...props} />);
 Card.displayName = "Card";
 const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({
   className,

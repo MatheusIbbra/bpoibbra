@@ -5,8 +5,8 @@
 @tailwind utilities;
 
 /* ============================================
-   IBBRA — Premium Fintech Design System
-   Mobile-first · Elegant · Secure · Modern
+   IBBRA — Premium Wealth Intelligence
+   Minimal · Spacious · Strategic · Apple-like
    ============================================ */
 
 @layer base {
@@ -19,27 +19,27 @@
     --brand-cream-deep: 18 14% 77%;
     --brand-coral: 14 100% 54%;
 
-    /* ── Core surfaces — Institutional cream fintech ── */
-    --background: 30 27% 95%;
-    --foreground: 213 80% 13%;
+    /* ── Core surfaces — Institutional warm cream ── */
+    --background: 22 24% 91%;
+    --foreground: 0 0% 7%;
 
     --card: 0 0% 100%;
-    --card-foreground: 213 80% 13%;
+    --card-foreground: 0 0% 7%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 213 80% 13%;
+    --popover-foreground: 0 0% 7%;
 
     /* ── Primary — IBBRA Deep Blue ── */
-    --primary: 213 80% 13%;
+    --primary: 213 72% 16%;
     --primary-foreground: 0 0% 100%;
 
     /* ── Secondary ── */
     --secondary: 220 14% 96%;
-    --secondary-foreground: 213 80% 13%;
+    --secondary-foreground: 0 0% 7%;
 
     /* ── Muted — Soft neutrals ── */
     --muted: 220 14% 96%;
-    --muted-foreground: 215 14% 46%;
+    --muted-foreground: 0 0% 42%;
 
     /* ── Accent — Highlight Blue ── */
     --accent: 210 100% 36%;
@@ -53,14 +53,14 @@
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
-    --warning-foreground: 213 80% 13%;
+    --warning-foreground: 0 0% 7%;
 
     --info: 210 100% 36%;
     --info-foreground: 0 0% 100%;
 
     /* ── Borders — Ultra subtle ── */
-    --border: 220 14% 92%;
-    --input: 220 14% 92%;
+    --border: 220 10% 90%;
+    --input: 220 10% 90%;
     --ring: 210 100% 36%;
 
     --radius: 1.25rem;
@@ -161,7 +161,6 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* ── Modern Typography — Clean sans-serif ── */
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     @apply font-bold;
@@ -169,7 +168,6 @@
     line-height: 1.2;
   }
 
-  /* ── Minimal Scrollbar ── */
   ::-webkit-scrollbar {
     width: 3px;
     height: 3px;
@@ -198,7 +196,6 @@
    UTILITIES
    ════════════════════════════════════════════ */
 @layer utilities {
-  /* Glass */
   .glass {
     @apply bg-card/80 backdrop-blur-xl border border-border/30;
   }
@@ -207,19 +204,17 @@
     @apply bg-card/95 backdrop-blur-2xl border border-border/50;
   }
 
-  /* ── Fintech Shadows ── */
+  /* ── Premium Shadows ── */
   .shadow-fintech {
     box-shadow:
-      0 0 0 1px hsl(var(--border) / 0.4),
-      0 2px 8px -2px rgb(0 0 0 / 0.04),
-      0 6px 20px -4px rgb(0 0 0 / 0.05);
+      0 1px 2px rgb(0 0 0 / 0.03),
+      0 8px 30px rgb(0 0 0 / 0.04);
   }
 
   .shadow-fintech-lg {
     box-shadow:
-      0 0 0 1px hsl(var(--border) / 0.3),
-      0 4px 12px -2px rgb(0 0 0 / 0.05),
-      0 12px 36px -8px rgb(0 0 0 / 0.08);
+      0 2px 4px rgb(0 0 0 / 0.03),
+      0 12px 40px rgb(0 0 0 / 0.06);
   }
 
   .shadow-fintech-nav {
@@ -228,19 +223,16 @@
       0 -1px 6px -2px rgb(0 0 0 / 0.04);
   }
 
-  /* Legacy aliases */
   .shadow-executive {
     box-shadow:
-      0 0 0 1px hsl(var(--border) / 0.5),
-      0 2px 8px -2px rgb(0 0 0 / 0.04),
-      0 6px 20px -4px rgb(0 0 0 / 0.06);
+      0 1px 2px rgb(0 0 0 / 0.03),
+      0 8px 30px rgb(0 0 0 / 0.04);
   }
 
   .shadow-executive-lg {
     box-shadow:
-      0 0 0 1px hsl(var(--border) / 0.3),
-      0 4px 12px -2px rgb(0 0 0 / 0.05),
-      0 12px 36px -8px rgb(0 0 0 / 0.08);
+      0 2px 4px rgb(0 0 0 / 0.03),
+      0 12px 40px rgb(0 0 0 / 0.06);
   }
 
   .shadow-accent {
@@ -249,7 +241,6 @@
       0 4px 14px -4px hsl(var(--accent) / 0.12);
   }
 
-  /* ── Card Hover ── */
   .card-hover {
     @apply transition-all duration-300 ease-out;
   }
@@ -258,7 +249,6 @@
     @apply shadow-fintech-lg -translate-y-0.5;
   }
 
-  /* ── Premium Card Glow ── */
   .card-glow {
     @apply relative overflow-hidden;
   }
@@ -273,12 +263,10 @@
     @apply opacity-100;
   }
 
-  /* ── Focus Ring ── */
   .focus-ring {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
   }
 
-  /* ── Brand utilities ── */
   .text-brand-blue {
     color: hsl(var(--accent));
   }
@@ -295,7 +283,6 @@
     background-color: hsl(var(--accent) / 0.06);
   }
 
-  /* ── Status ── */
   .status-success {
     @apply bg-success/8 text-success border-success/12;
   }
@@ -317,9 +304,8 @@
    COMPONENT VARIANTS
    ════════════════════════════════════════════ */
 @layer components {
-  /* ── Fintech Card ── */
   .card-executive {
-    @apply bg-card rounded-[20px] border border-border/30 shadow-fintech;
+    @apply bg-card rounded-[20px] shadow-fintech;
   }
 
   .card-executive-hover {
@@ -331,7 +317,6 @@
     border-left-color: hsl(var(--accent));
   }
 
-  /* ── Premium Input ── */
   .input-executive {
     @apply rounded-2xl transition-all duration-200;
     background-color: hsl(var(--card));
@@ -342,7 +327,6 @@
     box-shadow: 0 0 0 3px hsl(var(--accent) / 0.06);
   }
 
-  /* ── Sidebar ── */
   .sidebar-premium {
     background: linear-gradient(180deg,
       hsl(var(--sidebar-background)) 0%,
@@ -350,7 +334,6 @@
     );
   }
 
-  /* ── Badges ── */
   .badge-executive {
     @apply bg-accent/6 text-accent border-accent/12 font-medium;
   }
@@ -359,7 +342,6 @@
     @apply bg-accent/10 text-accent border border-accent/20 font-medium;
   }
 
-  /* ── Institutional separator ── */
   .separator-institutional {
     @apply border-t border-border/20;
   }
@@ -377,13 +359,11 @@
    MOBILE PREMIUM OVERRIDES
    ════════════════════════════════════════════ */
 @media (max-width: 768px) {
-  /* Force 20px radius on all cards */
   [data-slot="card"],
   .card-executive {
     border-radius: 20px !important;
   }
 
-  /* Generous spacing between elements */
   .responsive-stat-card {
     @apply p-5;
   }
@@ -392,7 +372,6 @@
     @apply text-lg;
   }
 
-  /* Large touch targets */
   button, a, [role="button"] {
     min-height: 44px;
   }
