@@ -66,9 +66,13 @@ export default function Transacoes() {
     search: search || undefined,
   });
 
-  // Filter to only show transfer, investment, and redemption types
+  // Filter to only show transfer, investment, and redemption types.
+  // Exclude is_ignored=true rows — those are internal balance-correction legs
+  // (e.g. the "redemption" leg created for the credit side of an APORTE),
+  // not user-facing transactions.
   const transactions = allTransactions?.filter(t => 
     ["transfer", "investment", "redemption"].includes(t.type) &&
+    !t.is_ignored &&
     (typeFilter === "all" || t.type === typeFilter)
   ) || [];
 

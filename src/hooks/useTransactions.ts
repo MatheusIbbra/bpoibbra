@@ -385,6 +385,9 @@ export function useCreateTransaction() {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["monthly-plan"] });
+      queryClient.invalidateQueries({ queryKey: ["budget-analysis"] });
+      queryClient.invalidateQueries({ queryKey: ["discipline-score"] });
       toast.success("Transação criada com sucesso!");
     },
     onError: (error) => {
@@ -418,6 +421,9 @@ export function useUpdateTransaction() {
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
       queryClient.invalidateQueries({ queryKey: ["pending-transactions-count"] });
+      queryClient.invalidateQueries({ queryKey: ["monthly-plan"] });
+      queryClient.invalidateQueries({ queryKey: ["budget-analysis"] });
+      queryClient.invalidateQueries({ queryKey: ["discipline-score"] });
       toast.success("Transação atualizada!");
     },
     onError: (error) => {
@@ -467,6 +473,9 @@ export function useDeleteTransaction() {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["monthly-plan"] });
+      queryClient.invalidateQueries({ queryKey: ["budget-analysis"] });
+      queryClient.invalidateQueries({ queryKey: ["discipline-score"] });
       toast.success("Transação excluída!");
     },
     onError: (error) => {
