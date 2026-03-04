@@ -1,10 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 interface AnalysisRequest {
   prompt: string;
@@ -16,6 +11,8 @@ interface AnalysisRequest {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -76,7 +73,6 @@ Deno.serve(async (req) => {
     if (organization_id) {
       const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-      // Get plan limit
       const { data: sub } = await adminClient
         .from("organization_subscriptions")
         .select("plan_id, plans!inner(max_ai_requests)")
@@ -86,7 +82,6 @@ Deno.serve(async (req) => {
 
       const maxAI = (sub?.plans as any)?.max_ai_requests ?? 50;
 
-      // Count AI requests this month
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
@@ -103,7 +98,6 @@ Deno.serve(async (req) => {
       if (currentAI >= maxAI) {
         console.log(`[generate-ai-analysis] AI limit reached for org ${organization_id}: ${currentAI}/${maxAI}`);
 
-        // Log the blocked request
         await adminClient.from("api_usage_logs").insert({
           organization_id,
           endpoint: "ai",
@@ -177,7 +171,6 @@ Deno.serve(async (req) => {
     const textContent = aiData.choices?.[0]?.message?.content || "";
     const tokenUsage = aiData.usage?.total_tokens || 0;
 
-    // Log successful AI usage
     if (organization_id) {
       const adminClient = createClient(supabaseUrl, serviceRoleKey);
       await adminClient.from("api_usage_logs").insert({
@@ -200,6 +193,7 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error("[generate-ai-analysis] Unexpected error:", error);
+    const corsHeaders = getCorsHeaders(req);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

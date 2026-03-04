@@ -2,8 +2,8 @@ import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const PLAN_SLUG_MAP: Record<string, string> = {
-  "price_1T6XCyKCPyKzKOXK1hXKff8h": "plus",
-  "price_1T6XDZKCPyKzKOXK9kQPmKEn": "pro",
+  [Deno.env.get("STRIPE_PRICE_PLUS") ?? ""]: "plus",
+  [Deno.env.get("STRIPE_PRICE_PRO") ?? ""]: "pro",
 };
 
 Deno.serve(async (req) => {
