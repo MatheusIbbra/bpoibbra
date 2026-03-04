@@ -105,7 +105,7 @@ export function useDashboardStats(selectedMonth?: Date) {
       
       if (accountsData) {
         for (const account of accountsData) {
-          if (account.account_type === 'credit_card' || account.account_type === 'investment') continue;
+          if (account.account_type === 'credit_card') continue;
           
           if (localAccountsWithOF.has(account.id)) {
             totalAccountBalance += ofBalanceByLocalAccount.get(account.id) || 0;
