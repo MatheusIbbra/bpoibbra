@@ -362,6 +362,23 @@ export default function Onboarding() {
         throw rpcError;
       }
 
+      // Import Google profile picture if available and no avatar set yet
+      const googlePicture = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+      if (googlePicture) {
+        const { data: currentProfile } = await supabase
+          .from("profiles")
+          .select("avatar_url")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        
+        if (!currentProfile?.avatar_url) {
+          await supabase
+            .from("profiles")
+            .update({ avatar_url: googlePicture })
+            .eq("user_id", user.id);
+        }
+      }
+
       // Enrich profile with IBBRA matriz fields if client is validated
       if (validationResult?.found && isIbbraClient) {
         await supabase

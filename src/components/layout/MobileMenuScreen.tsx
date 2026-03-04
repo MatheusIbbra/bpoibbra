@@ -1,34 +1,35 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import {
   BarChart3, TrendingUp, FileText, Brain,
   Wallet, Tag, Layers, Upload, Building,
-  User, Shield, Settings, LogOut, ChevronRight
+  User, Shield, Settings, LogOut, ChevronRight,
+  Moon, Bell, ArrowUpRight, CreditCard, Target,
+  PieChart, LayoutDashboard
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 const reportItems = [
-  { label: "Relatórios", icon: BarChart3, path: "/relatorios" },
+  { label: "Movimentações", icon: BarChart3, path: "/movimentacoes" },
   { label: "Fluxo de Caixa", icon: TrendingUp, path: "/relatorio-fluxo-caixa" },
   { label: "DRE", icon: FileText, path: "/relatorio-dre" },
+  { label: "Orçamento", icon: Target, path: "/analise-orcamento" },
+  { label: "Demonstrativo", icon: LayoutDashboard, path: "/demonstrativo-financeiro" },
+  { label: "Tipo Financeiro", icon: PieChart, path: "/relatorios" },
+  { label: "Análise Categorias", icon: CreditCard, path: "/relatorios" },
   { label: "Análises Estratégicas", icon: Brain, path: "/relatorios" },
 ];
 
 const cadastroItems = [
   { label: "Contas", icon: Wallet, path: "/contas" },
   { label: "Categorias", icon: Tag, path: "/categorias" },
-  { label: "Centros de Custo", icon: Layers, path: "/centros-custo" },
-  { label: "Importar Extratos", icon: Upload, path: "/importacoes" },
+  { label: "Grupo de Custos", icon: Layers, path: "/centros-custo" },
   { label: "Open Finance", icon: Building, path: "/open-finance" },
-];
-
-const quickSettingsItems = [
-  { label: "Perfil", icon: User, path: "/perfil" },
-  { label: "Segurança", icon: Shield, path: "/perfil" },
-  { label: "Preferências", icon: Settings, path: "/perfil" },
 ];
 
 interface MobileMenuScreenProps {
@@ -43,7 +44,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function MenuRow({ icon: Icon, label, onClick }: { icon: React.ElementType; label: string; onClick: () => void }) {
+function MenuRow({ icon: Icon, label, onClick, trailing }: { icon: React.ElementType; label: string; onClick?: () => void; trailing?: React.ReactNode }) {
   return (
     <button
       onClick={onClick}
@@ -55,7 +56,7 @@ function MenuRow({ icon: Icon, label, onClick }: { icon: React.ElementType; labe
         </div>
         <span className="text-sm text-foreground">{label}</span>
       </div>
-      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30" />
+      {trailing || <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30" />}
     </button>
   );
 }
@@ -63,6 +64,8 @@ function MenuRow({ icon: Icon, label, onClick }: { icon: React.ElementType; labe
 export function MobileMenuScreen({ onClose }: MobileMenuScreenProps) {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const { openUpgradeModal } = useUpgradeModal();
 
   const { data: profile } = useQuery({
     queryKey: ["user-profile", user?.id],
@@ -88,7 +91,7 @@ export function MobileMenuScreen({ onClose }: MobileMenuScreenProps) {
         .eq("status", "active")
         .limit(1)
         .maybeSingle();
-      return (data?.plans as { name: string } | null)?.name || "Plano Essencial";
+      return (data?.plans as { name: string } | null)?.name || "Plano Free";
     },
     enabled: !!user?.id,
   });
@@ -127,18 +130,24 @@ export function MobileMenuScreen({ onClose }: MobileMenuScreenProps) {
                 {profile?.full_name || "Usuário"}
               </p>
               <p className="text-xs text-muted-foreground truncate mt-0.5">{user?.email}</p>
-              <span
-                className="inline-flex items-center mt-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider"
+              <button
+                onClick={() => openUpgradeModal()}
+                className="inline-flex items-center gap-1 mt-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider hover:opacity-80 transition-opacity"
                 style={{ backgroundColor: "hsl(var(--brand-deep)/0.07)", color: "hsl(var(--brand-deep))" }}
               >
-                {subscription || "Essencial"}
-              </span>
+                {subscription || "Plano Free"}
+                <ArrowUpRight className="h-2.5 w-2.5" />
+              </button>
             </div>
           </div>
 
           {/* Quick settings */}
           <div className="flex gap-2 mt-4">
-            {quickSettingsItems.map((item) => (
+            {[
+              { label: "Perfil", icon: User, path: "/perfil" },
+              { label: "Segurança", icon: Shield, path: "/perfil" },
+              { label: "Preferências", icon: Settings, path: "/perfil" },
+            ].map((item) => (
               <button
                 key={item.label}
                 onClick={() => handleNav(item.path)}
@@ -152,6 +161,24 @@ export function MobileMenuScreen({ onClose }: MobileMenuScreenProps) {
         </div>
 
         <div className="px-5 py-5 space-y-5">
+          {/* Configurações */}
+          <div>
+            <SectionLabel>Configurações</SectionLabel>
+            <div className="rounded-2xl border border-border/15 overflow-hidden divide-y divide-border/15">
+              <MenuRow icon={Bell} label="Notificações" onClick={() => handleNav("/perfil")} />
+              <MenuRow icon={Settings} label="Configurações" onClick={() => handleNav("/perfil")} />
+              <div className="w-full flex items-center justify-between px-4 py-3 bg-secondary/10">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-xl bg-secondary/40 flex items-center justify-center shrink-0">
+                    <Moon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                  </div>
+                  <span className="text-sm text-foreground">Modo Escuro</span>
+                </div>
+                <Switch checked={theme === "dark"} onCheckedChange={toggleTheme} />
+              </div>
+            </div>
+          </div>
+
           {/* Relatórios */}
           <div>
             <SectionLabel>Relatórios</SectionLabel>
