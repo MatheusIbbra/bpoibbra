@@ -72,16 +72,24 @@ Deno.serve(async (req) => {
       .eq("status", "active")
       .maybeSingle();
 
-    const plan = (sub?.plans as any) || {
-      max_transactions: 200,
-      max_ai_requests: 10,
-      max_bank_connections: 1,
-      allow_forecast: false,
-      allow_simulator: false,
-      allow_anomaly_detection: false,
-      allow_benchmarking: false,
-      name: "Starter",
-    };
+    // If no active subscription found, fetch the Starter plan from DB as fallback
+    let plan = (sub?.plans as any);
+    if (!plan) {
+      const { data: starterPlan } = await adminClient
+        .from("plans")
+        .select("max_transactions, max_ai_requests, max_bank_connections, allow_forecast, allow_simulator, allow_anomaly_detection, name")
+        .eq("slug", "starter")
+        .maybeSingle();
+      plan = starterPlan || {
+        max_transactions: 5000,
+        max_ai_requests: 0,
+        max_bank_connections: 10,
+        allow_forecast: true,
+        allow_simulator: true,
+        allow_anomaly_detection: false,
+        name: "Starter",
+      };
+    }
 
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
