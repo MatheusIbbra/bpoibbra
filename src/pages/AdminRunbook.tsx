@@ -17,6 +17,8 @@ const AdminRunbook = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { isAdmin, isLoading: rolesLoading } = useIsAdmin();
+  const [content, setContent] = useState<string>("");
+  const [loadingDoc, setLoadingDoc] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
