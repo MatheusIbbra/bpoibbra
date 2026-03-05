@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
+import { useCurrentUserRole } from "@/hooks/useUserRoles";
 import {
   BarChart3, TrendingUp, FileText, Brain,
   Wallet, Tag, Layers, Upload, Building,
