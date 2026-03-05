@@ -5,6 +5,7 @@ import { AppHeader } from "./AppHeader";
 import { MobileHeader } from "./MobileHeader";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { MobileMenuScreen } from "./MobileMenuScreen";
+import { MobileFabMenu } from "./MobileFabMenu";
 import { BrandBackground } from "./BrandBackground";
 import { AIAssistantChat } from "@/components/ai/AIAssistantChat";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -28,11 +29,17 @@ export function AppLayout({ children, title }: AppLayoutProps) {
   const { availableOrganizations, isLoading: baseLoading } = useBaseFilter();
   useOpenFinanceLoginToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [fabMenuOpen, setFabMenuOpen] = useState(false);
 
   useEffect(() => {
-    const handler = () => setMobileMenuOpen(prev => !prev);
-    window.addEventListener("ibbra:mobile-menu-toggle", handler);
-    return () => window.removeEventListener("ibbra:mobile-menu-toggle", handler);
+    const menuHandler = () => setMobileMenuOpen(prev => !prev);
+    const fabHandler = () => setFabMenuOpen(prev => !prev);
+    window.addEventListener("ibbra:mobile-menu-toggle", menuHandler);
+    window.addEventListener("ibbra:fab-toggle", fabHandler);
+    return () => {
+      window.removeEventListener("ibbra:mobile-menu-toggle", menuHandler);
+      window.removeEventListener("ibbra:fab-toggle", fabHandler);
+    };
   }, []);
 
   const [sidebarOpen, setSidebarOpen] = useState(() => {
