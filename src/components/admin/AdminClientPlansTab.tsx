@@ -56,7 +56,7 @@ export function AdminClientPlansTab() {
       const { data: subs, error: subError } = await supabase
         .from("organization_subscriptions")
         .select("*, plans(name, price, slug)")
-        .eq("status", "active");
+        .in("status", ["active", "trialing", "past_due"]);
       if (subError) throw subError;
 
       const subsMap = new Map<string, any>();
