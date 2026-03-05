@@ -52,6 +52,10 @@ export function DREContent() {
     localStorage.setItem("report-basis-dre", basis);
   }, [basis]);
   const [costCenterId, setCostCenterId] = useState<string | undefined>(undefined);
+  // Expanded category id in DRE expense table
+  const [expandedCatKey, setExpandedCatKey] = useState<string | null>(null);
+  // Transaction being edited
+  const [editingTx, setEditingTx] = useState<any>(null);
 
   const { data: costCenters } = useCostCenters();
   const { data, isLoading } = useDREReport(dateRange.start, dateRange.end, basis, costCenterId);
