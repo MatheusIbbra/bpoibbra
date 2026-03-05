@@ -40,12 +40,25 @@ export function MobileHeader() {
   return (
     <header className="px-5 pt-[calc(env(safe-area-inset-top)+12px)] pb-3 max-w-[420px] mx-auto w-full">
       <div className="flex items-center justify-between">
-        {/* Logo */}
-        <img
-          src={theme === "dark" ? ibbraLogoWhite : ibbraLogoIcon}
-          alt="Ibbra"
-          className="h-7 object-contain"
-        />
+        {/* Left: Logo + greeting */}
+        <div className="flex items-center gap-3">
+          <img
+            src={theme === "dark" ? ibbraLogoWhite : ibbraLogoIcon}
+            alt="Ibbra"
+            className="h-7 object-contain"
+          />
+          {isHome && (
+            <div className="flex flex-col leading-tight">
+              <p className="text-muted-foreground/60 text-[10px] font-medium">Olá,</p>
+              <h2
+                className="text-[16px] font-light tracking-tight text-foreground leading-none"
+                style={{ fontFamily: "'Playfair Display', Georgia, serif", letterSpacing: "-0.015em" }}
+              >
+                {displayName.split(" ")[0]}
+              </h2>
+            </div>
+          )}
+        </div>
 
         {/* Right: only eye toggle */}
         <button
@@ -55,22 +68,6 @@ export function MobileHeader() {
           {showValues ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
         </button>
       </div>
-
-      {/* Institutional greeting — only on home */}
-      {isHome && (
-        <div className="mt-4 mb-1">
-          <p className="text-muted-foreground/60 text-xs font-medium">Olá,</p>
-          <h2
-            className="text-[24px] font-light tracking-tight text-foreground"
-            style={{ fontFamily: "'Playfair Display', Georgia, serif", letterSpacing: "-0.015em" }}
-          >
-            {displayName.split(" ")[0]}
-          </h2>
-          <p className="text-[10px] text-muted-foreground/50 mt-0.5 italic" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-            Mais que pensar em números, pensar em você.
-          </p>
-        </div>
-      )}
     </header>
   );
 }
