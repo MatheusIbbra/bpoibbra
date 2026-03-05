@@ -82,7 +82,10 @@ export function TransactionDialog({
   const [showLinkOption, setShowLinkOption] = useState(false);
   const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [saveRuleOpen, setSaveRuleOpen] = useState(false);
   const deleteTransaction = useDeleteTransaction();
+  const createRule = useCreateUserClassificationRule();
+
 
   const form = useForm<FormData>({
     resolver: zodResolver(transactionSchema),
