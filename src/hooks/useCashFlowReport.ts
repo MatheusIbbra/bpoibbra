@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { format, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval } from "date-fns";
-import { getLegacyInitialBalanceAdjustment } from "@/lib/legacy-initial-balance";
+import { getLegacyInitialBalanceAdjustment } from "@/lib/initial-balance-adjustment";
 import { parseLocalDate } from "@/lib/formatters";
 
 export type ReportBasis = "cash" | "accrual";
