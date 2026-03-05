@@ -19,6 +19,7 @@ import {
   ScrollText 
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/common/EmptyState";
 
 interface IntegrationLog {
   id: string;
