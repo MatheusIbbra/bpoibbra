@@ -56,7 +56,7 @@ export function AdminClientPlansTab() {
       const { data: subs, error: subError } = await supabase
         .from("organization_subscriptions")
         .select("*, plans(name, price, slug)")
-        .eq("status", "active");
+        .in("status", ["active", "trialing", "past_due"]);
       if (subError) throw subError;
 
       const subsMap = new Map<string, any>();
@@ -99,7 +99,7 @@ export function AdminClientPlansTab() {
         .from("organization_subscriptions")
         .select("id")
         .eq("organization_id", orgId)
-        .eq("status", "active")
+        .in("status", ["active", "trialing", "past_due"])
         .maybeSingle();
 
       if (existing) {
@@ -255,6 +255,9 @@ export function AdminClientPlansTab() {
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="text-xs text-muted-foreground">Sem plano</Badge>
+                        )}
+                        {org.subscription?.status === "trialing" && (
+                          <Badge variant="outline" className="text-xs text-warning border-warning/40 ml-1">Trial</Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-center">{org.member_count}</TableCell>

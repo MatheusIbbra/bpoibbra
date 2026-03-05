@@ -75,8 +75,10 @@ const Index = () => {
   }
   if (!user) return null;
 
+  // IMPORTANT: while baseLoading is true, userRole is still null — never show provisioning screen
+  // until we KNOW the user is not staff. This prevents the admin flicker.
   const isStaffRole = userRole && ["admin", "supervisor", "fa", "kam", "projetista"].includes(userRole);
-  const isProvisioning = !baseLoading && !isStaffRole && availableOrganizations.length === 0;
+  const isProvisioning = !baseLoading && userRole !== null && !isStaffRole && availableOrganizations.length === 0;
 
   // Poll for org provisioning
   useQuery({
