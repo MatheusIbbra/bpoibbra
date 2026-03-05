@@ -254,8 +254,8 @@ export default function Orcamentos() {
           </FadeCard>
 
           <FadeCard delay={200}>
-            <Card className="border-0 shadow-fintech overflow-hidden">
-              <div className="bg-gradient-to-r from-[hsl(var(--brand-deep))] to-[hsl(var(--brand-highlight))] p-6">
+            <Card className="border-0 shadow-fintech overflow-visible">
+              <div className="p-6">
                 <div className="flex items-center justify-end mb-4">
                   <div className="flex items-center gap-2">
                     {/* Saldo Livre tooltip */}
@@ -311,9 +311,9 @@ export default function Orcamentos() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex items-end justify-center gap-1">
-                    {/* Receita — left, smaller */}
-                    <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground flex-1">
+                  <div className="flex items-center justify-center gap-0 py-2">
+                    {/* Receita — left, slightly smaller */}
+                    <div className="flex flex-col items-center flex-1 min-w-0">
                       <GaugeChart
                         label="Receita"
                         valorPlanejado={effectiveIncome}
@@ -322,8 +322,8 @@ export default function Orcamentos() {
                         compact
                       />
                     </div>
-                    {/* Investimento — center, larger */}
-                    <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground flex-[1.3] scale-110 origin-bottom">
+                    {/* Investimento — center, larger, z-index elevated */}
+                    <div className="flex flex-col items-center flex-[1.15] min-w-0 relative z-10 scale-[1.12] origin-center mx-[-8px]">
                       <GaugeChart
                         label="Investimento"
                         valorPlanejado={planInvestment || 1}
@@ -332,8 +332,8 @@ export default function Orcamentos() {
                         compact
                       />
                     </div>
-                    {/* Despesas — right, smaller */}
-                    <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground flex-1">
+                    {/* Despesas — right, slightly smaller */}
+                    <div className="flex flex-col items-center flex-1 min-w-0">
                       <GaugeChart
                         label="Despesas"
                         valorPlanejado={totalBudget || 1}
@@ -501,77 +501,6 @@ export default function Orcamentos() {
           </div>
         </div>
 
-        {/* ═══════════════════════════════════════
-           4. DIAGNÓSTICO
-           ═══════════════════════════════════════ */}
-        <div className="space-y-3">
-          <FadeCard delay={600}>
-            <SectionTitle delay={600}>Diagnóstico</SectionTitle>
-          </FadeCard>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Projection */}
-            <FadeCard delay={640}>
-              <Card className="border-0 shadow-fintech h-full">
-                <CardContent className="p-7 space-y-4">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Projeção do Mês</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="min-w-0">
-                      <p className="text-[10px] text-muted-foreground mb-1">Orçamento</p>
-                      <p className="font-bold tabular-nums truncate" style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "clamp(1rem, 4vw, 1.5rem)" }}>
-                        <MaskedValue>{formatCurrency(totalBudget)}</MaskedValue>
-                      </p>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] text-muted-foreground mb-1">Projeção</p>
-                      <p
-                        className={cn("font-bold tabular-nums truncate", projectionDiff > 0 ? "text-destructive" : "text-success")}
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "clamp(1rem, 4vw, 1.5rem)" }}
-                      >
-                        <MaskedValue>{formatCurrency(projectedExpenses)}</MaskedValue>
-                      </p>
-                    </div>
-                  </div>
-                  {totalBudget > 0 && (
-                    <div className={cn("p-4 rounded-2xl text-sm font-medium flex items-center gap-2",
-                      projectionDiff > 0 ? "bg-destructive/8 text-destructive" : "bg-success/8 text-success"
-                    )}>
-                      {projectionDiff > 0 ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
-                      {projectionDiff > 0
-                        ? `Estouro previsto: ${formatCurrency(projectionDiff)}`
-                        : `Economia prevista: ${formatCurrency(Math.abs(projectionDiff))}`
-                      }
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </FadeCard>
-
-            {/* Variance */}
-            <FadeCard delay={700}>
-              <Card className="border-0 shadow-fintech h-full">
-                <CardContent className="p-7 space-y-4">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Planejado × Realizado</p>
-                  <div className={cn("p-6 rounded-2xl text-center",
-                    budgetRemaining >= 0 ? "bg-success/6" : "bg-destructive/6"
-                  )}>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Diferença</p>
-                    <p
-                      className={cn("text-[36px] font-bold leading-none", budgetRemaining >= 0 ? "text-success" : "text-destructive")}
-                      style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                    >
-                      {budgetRemaining >= 0 ? "-" : "+"}<MaskedValue>{formatCurrency(Math.abs(budgetRemaining))}</MaskedValue>
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </FadeCard>
-          </div>
-
-        </div>
       </div>
 
       {/* ══════════ DIALOGS ══════════ */}
