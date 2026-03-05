@@ -145,15 +145,7 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
   const pendingOrgIdRef = useRef<string | null>(null);
   const handledRef = useRef(false);
 
-  // Listen for FAB toggle from MobileBottomNav
-  useEffect(() => {
-    const handler = () => {
-      setIsMenuOpen((prev) => !prev);
-      setAccountSubMenuOpen(false);
-    };
-    window.addEventListener("ibbra:fab-toggle", handler);
-    return () => window.removeEventListener("ibbra:fab-toggle", handler);
-  }, []);
+  // FAB toggle is now handled exclusively by MobileFabMenu via AppLayout
   const openPluggyConnect = useOpenPluggyConnect();
   const savePluggyItem = useSavePluggyItem();
   const syncConnection = useSyncBankConnection();
