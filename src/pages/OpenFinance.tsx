@@ -75,13 +75,6 @@ const LoadingState = () => (
   </div>
 );
 
-const EmptyState = () => (
-  <div className="text-center py-6 text-muted-foreground">
-    <ScrollText className="h-8 w-8 mx-auto mb-2 opacity-50" aria-hidden="true" />
-    <p className="text-sm">Nenhuma atividade registrada</p>
-  </div>
-);
-
 const LogItem = ({ log }: { log: IntegrationLog }) => (
   <div 
     className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
