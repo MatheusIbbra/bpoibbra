@@ -16,7 +16,6 @@ import {
   CheckCircle2, 
   Clock, 
   AlertTriangle,
-  ScrollText 
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/common/EmptyState";
