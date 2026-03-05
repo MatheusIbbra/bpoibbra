@@ -234,7 +234,7 @@ export default function Orcamentos() {
         {/* Month Selector */}
         <FadeCard delay={0}>
           <div className="flex items-center justify-center">
-            <div className="inline-flex items-center rounded-full border border-border/25 bg-background/60 backdrop-blur-sm px-1 py-px">
+            <div className="inline-flex items-center rounded-full border border-border/30 bg-card/80 px-2 py-0.5">
               <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
             </div>
           </div>
