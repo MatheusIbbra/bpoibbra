@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConsentLogs } from "@/hooks/useConsentLogs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,24 +12,10 @@ import { toast } from "sonner";
 
 export function PrivacySection() {
   const { user } = useAuth();
-  const { consents, recordConsent, hasConsent } = useConsentLogs();
-  const { requests, requestExport } = useDataExport();
+  const { recordConsent, hasConsent } = useConsentLogs();
 
   const handleConsentToggle = (type: "marketing" | "data_processing", value: boolean) => {
     recordConsent.mutate({ consentType: type, consentGiven: value });
-  };
-
-  const statusBadge = (status: string) => {
-    switch (status) {
-      case "completed":
-        return <Badge variant="default"><CheckCircle className="h-3 w-3 mr-1" />Pronto</Badge>;
-      case "processing":
-        return <Badge variant="secondary"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Processando</Badge>;
-      case "failed":
-        return <Badge variant="destructive"><AlertCircle className="h-3 w-3 mr-1" />Falhou</Badge>;
-      default:
-        return <Badge variant="outline"><Clock className="h-3 w-3 mr-1" />Pendente</Badge>;
-    }
   };
 
   return (
@@ -78,7 +63,6 @@ export function PrivacySection() {
               disabled={recordConsent.isPending}
             />
           </div>
-
         </CardContent>
       </Card>
 
@@ -95,7 +79,7 @@ export function PrivacySection() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Ao solicitar a exclusão, todos os seus dados pessoais serão removidos permanentemente. 
+            Ao solicitar a exclusão, todos os seus dados pessoais serão removidos permanentemente.
             Esta ação é irreversível e pode levar até 15 dias úteis para ser processada.
           </p>
           <Button
@@ -103,7 +87,9 @@ export function PrivacySection() {
             size="sm"
             onClick={async () => {
               if (!user) return;
-              const confirmed = window.confirm("Tem certeza que deseja solicitar a exclusão de todos os seus dados? Esta ação é irreversível.");
+              const confirmed = window.confirm(
+                "Tem certeza que deseja solicitar a exclusão de todos os seus dados? Esta ação é irreversível."
+              );
               if (!confirmed) return;
               try {
                 const { error } = await supabase.from("data_deletion_requests").insert({
