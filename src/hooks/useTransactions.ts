@@ -399,12 +399,7 @@ export function useCreateTransaction() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
-      queryClient.invalidateQueries({ queryKey: ["monthly-plan"] });
-      queryClient.invalidateQueries({ queryKey: ["budget-analysis"] });
-      queryClient.invalidateQueries({ queryKey: ["discipline-score"] });
+      invalidateAllFinancialQueries(queryClient);
       toast.success("Transação criada com sucesso!");
     },
     onError: (error) => {
@@ -457,13 +452,7 @@ export function useUpdateTransaction() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
-      queryClient.invalidateQueries({ queryKey: ["pending-transactions-count"] });
-      queryClient.invalidateQueries({ queryKey: ["monthly-plan"] });
-      queryClient.invalidateQueries({ queryKey: ["budget-analysis"] });
-      queryClient.invalidateQueries({ queryKey: ["discipline-score"] });
+      invalidateAllFinancialQueries(queryClient);
       toast.success("Transação atualizada!");
     },
     onError: (error) => {
@@ -510,12 +499,7 @@ export function useDeleteTransaction() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
-      queryClient.invalidateQueries({ queryKey: ["monthly-plan"] });
-      queryClient.invalidateQueries({ queryKey: ["budget-analysis"] });
-      queryClient.invalidateQueries({ queryKey: ["discipline-score"] });
+      invalidateAllFinancialQueries(queryClient);
       toast.success("Transação excluída!");
     },
     onError: (error) => {
