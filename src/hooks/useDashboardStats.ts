@@ -131,14 +131,14 @@ export function useDashboardStats(selectedMonth?: Date) {
         }
       }
       
-      // Aggregate income/expenses from financial_events
-      const calcEventTotals = (events: { event_type: string; amount: number }[] | null) => {
-        if (!events) return { income: 0, expenses: 0 };
-        return (events as any[]).reduce(
-          (acc: { income: number; expenses: number }, ev: any) => {
-            const amt = Number(ev.amount);
-            if (ev.event_type === "income") acc.income += amt;
-            else if (ev.event_type === "expense" || ev.event_type === "loan_payment" || ev.event_type === "credit_card_payment") acc.expenses += amt;
+      // Aggregate income/expenses from transactions
+      const calcEventTotals = (txs: { type: string; amount: number }[] | null) => {
+        if (!txs) return { income: 0, expenses: 0 };
+        return (txs as any[]).reduce(
+          (acc: { income: number; expenses: number }, tx: any) => {
+            const amt = Number(tx.amount);
+            if (tx.type === "income") acc.income += amt;
+            else if (tx.type === "expense") acc.expenses += amt;
             return acc;
           },
           { income: 0, expenses: 0 }
