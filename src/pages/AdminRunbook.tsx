@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserRoles } from "@/hooks/useUserRoles";
+import { useIsAdmin } from "@/hooks/useUserRoles";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, ShieldAlert, Database, Wifi, Brain, Lock } from "lucide-react";
 
