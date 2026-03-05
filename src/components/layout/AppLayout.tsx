@@ -8,7 +8,7 @@ import { MobileMenuScreen } from "./MobileMenuScreen";
 import { MobileFabMenu } from "./MobileFabMenu";
 import { BrandBackground } from "./BrandBackground";
 import { AIAssistantChat } from "@/components/ai/AIAssistantChat";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobileOrTablet } from "@/hooks/use-breakpoint";
 import { useBaseFilter, useBaseFilterState } from "@/contexts/BaseFilterContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
