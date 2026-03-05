@@ -701,18 +701,80 @@ export function TransactionDialog({
               <TransactionComments transactionId={transaction.id} />
             )}
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" size="sm" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {transaction ? "Salvar" : "Criar"}
-              </Button>
+            <div className="flex items-center justify-between pt-2">
+              {/* Delete button — only when editing */}
+              {transaction ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-40"
+                          disabled={isOpenFinanceImported}
+                          onClick={() => setDeleteConfirmOpen(true)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Excluir
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {isOpenFinanceImported && (
+                      <TooltipContent side="top" className="max-w-[200px] text-xs">
+                        Movimentações importadas via Open Finance não podem ser excluídas manualmente.
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <span />
+              )}
+
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" size="sm" disabled={isLoading}>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {transaction ? "Salvar" : "Criar"}
+                </Button>
+              </div>
             </div>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
+
+    {/* Delete confirmation */}
+    <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir movimentação?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Esta ação não pode ser desfeita. A movimentação será removida permanentemente.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={async () => {
+              if (!transaction) return;
+              try {
+                await deleteTransaction.mutateAsync(transaction.id);
+                setDeleteConfirmOpen(false);
+                onOpenChange(false);
+              } catch (error) {
+                handleSupabaseError(error, "excluir transação");
+              }
+            }}
+          >
+            {deleteTransaction.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
