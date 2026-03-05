@@ -196,7 +196,7 @@ const Index = () => {
 
         {/* ── Month selector ── */}
         <div className="flex items-center justify-center">
-          <div className="inline-flex items-center rounded-full border border-border/30 bg-card/80 px-2 py-0.5">
+          <div className="inline-flex items-center rounded-full border border-border/30 bg-card/80 px-1.5 py-px">
             <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
           </div>
         </div>
