@@ -467,17 +467,17 @@ export default function Cadastros() {
                   <Upload className="h-4 w-4 text-muted-foreground" />
                   <CardTitle className="text-base font-semibold">Importar Extratos</CardTitle>
                 </div>
-                <p className="text-xs text-muted-foreground">Importe transações via arquivo OFX, CSV ou PDF</p>
+                <p className="text-xs text-muted-foreground">Importe transações via arquivo CSV do seu banco</p>
               </CardHeader>
               <CardContent className="px-6 pb-6">
                 <ImportExtractDialog
-                  trigger={
-                    <Button className="w-full sm:w-auto">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Selecionar Arquivo
-                    </Button>
-                  }
+                  open={importDialogOpen}
+                  onOpenChange={setImportDialogOpen}
                 />
+                <Button className="w-full sm:w-auto" onClick={() => setImportDialogOpen(true)}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Selecionar Arquivo
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
