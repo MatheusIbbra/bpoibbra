@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import { LogOut, CreditCard as CreditCardIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useQuery } from "@tanstack/react-query";
@@ -12,7 +12,7 @@ import {
   BarChart3, TrendingUp, FileText, Brain,
   Wallet, Tag, Layers, Upload, Building,
   User, Shield, Settings, ChevronRight,
-  Moon, Bell, ArrowUpRight, CreditCard, Target,
+  Moon, Bell, ArrowUpRight, Target,
   PieChart, LayoutDashboard
 } from "lucide-react";
 
