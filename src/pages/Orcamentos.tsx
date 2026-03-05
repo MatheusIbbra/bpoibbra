@@ -254,8 +254,8 @@ export default function Orcamentos() {
           </FadeCard>
 
           <FadeCard delay={200}>
-            <Card className="border-0 shadow-fintech overflow-visible">
-              <div className="p-6">
+            <div className="overflow-visible">
+              <div className="p-0">
                 <div className="flex items-center justify-end mb-4">
                   <div className="flex items-center gap-2">
                     {/* Saldo Livre tooltip */}

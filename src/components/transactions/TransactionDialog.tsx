@@ -3,7 +3,18 @@ import { z } from "zod";
 import { handleSupabaseError } from "@/lib/error-handler";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarIcon, Loader2, Link2, EyeOff, Check, ChevronsUpDown } from "lucide-react";
+import { CalendarIcon, Loader2, Link2, EyeOff, Check, ChevronsUpDown, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { TransactionComments } from "@/components/transactions/TransactionComments";
 import { format } from "date-fns";
