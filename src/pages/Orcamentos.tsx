@@ -311,9 +311,8 @@ export default function Orcamentos() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center gap-0 py-2">
-                    {/* Receita — left, slightly smaller */}
-                    <div className="flex flex-col items-center flex-1 min-w-0">
+                  <div className="grid grid-cols-3 py-4" style={{ gap: 32 }}>
+                    <div className="flex flex-col items-center">
                       <GaugeChart
                         label="Receita"
                         valorPlanejado={effectiveIncome}
@@ -322,8 +321,7 @@ export default function Orcamentos() {
                         compact
                       />
                     </div>
-                    {/* Investimento — center, larger, z-index elevated */}
-                    <div className="flex flex-col items-center flex-[1.15] min-w-0 relative z-10 scale-[1.12] origin-center mx-[-8px]">
+                    <div className="flex flex-col items-center">
                       <GaugeChart
                         label="Investimento"
                         valorPlanejado={planInvestment || 1}
@@ -332,8 +330,7 @@ export default function Orcamentos() {
                         compact
                       />
                     </div>
-                    {/* Despesas — right, slightly smaller */}
-                    <div className="flex flex-col items-center flex-1 min-w-0">
+                    <div className="flex flex-col items-center">
                       <GaugeChart
                         label="Despesas"
                         valorPlanejado={totalBudget || 1}
@@ -361,52 +358,6 @@ export default function Orcamentos() {
                 Nova Categoria
               </Button>
             </div>
-          </FadeCard>
-
-          {/* Resumo Orçamentário */}
-          <FadeCard delay={300}>
-            <Card className="border-0 shadow-fintech">
-              <CardContent className="p-5">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-4">Resumo Orçamentário</p>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                  <div>
-                    <p className="text-[10px] text-muted-foreground mb-0.5">Planejado</p>
-                    <p className="text-lg font-bold tabular-nums" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                      <MaskedValue>{formatCurrency(totalBudget)}</MaskedValue>
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground mb-0.5">Realizado</p>
-                    <p className={cn("text-lg font-bold tabular-nums", totalSpent > totalBudget && "text-destructive")} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                      <MaskedValue>{formatCurrency(totalSpent)}</MaskedValue>
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground mb-0.5">Disponível</p>
-                    <p className={cn("text-lg font-bold tabular-nums", budgetRemaining >= 0 ? "text-success" : "text-destructive")} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                      <MaskedValue>{formatCurrency(budgetRemaining)}</MaskedValue>
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground mb-0.5">Status</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      {overBudgetCount > 0 ? (
-                        <Badge variant="destructive" className="text-[10px] px-2 py-0.5">
-                          {overBudgetCount} excedido{overBudgetCount > 1 ? "s" : ""}
-                        </Badge>
-                      ) : budgets && budgets.length > 0 ? (
-                        <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-success text-success">
-                          <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
-                          No limite
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </FadeCard>
 
           {/* Category cards */}

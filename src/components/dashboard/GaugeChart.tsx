@@ -44,19 +44,20 @@ export function GaugeChart({
   const size = compact ? "h-36 w-36" : "h-44 w-44";
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-1.5 w-full">
+      {/* 1. Label */}
       <p className="text-[10px] uppercase tracking-[0.15em] font-medium text-muted-foreground">
         {label}
       </p>
-      <div className={cn("relative", size)}>
-        <svg className={cn(size)} viewBox="0 0 120 120">
+      {/* 2. Gauge — fixed 110×110 */}
+      <div className="relative" style={{ width: 110, height: 110, flexShrink: 0 }}>
+        <svg width="110" height="110" viewBox="0 0 120 120">
           <defs>
             <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor={gradientColors.start} />
               <stop offset="100%" stopColor={gradientColors.end} />
             </linearGradient>
           </defs>
-          {/* Background arc */}
           <circle
             cx="60" cy="60" r={radius}
             fill="none"
@@ -66,7 +67,6 @@ export function GaugeChart({
             strokeDasharray={`${gaugeArc} ${circumference - gaugeArc}`}
             transform={`rotate(${startAngle} 60 60)`}
           />
-          {/* Filled arc */}
           <circle
             cx="60" cy="60" r={radius}
             fill="none"
@@ -79,26 +79,27 @@ export function GaugeChart({
             className="transition-all duration-700"
           />
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center pt-2">
-          <span
-            className={cn(
-              "font-bold leading-none tabular-nums",
-              isOver ? "text-destructive" : "text-foreground",
-              compact ? "text-lg" : "text-xl"
-            )}
-            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-          >
-            <MaskedValue>{formatCurrency(valorRealizado)}</MaskedValue>
-          </span>
-          <span className="text-[9px] text-muted-foreground mt-1">
-            de <MaskedValue>{formatCurrency(valorPlanejado)}</MaskedValue>
-          </span>
-        </div>
+        {/* Internal value removed — shown below for consistent hierarchy */}
       </div>
-      <span className={cn(
-        "text-xs font-semibold tabular-nums",
-        isOver ? "text-destructive" : "text-muted-foreground"
-      )}>
+      {/* 3. Valor principal */}
+      <span
+        className={cn(
+          "leading-none tabular-nums",
+          isOver ? "text-destructive" : "text-foreground"
+        )}
+        style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 18, fontWeight: 600 }}
+      >
+        <MaskedValue>{formatCurrency(valorRealizado)}</MaskedValue>
+      </span>
+      {/* 4. Meta */}
+      <span className="text-muted-foreground tabular-nums" style={{ fontSize: 12, opacity: 0.7 }}>
+        de <MaskedValue>{formatCurrency(valorPlanejado)}</MaskedValue>
+      </span>
+      {/* 5. Percentual */}
+      <span
+        className={cn("tabular-nums font-medium", isOver ? "text-destructive" : "text-muted-foreground")}
+        style={{ fontSize: 12 }}
+      >
         {realPct >= 1000 ? `${Math.round(realPct).toLocaleString("pt-BR")}%` : `${realPct.toFixed(0)}%`} da meta
       </span>
     </div>
