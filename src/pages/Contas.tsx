@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Pencil, Trash2, Building2, CreditCard, PiggyBank, TrendingUp, ArrowRightLeft, Wallet } from "lucide-react";
 import { shortenAccountName } from "@/lib/formatters";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -21,9 +21,6 @@ import { useAccounts, useDeleteAccount, AccountType } from "@/hooks/useAccounts"
 import { useBankConnections } from "@/hooks/useBankConnections";
 import { AccountDialog } from "@/components/accounts/AccountDialog";
 import { TransferDialog } from "@/components/transfers/TransferDialog";
-import { useTransfers, useDeleteTransfer } from "@/hooks/useTransfers";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
 
 const ACCOUNT_TYPE_ICONS: Record<AccountType, typeof Building2> = {
@@ -49,13 +46,10 @@ export default function Contas() {
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
   const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
-  const [deleteTransferId, setDeleteTransferId] = useState<string | null>(null);
 
   const { data: accounts, isLoading: loadingAccounts } = useAccounts();
-  const { data: transfers, isLoading: loadingTransfers } = useTransfers();
   const { data: bankConnections } = useBankConnections();
 
-  // Build a map of bank_name -> logo_url from connections metadata
   const bankLogoMap = new Map<string, string>();
   bankConnections?.forEach((conn) => {
     const meta = (conn as any).metadata as { bank_name?: string; bank_logo_url?: string | null } | null;
@@ -64,7 +58,6 @@ export default function Contas() {
     }
   });
   const deleteAccount = useDeleteAccount();
-  const deleteTransfer = useDeleteTransfer();
   const { canCreate } = useCanCreate();
 
   if (!user) {
@@ -72,7 +65,6 @@ export default function Contas() {
     return null;
   }
 
-  // Show base selection required state
   if (!canCreate) {
     return (
       <AppLayout title="Contas Bancárias">
@@ -99,12 +91,12 @@ export default function Contas() {
     }).format(value);
   };
 
-  // Exclude credit cards from total available balance (they are liabilities)
   const activeAccounts = accounts?.filter((a) => a.status === "active") || [];
   const availableAccounts = activeAccounts.filter(a => a.account_type !== "credit_card");
   const creditCardAccounts = activeAccounts.filter(a => a.account_type === "credit_card");
   const totalBalance = availableAccounts.reduce((sum, acc) => sum + (acc.current_balance || 0), 0);
   const totalCreditCardDebt = creditCardAccounts.reduce((sum, acc) => sum + Math.abs(acc.current_balance || 0), 0);
+  const netBalance = totalBalance - totalCreditCardDebt;
 
   const handleEdit = (account: any) => {
     setSelectedAccount(account);
@@ -118,192 +110,149 @@ export default function Contas() {
     }
   };
 
-  const handleDeleteTransfer = async () => {
-    if (deleteTransferId) {
-      await deleteTransfer.mutateAsync(deleteTransferId);
-      setDeleteTransferId(null);
-    }
-  };
-
   return (
     <AppLayout title="Contas Bancárias">
-      <div className="space-y-5">
+      <div className="space-y-4">
         {/* Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Contas Bancárias</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">Gerencie suas contas e transferências</p>
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Contas</h1>
+            <p className="text-[11px] sm:text-sm text-muted-foreground">Gerencie suas contas</p>
           </div>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setTransferDialogOpen(true)}
               disabled={!canCreate}
-              className="text-xs"
+              className="text-xs h-8 px-2.5"
             >
-              <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" />
-              Transferência
+              <ArrowRightLeft className="mr-1 h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Transferência</span>
             </Button>
-            <Button 
+            <Button
               size="sm"
               onClick={() => { setSelectedAccount(null); setAccountDialogOpen(true); }}
               disabled={!canCreate}
-              className="text-xs"
+              className="text-xs h-8 px-2.5"
             >
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
-              Nova Conta
+              <Plus className="mr-1 h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Nova Conta</span>
             </Button>
           </div>
         </div>
 
-        {/* Summary */}
-        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-          <Card className="border-0 bg-gradient-to-br from-card to-muted/30">
-            <CardContent className="p-4">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Saldo Disponível</p>
-              <p className={`text-2xl sm:text-3xl font-bold mt-1 ${totalBalance >= 0 ? "text-success" : "text-destructive"}`}>
-                {formatCurrency(totalBalance)}
-              </p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{availableAccounts.length} conta(s) ativa(s)</p>
-            </CardContent>
-          </Card>
-          {creditCardAccounts.length > 0 && (
-            <Card className="border-0 bg-gradient-to-br from-card to-muted/30">
-              <CardContent className="p-4">
-                <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Cartões a Pagar</p>
-                <p className="text-2xl sm:text-3xl font-bold text-destructive mt-1">
-                  -{formatCurrency(totalCreditCardDebt)}
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{creditCardAccounts.length} cartão(ões)</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Accounts Grid */}
-        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {loadingAccounts ? (
-            <p className="text-muted-foreground col-span-full text-center py-8 text-sm">Carregando...</p>
-          ) : accounts?.length === 0 ? (
-            <Card className="col-span-full border-dashed">
-              <CardContent className="flex flex-col items-center justify-center py-10">
-                <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
-                  <Building2 className="h-6 w-6 text-muted-foreground/50" />
-                </div>
-                <p className="text-sm text-muted-foreground mb-3">Nenhuma conta cadastrada</p>
-                <Button 
-                  size="sm"
-                  onClick={() => setAccountDialogOpen(true)}
-                  disabled={!canCreate}
-                >
-                  <Plus className="mr-1.5 h-3.5 w-3.5" />
-                  Adicionar Conta
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            accounts?.map((account) => {
-              const Icon = ACCOUNT_TYPE_ICONS[account.account_type] || Building2;
-              const bankLogo = account.bank_name ? bankLogoMap.get(account.bank_name) : undefined;
-              return (
-                <Card key={account.id} className="group hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2.5">
-                        {bankLogo ? (
-                          <img
-                            src={bankLogo}
-                            alt={account.bank_name || ""}
-                            className="h-9 w-9 rounded-lg object-contain bg-muted p-0.5"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                          />
-                        ) : (
-                          <div
-                            className="h-9 w-9 rounded-lg flex items-center justify-center"
-                            style={{ backgroundColor: account.color || "#3b82f6" }}
-                          >
-                            <Icon className="h-4 w-4 text-white" />
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-sm font-semibold leading-tight">{shortenAccountName(account.name, account.account_type)}</p>
-                          <p className="text-[11px] text-muted-foreground">{account.bank_name}</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(account)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteAccountId(account.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Badge variant={account.status === "active" ? "default" : "secondary"} className="text-[10px] h-5">
-                        {account.status === "active" ? "Ativa" : "Inativa"}
-                      </Badge>
-                      <span className="text-[10px] text-muted-foreground">
-                        {ACCOUNT_TYPE_LABELS[account.account_type] || account.account_type}
-                      </span>
-                    </div>
-                    <div className="mt-3 pt-2.5 border-t border-border/50">
-                      <p className="text-[10px] text-muted-foreground">Saldo Atual</p>
-                      <p className={`text-lg font-bold ${(account.current_balance || 0) >= 0 ? "text-success" : "text-destructive"}`}>
-                        {formatCurrency(account.current_balance || 0)}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
-        </div>
-
-        {/* Recent Transfers */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Transferências Recentes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loadingTransfers ? (
-              <p className="text-muted-foreground text-center py-4">Carregando...</p>
-            ) : transfers?.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">Nenhuma transferência realizada</p>
-            ) : (
-              <div className="space-y-3">
-                {transfers?.slice(0, 5).map((transfer) => (
-                  <div key={transfer.id} className="flex items-center justify-between p-2.5 md:p-3 rounded-lg border gap-2">
-                    <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
-                      <ArrowRightLeft className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground shrink-0" />
-                      <div className="min-w-0">
-                        <p className="font-medium text-xs md:text-sm truncate">
-                          {transfer.origin_account?.name} → {transfer.destination_account?.name}
-                        </p>
-                        <p className="text-[10px] md:text-xs text-muted-foreground truncate">
-                          {format(new Date(transfer.transfer_date), "dd/MM/yyyy", { locale: ptBR })}
-                          {transfer.description && ` • ${transfer.description}`}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
-                      <span className="font-medium text-xs md:text-sm">{formatCurrency(Number(transfer.amount))}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive"
-                        onClick={() => setDeleteTransferId(transfer.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+        {/* Unified Summary Card */}
+        <Card className="border-0 bg-gradient-to-br from-card to-muted/30 overflow-hidden">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Patrimônio Líquido</p>
+              <Badge variant="secondary" className="text-[9px] h-4 px-1.5">
+                {activeAccounts.length} conta(s)
+              </Badge>
+            </div>
+            <p className={`text-3xl font-bold ${netBalance >= 0 ? "text-success" : "text-destructive"}`}>
+              {formatCurrency(netBalance)}
+            </p>
+            <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/30">
+              <div className="flex-1">
+                <p className="text-[10px] text-muted-foreground">Disponível</p>
+                <p className="text-sm font-semibold text-success">{formatCurrency(totalBalance)}</p>
               </div>
-            )}
+              {creditCardAccounts.length > 0 && (
+                <div className="flex-1">
+                  <p className="text-[10px] text-muted-foreground">Cartões</p>
+                  <p className="text-sm font-semibold text-destructive">-{formatCurrency(totalCreditCardDebt)}</p>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
+
+        {/* Accounts List */}
+        {loadingAccounts ? (
+          <p className="text-muted-foreground text-center py-8 text-sm">Carregando...</p>
+        ) : accounts?.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-10">
+              <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+                <Building2 className="h-6 w-6 text-muted-foreground/50" />
+              </div>
+              <p className="text-sm text-muted-foreground mb-3">Nenhuma conta cadastrada</p>
+              <Button
+                size="sm"
+                onClick={() => setAccountDialogOpen(true)}
+                disabled={!canCreate}
+              >
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                Adicionar Conta
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {accounts?.map((account) => {
+              const Icon = ACCOUNT_TYPE_ICONS[account.account_type] || Building2;
+              const bankLogo = account.bank_name ? bankLogoMap.get(account.bank_name) : undefined;
+              const balance = account.current_balance || 0;
+              return (
+                <div
+                  key={account.id}
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-card border border-border/40 active:scale-[0.99] transition-transform"
+                >
+                  {/* Icon */}
+                  {bankLogo ? (
+                    <img
+                      src={bankLogo}
+                      alt={account.bank_name || ""}
+                      className="h-10 w-10 rounded-xl object-contain bg-muted p-0.5 shrink-0"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                  ) : (
+                    <div
+                      className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: account.color || "hsl(var(--primary))" }}
+                    >
+                      <Icon className="h-4.5 w-4.5 text-white" />
+                    </div>
+                  )}
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate leading-tight">
+                      {shortenAccountName(account.name, account.account_type)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      {account.bank_name && `${account.bank_name} · `}
+                      {ACCOUNT_TYPE_LABELS[account.account_type] || account.account_type}
+                    </p>
+                  </div>
+
+                  {/* Balance + Actions */}
+                  <div className="text-right shrink-0">
+                    <p className={`text-sm font-bold ${balance >= 0 ? "text-success" : "text-destructive"}`}>
+                      {formatCurrency(balance)}
+                    </p>
+                    <div className="flex gap-0.5 justify-end mt-0.5">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleEdit(account); }}
+                        className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted/50 text-muted-foreground"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDeleteAccountId(account.id); }}
+                        className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-destructive/10 text-destructive/60"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <AccountDialog
@@ -328,21 +277,6 @@ export default function Contas() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={!!deleteTransferId} onOpenChange={() => setDeleteTransferId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir transferência?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Os saldos das contas serão recalculados.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteTransfer}>Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
