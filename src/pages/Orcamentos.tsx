@@ -252,8 +252,8 @@ export default function Orcamentos() {
 
           <FadeCard delay={200}>
             <Card className="border-0 shadow-fintech overflow-hidden">
-              <div className="bg-gradient-to-r from-[hsl(var(--brand-deep))] to-[hsl(var(--brand-highlight))] p-7">
-                <div className="flex items-center justify-between mb-5">
+              <div className="bg-gradient-to-r from-[hsl(var(--brand-deep))] to-[hsl(var(--brand-highlight))] p-6">
+                <div className="flex items-center justify-between mb-4">
                   <p className="text-[11px] uppercase tracking-[0.2em] font-medium text-primary-foreground/50">
                     Plano do Mês — {MONTHS[month - 1]}
                   </p>
@@ -291,27 +291,37 @@ export default function Orcamentos() {
                   </div>
                 ) : (
                   <>
-                   <div className="grid grid-cols-3 gap-3 mb-5">
-                      {[
-                        { label: "Receita", value: effectiveIncome },
-                        { label: "Investimento", value: planInvestment },
-                        { label: "Despesas", value: totalBudget },
-                      ].map(({ label, value }) => (
-                        <div key={label} className="min-w-0">
-                          <p className="text-[9px] text-primary-foreground/40 mb-1 uppercase tracking-wider">{label}</p>
-                          <p
-                            className="font-bold text-primary-foreground leading-none truncate tabular-nums"
-                            style={{
-                              fontFamily: "'Playfair Display', Georgia, serif",
-                              fontSize: "clamp(0.75rem, 3.5vw, 1.35rem)",
-                            }}
-                          >
-                            <MaskedValue>{formatCurrency(value)}</MaskedValue>
-                          </p>
-                        </div>
-                      ))}
+                    {/* Gauge Charts */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground">
+                        <GaugeChart
+                          label="Receita"
+                          valorPlanejado={effectiveIncome}
+                          valorRealizado={income}
+                          variant="success"
+                          compact
+                        />
+                      </div>
+                      <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground">
+                        <GaugeChart
+                          label="Investimento"
+                          valorPlanejado={planInvestment || 1}
+                          valorRealizado={0}
+                          variant="blue"
+                          compact
+                        />
+                      </div>
+                      <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground">
+                        <GaugeChart
+                          label="Despesas"
+                          valorPlanejado={totalBudget || 1}
+                          valorRealizado={totalSpent}
+                          variant="destructive"
+                          compact
+                        />
+                      </div>
                     </div>
-                    <div className="border-t border-primary-foreground/10 pt-4 flex items-end justify-between">
+                    <div className="border-t border-primary-foreground/10 pt-4 mt-4 flex items-end justify-between">
                       <div>
                         <p className="text-[10px] text-primary-foreground/40">Saldo Livre</p>
                         <p
