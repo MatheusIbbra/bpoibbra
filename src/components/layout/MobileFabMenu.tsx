@@ -181,7 +181,7 @@ export function MobileFabMenu({ isOpen, onClose }: Props) {
                       action: () => setShowCadastros(true),
                       trailing: <ChevronRight className="h-4 w-4 text-muted-foreground/40" />,
                     },
-                    {
+                    ...(!isStaff ? [{
                       label: "IA Financeira",
                       sub: "Assistente e classificação inteligente",
                       icon: Brain,
@@ -190,7 +190,7 @@ export function MobileFabMenu({ isOpen, onClose }: Props) {
                         onClose();
                         window.dispatchEvent(new CustomEvent("ibbra:open-ai-chat"));
                       },
-                    },
+                    }] : []),
                   ].map((item) => (
                     <button
                       key={item.label}
