@@ -12,6 +12,7 @@ import { useOpenPluggyConnect, useSavePluggyItem, useSyncBankConnection } from "
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { useAutoIgnoreTransfers } from "@/hooks/useAutoIgnoreTransfers";
 import { toast } from "sonner";
+import { useCurrentUserRole } from "@/hooks/useUserRoles";
 
 const cadastroCards = [
   { label: "Contas", icon: Wallet, path: "/contas" },
