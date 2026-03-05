@@ -1015,6 +1015,80 @@ export type Database = {
           },
         ]
       }
+      financial_events: {
+        Row: {
+          amount: number
+          created_at: string
+          destination_account_id: string | null
+          event_date: string
+          event_type: Database["public"]["Enums"]["financial_event_type"]
+          id: string
+          impact_cashflow: boolean
+          impact_investments: boolean
+          organization_id: string
+          source_account_id: string | null
+          transaction_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          destination_account_id?: string | null
+          event_date: string
+          event_type: Database["public"]["Enums"]["financial_event_type"]
+          id?: string
+          impact_cashflow?: boolean
+          impact_investments?: boolean
+          organization_id: string
+          source_account_id?: string | null
+          transaction_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          destination_account_id?: string | null
+          event_date?: string
+          event_type?: Database["public"]["Enums"]["financial_event_type"]
+          id?: string
+          impact_cashflow?: boolean
+          impact_investments?: boolean
+          organization_id?: string
+          source_account_id?: string | null
+          transaction_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_events_destination_account_id_fkey"
+            columns: ["destination_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_events_source_account_id_fkey"
+            columns: ["source_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_events_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financial_simulations: {
         Row: {
           created_at: string
@@ -3008,6 +3082,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: boolean
       }
+      classify_and_upsert_financial_event: {
+        Args: { p_tx_id: string }
+        Returns: undefined
+      }
       cleanup_expired_oauth_states: { Args: never; Returns: number }
       cleanup_expired_pending_registrations: { Args: never; Returns: undefined }
       complete_onboarding:
@@ -3187,6 +3265,14 @@ export type Database = {
         | "cliente"
         | "projetista"
       category_type: "income" | "expense" | "investment" | "redemption"
+      financial_event_type:
+        | "income"
+        | "expense"
+        | "internal_transfer"
+        | "investment_contribution"
+        | "investment_withdraw"
+        | "loan_payment"
+        | "credit_card_payment"
       import_status:
         | "pending"
         | "processing"
@@ -3351,6 +3437,15 @@ export const Constants = {
         "projetista",
       ],
       category_type: ["income", "expense", "investment", "redemption"],
+      financial_event_type: [
+        "income",
+        "expense",
+        "internal_transfer",
+        "investment_contribution",
+        "investment_withdraw",
+        "loan_payment",
+        "credit_card_payment",
+      ],
       import_status: [
         "pending",
         "processing",
