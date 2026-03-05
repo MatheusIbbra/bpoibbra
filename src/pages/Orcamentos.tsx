@@ -10,6 +10,7 @@ import {
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { FinancialDisciplineScore } from "@/components/dashboard/FinancialDisciplineScore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -236,64 +237,10 @@ export default function Orcamentos() {
         </FadeCard>
 
         {/* ═══════════════════════════════════════
-           1. DISCIPLINE SCORE — Hero Ring
+           1. DISCIPLINE SCORE — shared component
            ═══════════════════════════════════════ */}
         <FadeCard delay={80}>
-          <Card className="overflow-hidden border-0 shadow-fintech-lg">
-            <CardContent className="p-8 flex flex-col md:flex-row items-center gap-8">
-              {/* Ring */}
-              <div className="relative h-36 w-36 shrink-0">
-                <svg className="h-36 w-36 -rotate-90" viewBox="0 0 120 120">
-                  <circle cx="60" cy="60" r="54" fill="none" className="stroke-muted/20" strokeWidth="6" />
-                  <circle
-                    cx="60" cy="60" r="54" fill="none"
-                    className={cn(scoreRing, "transition-all duration-1000")}
-                    strokeWidth="6" strokeLinecap="round"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={scoreOffset}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span
-                    className={cn("text-[40px] font-bold leading-none", scoreColor)}
-                    style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                  >
-                    {disciplineScore}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground tracking-wider uppercase mt-1">de 100</span>
-                </div>
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 text-center md:text-left space-y-3">
-                <div>
-                  <h2
-                    className="text-2xl font-bold text-foreground"
-                    style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                  >
-                    Disciplina Financeira
-                  </h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {disciplineScore >= 70 ? "Excelente! Você está seguindo seu planejamento." :
-                     disciplineScore >= 40 ? "Atenção: alguns pontos podem melhorar." :
-                     "Revise seu planejamento para melhorar seu score."}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-                  {isZeroBased && (
-                    <Badge className="bg-success/10 text-success border-success/20 text-xs">
-                      Orçamento Base Zero ✓
-                    </Badge>
-                  )}
-                  {budgetRemaining >= 0 && totalBudget > 0 && (
-                    <Badge className="bg-accent/10 text-accent border-accent/20 text-xs">
-                      Dentro do orçamento
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <FinancialDisciplineScore selectedMonth={selectedMonth} />
         </FadeCard>
 
         {/* ═══════════════════════════════════════

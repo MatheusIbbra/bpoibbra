@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, ReactNode } fro
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Sentry } from "@/lib/sentry";
 
 interface AuthContextType {
   user: User | null;
@@ -172,6 +173,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await supabase.auth.signOut();
         return { error: new Error(reason || "Sua organização está bloqueada. Entre em contato com o administrador.") };
       }
+
+      // Identify user in Sentry
+      Sentry.setUser({ id: data.user.id, email: data.user.email ?? undefined });
     }
     
     return { error: null };
@@ -180,12 +184,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
-      // Clear any local state
+      Sentry.setUser(null);
       setSession(null);
       setUser(null);
     } catch (error) {
       console.error("Error signing out:", error);
-      // Force clear state even on error
+      Sentry.setUser(null);
       setSession(null);
       setUser(null);
     }
