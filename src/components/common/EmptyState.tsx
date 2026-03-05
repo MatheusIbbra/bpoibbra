@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, type Transition } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   ArrowUpDown, Building2, BanknoteIcon, Link2, Wallet,
@@ -13,9 +13,7 @@ interface EmptyStateProps {
   title?: string;
   description?: string;
   className?: string;
-  /** Override default primary action */
   primaryAction?: { label: string; onClick: () => void };
-  /** Override default secondary action */
   secondaryAction?: { label: string; onClick: () => void };
 }
 
@@ -79,8 +77,6 @@ const CONFIG: Record<EmptyVariant, {
   },
 };
 
-import type { Transition } from "framer-motion";
-
 const springTransition: Transition = { type: "spring", stiffness: 200, damping: 15 };
 const easeTransition: Transition = { duration: 0.4, ease: "easeOut" };
 
@@ -116,7 +112,8 @@ export function EmptyState({
 
   return (
     <motion.div
-      {...containerMotion}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0, transition: easeTransition }}
       className={cn(
         "flex flex-col items-center justify-center gap-5 py-12 px-6 text-center",
         className
@@ -126,13 +123,13 @@ export function EmptyState({
     >
       {/* Icon badge */}
       <motion.div
-        {...iconMotion}
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1, transition: springTransition }}
         className="relative"
       >
-        <div className="h-16 w-16 rounded-2xl bg-primary/8 flex items-center justify-center shadow-sm ring-1 ring-primary/10">
+        <div className="h-16 w-16 rounded-2xl bg-primary/[0.08] flex items-center justify-center shadow-sm ring-1 ring-primary/10">
           <Icon className="h-8 w-8 text-primary/60" strokeWidth={1.5} />
         </div>
-        {/* subtle pulse ring */}
         <div className="absolute inset-0 rounded-2xl ring-2 ring-primary/10 animate-pulse pointer-events-none" />
       </motion.div>
 
