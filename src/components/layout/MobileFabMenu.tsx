@@ -72,7 +72,7 @@ export function MobileFabMenu({ isOpen, onClose }: Props) {
         toast.success("Conexão realizada! Sincronizando...");
         savePluggyItem.mutateAsync({ itemId, organizationId: orgId }).then((conn) => {
           if (conn?.connection_id) {
-            syncConnection.mutateAsync(conn.connection_id).then(() => {
+            syncConnection.mutateAsync({ bankConnectionId: conn.connection_id }).then(() => {
               autoIgnoreTransfers.mutate(orgId);
               toast.success("Contas e transações sincronizadas.");
             });
