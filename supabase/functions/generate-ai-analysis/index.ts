@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { checkAIRateLimit, logAIUsage } from "../_shared/rate-limiter.ts";
 
 interface AnalysisRequest {
   prompt: string;
@@ -69,27 +70,28 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ── Backend enforcement: check AI request limits (hourly + monthly) ──
+    // ── Backend enforcement: unified rate limiting ──
     if (organization_id) {
       const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-      // Hourly rate limit: max 30 per hour
-      const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
-      const { count: hourlyCount } = await adminClient
-        .from("api_usage_logs")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", organization_id)
-        .eq("endpoint", "ai")
-        .gte("created_at", oneHourAgo);
-      if ((hourlyCount ?? 0) >= 30) {
+      const rateResult = await checkAIRateLimit(adminClient, organization_id, userData.user.id);
+      if (!rateResult.allowed) {
         return new Response(
-          JSON.stringify({ error: "Rate limit: máximo 30 requisições/hora" }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            error: rateResult.reason || "Rate limit exceeded",
+          }),
+          {
+            status: 429,
+            headers: {
+              ...corsHeaders,
+              "Content-Type": "application/json",
+              "Retry-After": String(rateResult.retryAfter || 60),
+            },
+          }
         );
       }
 
       // Monthly plan limit
-
       const { data: sub } = await adminClient
         .from("organization_subscriptions")
         .select("plan_id, plans!inner(max_ai_requests)")
@@ -119,7 +121,7 @@ Deno.serve(async (req) => {
           organization_id,
           endpoint: "ai",
           tokens_used: 0,
-          request_metadata: { blocked: true, reason: "plan_limit_exceeded" },
+          request_metadata: { blocked: true, reason: "plan_limit_exceeded", user_id: userData.user.id },
         });
 
         return new Response(
@@ -129,7 +131,7 @@ Deno.serve(async (req) => {
             current: currentAI,
             limit: maxAI,
           }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "3600" } }
         );
       }
     }
