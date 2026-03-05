@@ -57,6 +57,7 @@ const Lgpd = lazy(() => import("./pages/Lgpd"));
 const ConsentReaccept = lazy(() => import("./pages/ConsentReaccept"));
 const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
 const AdminHealth = lazy(() => import("./pages/AdminHealth"));
+const AdminRunbook = lazy(() => import("./pages/AdminRunbook"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -188,6 +189,7 @@ const App = () => (
                 <Route path="/consent-reaccept" element={<ConsentReaccept />} />
                 <Route path="/checkout/success" element={<CheckoutSuccess />} />
                 <Route path="/admin/health" element={<AdminHealth />} />
+                <Route path="/admin/runbook" element={<AdminRunbook />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </OnboardingGuard>
