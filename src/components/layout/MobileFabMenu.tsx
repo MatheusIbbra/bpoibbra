@@ -71,9 +71,9 @@ export function MobileFabMenu({ isOpen, onClose }: Props) {
         if (!orgId) return;
         toast.success("Conexão realizada! Sincronizando...");
         savePluggyItem.mutateAsync({ itemId, organizationId: orgId }).then((conn) => {
-          if (conn?.id) {
-            syncConnection.mutateAsync(conn.id).then(() => {
-              autoIgnoreTransfers.mutate();
+          if (conn?.connection_id) {
+            syncConnection.mutateAsync(conn.connection_id).then(() => {
+              autoIgnoreTransfers.mutate(orgId);
               toast.success("Contas e transações sincronizadas.");
             });
           }
@@ -112,6 +112,16 @@ export function MobileFabMenu({ isOpen, onClose }: Props) {
       toast.error("Erro ao iniciar conexão.");
       setIsConnecting(false);
     }
+  };
+
+  const handleNav = (path: string) => {
+    onClose();
+    setTimeout(() => navigate(path), 200);
+  };
+
+  const handleTransactionClose = () => {
+    setTransactionType(null);
+    onClose();
   };
 
   return (
@@ -158,7 +168,7 @@ export function MobileFabMenu({ isOpen, onClose }: Props) {
                       sub: "Vincular banco automaticamente",
                       icon: Building,
                       color: "hsl(var(--brand-deep))",
-                      action: () => handleNav("/open-finance"),
+                      action: () => handleOpenPluggy(),
                     },
                     {
                       label: "Cadastros",
