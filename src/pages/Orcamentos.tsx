@@ -355,7 +355,7 @@ export default function Orcamentos() {
         <div className="space-y-3">
           <FadeCard delay={280}>
             <div className="flex items-center justify-between">
-              <SectionTitle delay={280}>Realizado</SectionTitle>
+              <SectionTitle delay={280}>Orçamentos</SectionTitle>
               <Button size="sm" className="h-8 text-xs rounded-full px-4" onClick={() => { setEditingBudget(null); setIsRecurring(false); form.reset(); setDialogOpen(true); }}>
                 <Plus className="h-3.5 w-3.5 mr-1" />
                 Nova Categoria
@@ -367,37 +367,37 @@ export default function Orcamentos() {
           <FadeCard delay={300}>
             <Card className="border-0 shadow-fintech">
               <CardContent className="p-5">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Resumo Orçamentário</p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-4">Resumo Orçamentário</p>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                   <div>
-                    <p className="text-[10px] text-muted-foreground">Planejado</p>
-                    <p className="text-base font-bold tabular-nums" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                    <p className="text-[10px] text-muted-foreground mb-0.5">Planejado</p>
+                    <p className="text-lg font-bold tabular-nums" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
                       <MaskedValue>{formatCurrency(totalBudget)}</MaskedValue>
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground">Realizado</p>
-                    <p className={cn("text-base font-bold tabular-nums", totalSpent > totalBudget && "text-destructive")} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                    <p className="text-[10px] text-muted-foreground mb-0.5">Realizado</p>
+                    <p className={cn("text-lg font-bold tabular-nums", totalSpent > totalBudget && "text-destructive")} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
                       <MaskedValue>{formatCurrency(totalSpent)}</MaskedValue>
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground">Disponível</p>
-                    <p className={cn("text-base font-bold tabular-nums", budgetRemaining >= 0 ? "text-success" : "text-destructive")} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                    <p className="text-[10px] text-muted-foreground mb-0.5">Disponível</p>
+                    <p className={cn("text-lg font-bold tabular-nums", budgetRemaining >= 0 ? "text-success" : "text-destructive")} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
                       <MaskedValue>{formatCurrency(budgetRemaining)}</MaskedValue>
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground">Status</p>
+                    <p className="text-[10px] text-muted-foreground mb-0.5">Status</p>
                     <div className="flex items-center gap-2 mt-1">
                       {overBudgetCount > 0 ? (
-                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                        <Badge variant="destructive" className="text-[10px] px-2 py-0.5">
                           {overBudgetCount} excedido{overBudgetCount > 1 ? "s" : ""}
                         </Badge>
                       ) : budgets && budgets.length > 0 ? (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-success text-success">
+                        <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-success text-success">
                           <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
-                          OK
+                          No limite
                         </Badge>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
