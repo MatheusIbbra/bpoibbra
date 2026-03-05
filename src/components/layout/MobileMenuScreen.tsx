@@ -65,7 +65,7 @@ function MenuRow({ icon: Icon, label, onClick, trailing }: { icon: React.Element
 
 export function MobileMenuScreen({ onClose, isOpen = false }: MobileMenuScreenProps) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { openUpgradeModal } = useUpgradeModal();
 
