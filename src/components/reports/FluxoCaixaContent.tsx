@@ -97,7 +97,7 @@ export function FluxoCaixaContent() {
 
   useEffect(() => {
     localStorage.setItem("report-basis-fluxo", basis);
-  }, [basis]);
+  }, []);
 
   const { data: costCenters } = useCostCenters();
   const { data, isLoading } = useCashFlowReport(dateRange.start, dateRange.end, basis, granularity, costCenterId);
