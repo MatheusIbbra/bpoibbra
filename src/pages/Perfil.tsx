@@ -14,6 +14,7 @@ import { PrivacySection } from "@/components/profile/PrivacySection";
 import { ChangePasswordCard } from "@/components/profile/ChangePasswordCard";
 import { PushNotificationSettings } from "@/components/profile/PushNotificationSettings";
 import { AchievementsBadges } from "@/components/profile/AchievementsBadges";
+import { useCurrentUserRole } from "@/hooks/useUserRoles";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
@@ -23,6 +24,8 @@ export default function Perfil() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState(false);
+  const { data: currentRole } = useCurrentUserRole();
+  const isStaff = currentRole && currentRole !== "cliente";
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["user-profile", user?.id],
@@ -234,7 +237,7 @@ export default function Perfil() {
           </CardContent>
         </Card>
 
-        <AchievementsBadges />
+        {!isStaff && <AchievementsBadges />}
         <ChangePasswordCard />
         <PrivacySection />
         <PushNotificationSettings />

@@ -292,8 +292,8 @@ export function TransactionDialog({
 
         {/* Open Finance locked summary on mobile */}
         {isOpenFinanceImported && (
-          <div className="rounded-lg border border-border/50 bg-muted/30 p-3 space-y-1.5">
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <div className="rounded-lg border border-border/50 bg-muted/30 p-3 space-y-1.5 min-w-0">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 flex-wrap break-words">
               🔒 Dados importados via Open Finance
             </p>
             <p className="text-sm font-medium truncate">{transaction?.description}</p>

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sidebar, SidebarContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, SidebarSeparator } from "@/components/ui/sidebar";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
-import { useIsAdmin } from "@/hooks/useUserRoles";
+import { useIsAdmin, useCurrentUserRole } from "@/hooks/useUserRoles";
 import { usePendingTransactionsCount } from "@/hooks/usePendingTransactionsCount";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
@@ -43,6 +43,8 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const { isAdmin } = useIsAdmin();
+  const { data: currentRole } = useCurrentUserRole();
+  const isStaff = currentRole && currentRole !== "cliente";
   const { data: pendingCount } = usePendingTransactionsCount();
   const { currentPlan } = useSubscription();
   const { openUpgradeModal } = useUpgradeModal();
@@ -134,8 +136,8 @@ export function AppSidebar() {
             )}
           </div>
         </div>
-        {/* Plan indicator */}
-        {!collapsed && (
+        {/* Plan indicator — hidden for staff roles */}
+        {!isStaff && !collapsed && (
           <button
             onClick={() => openUpgradeModal("general")}
             className="group mx-1 mb-1 px-3 py-2.5 rounded-xl bg-gradient-to-r from-sidebar-accent/40 to-sidebar-accent/20 hover:from-sidebar-accent/60 hover:to-sidebar-accent/30 border border-sidebar-border/20 hover:border-sidebar-primary/30 transition-all duration-300 text-left cursor-pointer"
@@ -158,11 +160,11 @@ export function AppSidebar() {
             </p>
           </button>
         )}
-        {collapsed && (
-          <button
+        {!isStaff && collapsed && (
+          <SidebarMenuButton
             onClick={() => openUpgradeModal("general")}
-            className="mx-auto mb-1 h-8 w-8 rounded-lg bg-sidebar-accent/30 hover:bg-sidebar-accent/50 border border-sidebar-border/20 hover:border-sidebar-primary/30 flex items-center justify-center transition-all cursor-pointer self-center"
-            title={currentPlan?.name || "Starter"}
+            tooltip={currentPlan?.name || "Starter"}
+            className="mb-1 h-8 w-8 mx-auto rounded-lg bg-sidebar-accent/30 hover:bg-sidebar-accent/50 border border-sidebar-border/20 hover:border-sidebar-primary/30 flex items-center justify-center transition-all cursor-pointer"
           >
             {currentPlan?.slug?.toLowerCase() === 'pro' ? (
               <Crown className="h-3.5 w-3.5 text-amber-400" />
@@ -171,7 +173,7 @@ export function AppSidebar() {
             ) : (
               <Sparkles className="h-3.5 w-3.5 text-sidebar-primary" />
             )}
-          </button>
+          </SidebarMenuButton>
         )}
       </SidebarHeader>
 
@@ -269,7 +271,6 @@ export function AppSidebar() {
         {isAdmin && <>
           <SidebarSeparator className="my-3 bg-sidebar-border/40" />
           <SidebarMenu>
-            {renderNavItem({ title: "Pendências", url: "/pendencias", icon: AlertCircle })}
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={isActive("/admin")} tooltip={collapsed ? "Gerenciar Acessos" : undefined}>
                 <NavLink to="/admin" className={`flex items-center transition-all duration-200 text-sm py-2.5 rounded-xl ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${isActive("/admin") ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/40"}`} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">

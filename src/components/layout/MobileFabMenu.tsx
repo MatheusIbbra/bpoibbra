@@ -12,6 +12,7 @@ import { useOpenPluggyConnect, useSavePluggyItem, useSyncBankConnection } from "
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { useAutoIgnoreTransfers } from "@/hooks/useAutoIgnoreTransfers";
 import { toast } from "sonner";
+import { useCurrentUserRole } from "@/hooks/useUserRoles";
 
 const cadastroCards = [
   { label: "Contas", icon: Wallet, path: "/contas" },
@@ -51,6 +52,8 @@ export function MobileFabMenu({ isOpen, onClose }: Props) {
   const savePluggyItem = useSavePluggyItem();
   const syncConnection = useSyncBankConnection();
   const autoIgnoreTransfers = useAutoIgnoreTransfers();
+  const { data: currentRole } = useCurrentUserRole();
+  const isStaff = currentRole && currentRole !== "cliente";
 
   // Reset sub-screen when closing
   useEffect(() => {
@@ -178,7 +181,7 @@ export function MobileFabMenu({ isOpen, onClose }: Props) {
                       action: () => setShowCadastros(true),
                       trailing: <ChevronRight className="h-4 w-4 text-muted-foreground/40" />,
                     },
-                    {
+                    ...(!isStaff ? [{
                       label: "IA Financeira",
                       sub: "Assistente e classificação inteligente",
                       icon: Brain,
@@ -187,7 +190,7 @@ export function MobileFabMenu({ isOpen, onClose }: Props) {
                         onClose();
                         window.dispatchEvent(new CustomEvent("ibbra:open-ai-chat"));
                       },
-                    },
+                    }] : []),
                   ].map((item) => (
                     <button
                       key={item.label}
