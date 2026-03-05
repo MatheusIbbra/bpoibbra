@@ -34,6 +34,7 @@ import { useMonthlyPlan, useUpsertMonthlyPlan } from "@/hooks/useMonthlyPlan";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { useDisciplineScore, DisciplineIndicator } from "@/hooks/useDisciplineScore";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
+import { EmptyState } from "@/components/common/EmptyState";
 import { GaugeChart } from "@/components/dashboard/GaugeChart";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
