@@ -186,6 +186,17 @@ export function useDeleteAccount() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Check for existing transactions before attempting delete
+      const { count, error: countError } = await supabase
+        .from("transactions")
+        .select("id", { count: "exact", head: true })
+        .eq("account_id", id);
+
+      if (countError) throw countError;
+      if ((count ?? 0) > 0) {
+        throw new Error("Não é possível excluir uma conta com movimentações. Arquive-a ou remova as transações primeiro.");
+      }
+
       const { error } = await supabase.from("accounts").delete().eq("id", id);
       if (error) throw error;
     },
@@ -193,8 +204,8 @@ export function useDeleteAccount() {
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
       toast.success("Conta excluída!");
     },
-    onError: (error) => {
-      toast.error("Erro ao excluir conta: " + error.message);
+    onError: (error: Error) => {
+      toast.error(error.message);
     },
   });
 }
