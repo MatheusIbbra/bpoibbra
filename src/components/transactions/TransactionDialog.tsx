@@ -34,6 +34,7 @@ import { useCategories, CategoryType } from "@/hooks/useCategories";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { useTransactions, useCreateTransaction, useUpdateTransaction, useDeleteTransaction, Transaction, TransactionType } from "@/hooks/useTransactions";
+import { useCreateUserClassificationRule } from "@/hooks/useUserClassificationRules";
 import { cn } from "@/lib/utils";
 import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 
