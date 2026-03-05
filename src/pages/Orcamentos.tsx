@@ -130,8 +130,9 @@ export default function Orcamentos() {
   });
 
   const getSpentForCategory = (categoryId: string) =>
-    transactions?.filter((t) => t.category_id === categoryId && t.type === "expense")
-      .reduce((acc, t) => acc + Math.abs(Number(t.amount)), 0) || 0;
+    transactions?.filter(
+      (t) => t.category_id === categoryId && t.type === "expense" && !t.is_ignored
+    ).reduce((acc, t) => acc + Math.abs(Number(t.amount)), 0) || 0;
 
   const handleEdit = (budget: Budget) => {
     setEditingBudget(budget);
