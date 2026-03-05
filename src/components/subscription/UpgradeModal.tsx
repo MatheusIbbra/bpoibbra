@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, X, Crown, Zap, MessageCircle, Loader2, Gift, Sparkles } from "lucide-react";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useBaseFilterState } from "@/contexts/BaseFilterContext";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
