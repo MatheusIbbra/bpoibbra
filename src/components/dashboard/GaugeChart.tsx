@@ -41,7 +41,6 @@ export function GaugeChart({
     : { start: "hsl(210, 100%, 72%)", end: "hsl(210, 100%, 36%)" };
 
   const isOver = realPct > 100;
-  const size = compact ? "h-36 w-36" : "h-44 w-44";
 
   return (
     <div className="flex flex-col items-center gap-1.5 w-full">
