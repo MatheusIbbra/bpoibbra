@@ -58,7 +58,8 @@ export function AppLayout({ children, title }: AppLayoutProps) {
     } catch {}
   }, []);
 
-  const hasNoBases = !baseLoading && user && availableOrganizations.length === 0;
+  const isStaffRole = userRole && ["admin", "supervisor", "fa", "kam", "projetista"].includes(userRole);
+  const hasNoBases = !baseLoading && user && availableOrganizations.length === 0 && !isStaffRole;
 
   // Mobile layout — premium fintech app experience
   if (isMobile) {

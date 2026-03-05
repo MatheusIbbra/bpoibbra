@@ -433,16 +433,20 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
       <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
         {!isPaidUser ? (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
               <Lock className="h-8 w-8 text-muted-foreground" />
             </div>
             <h3 className="font-semibold text-lg mb-2">Recurso Premium</h3>
             <p className="text-muted-foreground text-sm mb-4">
-              O Wealth Advisor está disponível para assinantes do plano pago.
+              O Wealth Advisor está disponível para assinantes dos planos pagos. Compare os planos e faça upgrade.
             </p>
-            <Badge variant="secondary" className="text-lg px-4 py-2">
-              R$ 99,00/mês
-            </Badge>
+            <Button
+              onClick={() => { openUpgradeModal("ai"); }}
+              className="gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              Ver planos disponíveis
+            </Button>
           </div>
         ) : (
           <>
