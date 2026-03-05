@@ -18,6 +18,7 @@ import {
   ChevronDown,
   Sparkles,
   AlertTriangle,
+  Upload,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,7 +48,7 @@ import { CategoriesDialog } from "@/components/categories/CategoriesDialog";
 import { CostCenterDialog } from "@/components/cost-centers/CostCenterDialog";
 import { TransferDialog } from "@/components/transfers/TransferDialog";
 import { RuleDialog } from "@/components/rules/RuleDialog";
-import { BankConnectionsManager } from "@/components/open-finance/BankConnectionsManager";
+import { ImportExtractDialog } from "@/components/import/ImportExtractDialog";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { cn } from "@/lib/utils";
