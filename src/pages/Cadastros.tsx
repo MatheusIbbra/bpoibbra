@@ -237,11 +237,12 @@ export default function Cadastros() {
       <div className="space-y-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <TabsList className={`grid w-full sm:w-auto ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'}`}>
+            <TabsList className={`grid w-full sm:w-auto ${isAdmin ? 'grid-cols-6' : 'grid-cols-5'}`}>
               <TabsTrigger value="contas" className="text-xs sm:text-sm">Contas</TabsTrigger>
               <TabsTrigger value="categorias" className="text-xs sm:text-sm">Categorias</TabsTrigger>
               <TabsTrigger value="centros" className="text-xs sm:text-sm">Centros</TabsTrigger>
               <TabsTrigger value="openfinance" className="text-xs sm:text-sm">Open Finance</TabsTrigger>
+              <TabsTrigger value="importar" className="text-xs sm:text-sm">Importar</TabsTrigger>
               {isAdmin && <TabsTrigger value="regras" className="text-xs sm:text-sm">Regras</TabsTrigger>}
             </TabsList>
             
