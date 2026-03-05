@@ -2856,6 +2856,70 @@ export type Database = {
           },
         ]
       }
+      user_classification_rules: {
+        Row: {
+          category_id: string | null
+          cost_center_id: string | null
+          created_at: string
+          id: string
+          keyword: string
+          match_exact: boolean
+          organization_id: string | null
+          priority: number
+          transaction_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category_id?: string | null
+          cost_center_id?: string | null
+          created_at?: string
+          id?: string
+          keyword: string
+          match_exact?: boolean
+          organization_id?: string | null
+          priority?: number
+          transaction_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string | null
+          cost_center_id?: string | null
+          created_at?: string
+          id?: string
+          keyword?: string
+          match_exact?: boolean
+          organization_id?: string | null
+          priority?: number
+          transaction_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_classification_rules_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_classification_rules_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_classification_rules_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_consents: {
         Row: {
           accepted_at: string

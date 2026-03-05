@@ -25,37 +25,37 @@ export function useDashboardStats(selectedMonth?: Date) {
       const currentYear = refDate.getFullYear();
       const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1;
       const lastMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
-      
+
       const startOfMonth = `${currentYear}-${String(currentMonth).padStart(2, "0")}-01`;
       const endOfMonth = new Date(currentYear, currentMonth, 0).toISOString().split("T")[0];
-      
       const startOfLastMonth = `${lastMonthYear}-${String(lastMonth).padStart(2, "0")}-01`;
       const endOfLastMonth = new Date(lastMonthYear, lastMonth, 0).toISOString().split("T")[0];
-      
-      // Build base query for transactions - exclude ignored and pending
-      const buildTransactionQuery = (start: string, end: string) => {
-        let query = supabase
-          .from("transactions")
-          .select("amount, type")
-          .gte("date", start)
-          .lte("date", end)
-          .neq("is_ignored", true)
-          .in("validation_status", ["validated", "pending_validation"]);
-        
-        if (orgFilter.type === 'single') {
-          query = query.eq("organization_id", orgFilter.ids[0]);
-        } else if (orgFilter.type === 'multiple' && orgFilter.ids.length > 0) {
-          query = query.in("organization_id", orgFilter.ids);
+
+      // ─────────────────────────────────────────────────────────────
+      // KPIs via financial_events — single source of financial truth.
+      // Only impact_cashflow=true events are counted (internal
+      // transfers, aportes and resgates are automatically excluded).
+      // ─────────────────────────────────────────────────────────────
+      const buildEventsQuery = (start: string, end: string) => {
+        let q = supabase
+          .from("financial_events" as any)
+          .select("event_type, amount")
+          .eq("impact_cashflow", true)
+          .gte("event_date", start)
+          .lte("event_date", end);
+
+        if (orgFilter.type === "single") {
+          q = q.eq("organization_id", orgFilter.ids[0]);
+        } else if (orgFilter.type === "multiple" && orgFilter.ids.length > 0) {
+          q = q.in("organization_id", orgFilter.ids);
         }
-        
-        return query;
+        return q;
       };
-      
-      // Current month transactions
-      const { data: currentMonthData } = await buildTransactionQuery(startOfMonth, endOfMonth);
-      
-      // Last month transactions
-      const { data: lastMonthData } = await buildTransactionQuery(startOfLastMonth, endOfLastMonth);
+
+      const [{ data: currentEventsData }, { data: lastEventsData }] = await Promise.all([
+        buildEventsQuery(startOfMonth, endOfMonth),
+        buildEventsQuery(startOfLastMonth, endOfLastMonth),
+      ]);
       
       // Get local accounts with snapshot balances (no full-scan RPC)
       let accountsQuery = supabase
@@ -127,23 +127,22 @@ export function useDashboardStats(selectedMonth?: Date) {
         }
       }
       
-      const calculateTotals = (data: { amount: number; type: string }[] | null) => {
-        if (!data) return { income: 0, expenses: 0 };
-        return data.reduce(
-          (acc, t) => {
-            if (t.type === "income") {
-              acc.income += Number(t.amount);
-            } else if (t.type === "expense") {
-              acc.expenses += Number(t.amount);
-            }
+      // Aggregate income/expenses from financial_events
+      const calcEventTotals = (events: { event_type: string; amount: number }[] | null) => {
+        if (!events) return { income: 0, expenses: 0 };
+        return (events as any[]).reduce(
+          (acc: { income: number; expenses: number }, ev: any) => {
+            const amt = Number(ev.amount);
+            if (ev.event_type === "income") acc.income += amt;
+            else if (ev.event_type === "expense" || ev.event_type === "loan_payment" || ev.event_type === "credit_card_payment") acc.expenses += amt;
             return acc;
           },
           { income: 0, expenses: 0 }
         );
       };
-      
-      const currentTotals = calculateTotals(currentMonthData);
-      const lastTotals = calculateTotals(lastMonthData);
+
+      const currentTotals = calcEventTotals(currentEventsData as any);
+      const lastTotals    = calcEventTotals(lastEventsData as any);
       
       const totalBalance = totalAccountBalance;
       const monthlyIncome = currentTotals.income;

@@ -3,7 +3,8 @@ import { z } from "zod";
 import { handleSupabaseError } from "@/lib/error-handler";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarIcon, Loader2, Link2, EyeOff, Check, ChevronsUpDown, Trash2 } from "lucide-react";
+import { CalendarIcon, Loader2, Link2, EyeOff, Check, ChevronsUpDown, Trash2, BookmarkPlus } from "lucide-react";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +34,7 @@ import { useCategories, CategoryType } from "@/hooks/useCategories";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { useTransactions, useCreateTransaction, useUpdateTransaction, useDeleteTransaction, Transaction, TransactionType } from "@/hooks/useTransactions";
+import { useCreateUserClassificationRule } from "@/hooks/useUserClassificationRules";
 import { cn } from "@/lib/utils";
 import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 
@@ -80,7 +82,10 @@ export function TransactionDialog({
   const [showLinkOption, setShowLinkOption] = useState(false);
   const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [saveRuleOpen, setSaveRuleOpen] = useState(false);
   const deleteTransaction = useDeleteTransaction();
+  const createRule = useCreateUserClassificationRule();
+
 
   const form = useForm<FormData>({
     resolver: zodResolver(transactionSchema),
@@ -555,6 +560,20 @@ export function TransactionDialog({
                   }}
                 />
 
+                {/* Save as rule shortcut */}
+                {!isTransferType && form.watch("category_id") && form.watch("description") && (
+                  <div className="flex justify-end -mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setSaveRuleOpen(true)}
+                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <BookmarkPlus className="h-3 w-3" />
+                      Salvar como regra automática
+                    </button>
+                  </div>
+                )}
+
                 <FormField
                   control={form.control}
                   name="cost_center_id"
@@ -773,6 +792,44 @@ export function TransactionDialog({
             }}
           >
             {deleteTransaction.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    {/* Save as rule dialog */}
+    <AlertDialog open={saveRuleOpen} onOpenChange={setSaveRuleOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2">
+            <BookmarkPlus className="h-4 w-4 text-primary" />
+            Salvar regra automática
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-sm">
+            A descrição <span className="font-semibold text-foreground">"{form.watch("description")}"</span> será
+            sempre classificada automaticamente com a categoria selecionada nas próximas importações.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={async () => {
+              const desc = form.watch("description");
+              const catId = form.watch("category_id");
+              const ccId  = form.watch("cost_center_id");
+              const txType = (form.watch("type") === "income" ? "income" : "expense") as "income" | "expense";
+              if (!desc || !catId) return;
+              await createRule.mutateAsync({
+                keyword: desc,
+                category_id: catId,
+                cost_center_id: ccId || null,
+                transaction_type: txType,
+              });
+              setSaveRuleOpen(false);
+            }}
+            disabled={createRule.isPending}
+          >
+            {createRule.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar Regra"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
