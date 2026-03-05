@@ -57,6 +57,7 @@ export function useReportsData(startDate: Date, endDate: Date, basis: ReportBasi
           )
         `)
         .neq("is_ignored", true)
+        .in("validation_status", ["validated", "pending_validation"])
         .order("date", { ascending: false });
 
       if (basis === "cash") {
