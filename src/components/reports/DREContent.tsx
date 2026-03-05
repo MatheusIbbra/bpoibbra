@@ -31,8 +31,12 @@ import {
   DollarSign,
   FileText,
   Banknote,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { startOfMonth, endOfMonth, subMonths, subYears, format } from "date-fns";
+import { TransactionDialog } from "@/components/transactions/TransactionDialog";
+import { useDRETransactions } from "@/hooks/useDREReport";
 
 export function DREContent() {
   const { requiresBaseSelection } = useBaseFilter();
