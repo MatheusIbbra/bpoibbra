@@ -5,6 +5,7 @@ import { FintechTransactionsList } from "@/components/dashboard/FintechTransacti
 import { CircuitBreakerBanner } from "@/components/open-finance/CircuitBreakerBanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DashboardCardBoundary } from "@/components/dashboard/DashboardCardBoundary";
 
 import { useAchievementChecker } from "@/hooks/useAchievementChecker";
 
@@ -242,9 +243,11 @@ const Index = () => {
               </Card>
             </AnimatedCard>
 
-            {/* MOVIMENTAÇÕES RECENTES */}
+        {/* MOVIMENTAÇÕES RECENTES */}
             <AnimatedCard delay={0.1}>
-              <FintechTransactionsList selectedMonth={selectedMonth} />
+              <DashboardCardBoundary label="Movimentações Recentes">
+                <FintechTransactionsList selectedMonth={selectedMonth} />
+              </DashboardCardBoundary>
             </AnimatedCard>
         </div>
 
