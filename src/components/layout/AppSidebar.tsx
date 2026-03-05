@@ -84,7 +84,7 @@ export function AppSidebar() {
   // "Relatórios" and "Cadastros" are handled separately as submenus
   const isCadastrosActive = cadastrosPages.includes(location.pathname);
 
-  const renderNavItem = (item: typeof navItems[0]) => {
+  const renderNavItem = (item: { title: string; url: string; icon: React.ElementType; prefetchFn?: () => Promise<unknown> }) => {
     const active = isActive(item.url);
     return (
     <SidebarMenuItem key={item.title} className="relative" onMouseEnter={item.prefetchFn ? () => prefetch(item.prefetchFn!) : undefined}>
