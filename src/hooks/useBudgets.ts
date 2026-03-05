@@ -87,6 +87,8 @@ export function useCreateBudget() {
       cost_center_id: string | null;
       is_recurring?: boolean;
     }) => {
+      if (!user) throw new Error("Sessão expirada. Faça login novamente.");
+
       const organizationId = getRequiredOrganizationId();
       if (!organizationId) throw new Error("Selecione uma base antes de criar um orçamento");
 

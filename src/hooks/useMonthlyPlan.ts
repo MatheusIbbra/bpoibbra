@@ -56,6 +56,8 @@ export function useUpsertMonthlyPlan() {
       income_target: number;
       investment_target: number;
     }) => {
+      if (!user) throw new Error("Sessão expirada. Faça login novamente.");
+
       const organizationId = getRequiredOrganizationId();
       if (!organizationId) throw new Error("Selecione uma base");
 
