@@ -207,6 +207,17 @@ export function MobileMenuScreen({ onClose, isOpen = false }: MobileMenuScreenPr
 
         {/* bottom padding */}
         <div className="pb-8" />
+
+        {/* Logout */}
+        <div className="px-5 pb-10">
+          <button
+            onClick={async () => { onClose(); await signOut(); }}
+            className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border border-destructive/20 text-destructive hover:bg-destructive/5 transition-colors text-sm font-medium"
+          >
+            <LogOut className="h-4 w-4" strokeWidth={1.5} />
+            Sair da conta
+          </button>
+        </div>
       </div>
     </div>
     </>
