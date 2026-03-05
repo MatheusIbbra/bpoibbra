@@ -52,6 +52,8 @@ export function MobileFabMenu({ isOpen, onClose }: Props) {
   const savePluggyItem = useSavePluggyItem();
   const syncConnection = useSyncBankConnection();
   const autoIgnoreTransfers = useAutoIgnoreTransfers();
+  const { data: currentRole } = useCurrentUserRole();
+  const isStaff = currentRole && currentRole !== "cliente";
 
   // Reset sub-screen when closing
   useEffect(() => {
