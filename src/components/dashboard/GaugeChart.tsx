@@ -2,6 +2,10 @@ import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
 import { MaskedValue } from "@/contexts/ValuesVisibilityContext";
 
+import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/formatters";
+import { MaskedValue } from "@/contexts/ValuesVisibilityContext";
+
 type GaugeVariant = "income" | "investment" | "expense" | "blue" | "success" | "destructive";
 
 interface GaugeChartProps {
@@ -12,16 +16,39 @@ interface GaugeChartProps {
   compact?: boolean;
 }
 
-// Map variant → CSS variable token (HSL values from design system)
-const VARIANT_COLORS: Record<GaugeVariant, { start: string; end: string }> = {
-  income:      { start: "hsl(var(--fi-income))",     end: "hsl(142 71% 30%)" },
-  investment:  { start: "hsl(var(--fi-investment))", end: "hsl(217 91% 45%)" },
-  expense:     { start: "hsl(var(--fi-expense))",    end: "hsl(0 84% 45%)" },
-  // Legacy aliases kept for backwards compatibility
-  success:     { start: "hsl(var(--fi-income))",     end: "hsl(142 71% 30%)" },
-  destructive: { start: "hsl(var(--fi-expense))",    end: "hsl(0 84% 45%)" },
-  blue:        { start: "hsl(var(--fi-investment))", end: "hsl(217 91% 45%)" },
-};
+/**
+ * Returns stroke gradient colors and text color based on variant and percentage.
+ *
+ * income / investment: more is BETTER — never red
+ *   0–50%   → amber/warning
+ *   50–100% → green
+ *   >100%   → premium dark-green (extra bonus)
+ *
+ * expense: more is WORSE
+ *   0–50%   → green
+ *   50–80%  → amber
+ *   80–100% → orange
+ *   >100%   → red
+ */
+function resolveGaugeColors(variant: GaugeVariant, pct: number): {
+  gradStart: string;
+  gradEnd: string;
+  textClass: string;
+} {
+  if (variant === "expense" || variant === "destructive") {
+    // Expenses: lower = better
+    if (pct > 100) return { gradStart: "hsl(0 84% 52%)", gradEnd: "hsl(0 72% 38%)",      textClass: "text-destructive" };
+    if (pct > 80)  return { gradStart: "hsl(25 95% 55%)", gradEnd: "hsl(15 90% 40%)",    textClass: "text-orange-500" };
+    if (pct > 50)  return { gradStart: "hsl(var(--warning))", gradEnd: "hsl(38 92% 40%)", textClass: "text-warning" };
+    return { gradStart: "hsl(var(--fi-income))", gradEnd: "hsl(142 71% 30%)",             textClass: "text-success" };
+  }
+
+  // income / investment / blue / success: higher = better — never red
+  if (pct > 130) return { gradStart: "hsl(142 80% 38%)", gradEnd: "hsl(155 90% 25%)",   textClass: "text-emerald-500" };
+  if (pct > 100) return { gradStart: "hsl(142 71% 45%)", gradEnd: "hsl(142 71% 30%)",   textClass: "text-success" };
+  if (pct > 50)  return { gradStart: "hsl(var(--fi-income))", gradEnd: "hsl(142 71% 30%)", textClass: "text-success" };
+  return { gradStart: "hsl(var(--warning))", gradEnd: "hsl(38 92% 42%)",                textClass: "text-warning" };
+}
 
 export function GaugeChart({
   label,
@@ -33,15 +60,17 @@ export function GaugeChart({
   const realPct    = valorPlanejado > 0 ? (valorRealizado / valorPlanejado) * 100 : 0;
   const displayPct = Math.min(realPct, 100);
 
-  const radius      = 52;
+  const radius        = 52;
   const circumference = 2 * Math.PI * radius;
-  const gaugeArc    = circumference * 0.75; // 270°
-  const filledArc   = (displayPct / 100) * gaugeArc;
-  const startAngle  = 135;
+  const gaugeArc      = circumference * 0.75; // 270°
+  const filledArc     = (displayPct / 100) * gaugeArc;
+  const startAngle    = 135;
 
-  const gradientId    = `gauge-gradient-${label.replace(/\s/g, "")}`;
-  const gradientColors = VARIANT_COLORS[variant] ?? VARIANT_COLORS.blue;
-  const isOver        = realPct > 100;
+  const gradientId = `gauge-gradient-${label.replace(/\s/g, "")}`;
+  const { gradStart, gradEnd, textClass } = resolveGaugeColors(variant, realPct);
+
+  const isExpense = variant === "expense" || variant === "destructive";
+  const isOverBudget = isExpense && realPct > 100;
 
   return (
     <div className="flex flex-col items-center gap-1.5 w-full">
@@ -55,8 +84,8 @@ export function GaugeChart({
         <svg width="110" height="110" viewBox="0 0 120 120" aria-hidden="true">
           <defs>
             <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor={isOver ? "hsl(var(--fi-expense))" : gradientColors.start} />
-              <stop offset="100%" stopColor={isOver ? "hsl(0 84% 40%)" : gradientColors.end} />
+              <stop offset="0%" stopColor={gradStart} />
+              <stop offset="100%" stopColor={gradEnd} />
             </linearGradient>
           </defs>
           {/* Track */}
@@ -86,7 +115,7 @@ export function GaugeChart({
 
       {/* 3. Valor principal */}
       <span
-        className={cn("leading-none tabular-nums text-center", isOver ? "text-destructive" : "text-foreground")}
+        className={cn("leading-none tabular-nums text-center", textClass)}
         style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 18, fontWeight: 600 }}
       >
         <MaskedValue>{formatCurrency(valorRealizado)}</MaskedValue>
@@ -97,14 +126,16 @@ export function GaugeChart({
         de <MaskedValue>{formatCurrency(valorPlanejado)}</MaskedValue>
       </span>
 
-      {/* 5. Percentual */}
+      {/* 5. Percentual — expense shows "do orçamento", others show "da meta" */}
       <span
-        className={cn("tabular-nums font-medium text-center", isOver ? "text-destructive" : "text-muted-foreground")}
+        className={cn("tabular-nums font-medium text-center", textClass)}
         style={{ fontSize: 12 }}
       >
         {realPct >= 1000
           ? `${Math.round(realPct).toLocaleString("pt-BR")}%`
-          : `${realPct.toFixed(0)}%`} da meta
+          : `${realPct.toFixed(0)}%`}{" "}
+        {isExpense ? "do orçamento" : "da meta"}
+        {!isExpense && realPct > 100 && " 🎯"}
       </span>
     </div>
   );

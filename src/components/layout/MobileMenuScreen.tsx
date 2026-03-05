@@ -87,13 +87,23 @@ export function MobileMenuScreen({ onClose, isOpen = false }: MobileMenuScreenPr
   });
 
   const { data: subscription } = useQuery({
-    queryKey: ["subscription-label", user?.id],
+    queryKey: ["subscription-label-mobile", user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
+      // Get the user's organization first
+      const { data: member } = await supabase
+        .from("organization_members")
+        .select("organization_id")
+        .eq("user_id", user.id)
+        .limit(1)
+        .maybeSingle();
+      if (!member?.organization_id) return "Plano Free";
+
       const { data } = await supabase
         .from("organization_subscriptions")
         .select("plans(name)")
-        .eq("status", "active")
+        .eq("organization_id", member.organization_id)
+        .in("status", ["active", "trialing", "past_due"])
         .limit(1)
         .maybeSingle();
       return (data?.plans as { name: string } | null)?.name || "Plano Free";
