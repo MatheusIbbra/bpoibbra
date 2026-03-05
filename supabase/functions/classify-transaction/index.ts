@@ -176,6 +176,7 @@ serve(async (req) => {
 
     // ─────────────────────────────────────────────────────────────────
     // ETAPA 2: REGRAS DE CONCILIAÇÃO DA ORGANIZAÇÃO
+    // ─────────────────────────────────────────────────────────────────
     if (organization_id) {
       const { data: rules, error: rulesError } = await supabaseClient
         .from("reconciliation_rules")
