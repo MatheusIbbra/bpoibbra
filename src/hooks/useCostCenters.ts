@@ -41,6 +41,7 @@ export function useCostCenters() {
       return data as CostCenter[];
     },
     enabled: !!user,
+    staleTime: 15 * 60 * 1000,
   });
 }
 
