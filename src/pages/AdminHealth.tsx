@@ -65,7 +65,7 @@ const EDGE_FUNCTIONS = [
 
 export default function AdminHealth() {
   const navigate = useNavigate();
-  const { data: userRoles, isLoading: rolesLoading } = useUserRoles();
+  const { isAdmin, isLoading: rolesLoading } = useIsAdmin();
 
   useEffect(() => {
     if (!rolesLoading && !userRoles?.includes("admin")) {
