@@ -1,4 +1,4 @@
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useValuesVisibility } from "@/contexts/ValuesVisibilityContext";
 import { useQuery } from "@tanstack/react-query";
@@ -8,6 +8,11 @@ import { useLocation } from "react-router-dom";
 import ibbraLogoWhite from "@/assets/ibbra-logo-full-white.png";
 import ibbraLogoIcon from "@/assets/ibbra-logo-icon.png";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useBankConnections, useSyncBankConnection } from "@/hooks/useBankConnections";
+import { useBaseFilter } from "@/contexts/BaseFilterContext";
+import { useAutoIgnoreTransfers } from "@/hooks/useAutoIgnoreTransfers";
 
 export function MobileHeader() {
   const { showValues, toggleValues } = useValuesVisibility();
@@ -15,6 +20,31 @@ export function MobileHeader() {
   const { user } = useAuth();
   const location = useLocation();
   const isHome = location.pathname === "/";
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const { data: bankConnections } = useBankConnections();
+  const syncConnection = useSyncBankConnection();
+  const autoIgnoreTransfers = useAutoIgnoreTransfers();
+  const { getRequiredOrganizationId } = useBaseFilter();
+
+  const handleSync = async () => {
+    const orgId = getRequiredOrganizationId();
+    if (!orgId) return;
+    const active = bankConnections?.filter(c => c.status === "active") || [];
+    if (active.length === 0) { toast.info("Nenhuma conexão ativa."); return; }
+    setIsSyncing(true);
+    toast.info("Sincronizando Open Finance…", { duration: 3000 });
+    let total = 0;
+    for (const conn of active) {
+      try {
+        const r = await syncConnection.mutateAsync({ organizationId: orgId, bankConnectionId: conn.id });
+        total += r.imported || 0;
+      } catch {}
+    }
+    try { await autoIgnoreTransfers.mutateAsync(orgId); } catch {}
+    setIsSyncing(false);
+    toast.success(`${total} transações importadas.`);
+  };
 
   const { data: profile } = useQuery({
     queryKey: ["user-profile", user?.id],
@@ -60,13 +90,23 @@ export function MobileHeader() {
           )}
         </div>
 
-        {/* Right: only eye toggle */}
-        <button
-          onClick={toggleValues}
-          className="flex items-center justify-center h-9 w-9 rounded-xl text-foreground/60 hover:text-foreground hover:bg-accent/40 transition-all"
-        >
-          {showValues ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-        </button>
+        {/* Right: sync + eye toggle */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleSync}
+            disabled={isSyncing}
+            className="flex items-center justify-center h-9 w-9 rounded-xl text-foreground/60 hover:text-foreground hover:bg-accent/40 transition-all disabled:opacity-40"
+            aria-label="Sincronizar Open Finance"
+          >
+            <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
+          </button>
+          <button
+            onClick={toggleValues}
+            className="flex items-center justify-center h-9 w-9 rounded-xl text-foreground/60 hover:text-foreground hover:bg-accent/40 transition-all"
+          >
+            {showValues ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
     </header>
   );

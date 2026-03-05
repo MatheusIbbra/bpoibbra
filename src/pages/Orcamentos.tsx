@@ -250,98 +250,104 @@ export default function Orcamentos() {
            ═══════════════════════════════════════ */}
         <div className="space-y-3">
           <FadeCard delay={160}>
-            <SectionTitle delay={160}>Planejamento</SectionTitle>
+            <div className="flex items-center justify-center">
+              <SectionTitle delay={160}>Planejamento</SectionTitle>
+            </div>
           </FadeCard>
 
           <FadeCard delay={200}>
-            <div className="overflow-visible">
-              <div className="p-0">
-                <div className="flex items-center justify-end mb-4">
-                  <div className="flex items-center gap-2">
-                    {/* Saldo Livre tooltip */}
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button className="flex items-center justify-center h-7 w-7 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
-                            <HelpCircle className="h-4 w-4" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="max-w-[220px] p-3 rounded-xl">
-                          <p className="text-xs font-semibold mb-1">Saldo Livre</p>
-                          <p className="text-lg font-bold tabular-nums" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                            <MaskedValue>{formatCurrency(freeBalance)}</MaskedValue>
-                          </p>
-                          <p className="text-[10px] text-muted-foreground mt-1">
-                            Receita − Investimento − Despesas
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <Button
-                      size="sm" variant="ghost"
-                      className="h-7 text-[10px] text-muted-foreground hover:text-foreground"
-                      onClick={() => setEditingPlan(!editingPlan)}
-                    >
-                      <Pencil className="h-3 w-3 mr-1" />
-                      {editingPlan ? "Fechar" : "Editar"}
-                    </Button>
+            {/* Apple-style glass card */}
+            <div
+              className="rounded-[24px] border border-white/40 backdrop-blur-xl px-5 py-5"
+              style={{
+                background: "rgba(255,255,255,0.45)",
+                boxShadow: "0 4px 24px 0 rgba(60,60,90,0.08), 0 1.5px 6px 0 rgba(60,60,90,0.04)",
+              }}
+            >
+              <div className="flex items-center justify-end mb-3">
+                <div className="flex items-center gap-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="flex items-center justify-center h-7 w-7 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                          <HelpCircle className="h-4 w-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-[220px] p-3 rounded-xl">
+                        <p className="text-xs font-semibold mb-1">Saldo Livre</p>
+                        <p className="text-lg font-bold tabular-nums" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                          <MaskedValue>{formatCurrency(freeBalance)}</MaskedValue>
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Receita − Investimento − Despesas
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Button
+                    size="sm" variant="ghost"
+                    className="h-7 text-[10px] text-muted-foreground hover:text-foreground"
+                    onClick={() => setEditingPlan(!editingPlan)}
+                  >
+                    <Pencil className="h-3 w-3 mr-1" />
+                    {editingPlan ? "Fechar" : "Editar"}
+                  </Button>
+                </div>
+              </div>
+
+              {editingPlan ? (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground mb-1">Meta de Receita</p>
+                    <CurrencyInput value={planIncome} onChange={setPlanIncome} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground mb-1">Meta de Investimento</p>
+                    <CurrencyInput value={planInvestment} onChange={setPlanInvestment} />
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full text-xs"
+                    onClick={() => {
+                      upsertPlan.mutate({ month, year, income_target: planIncome, investment_target: planInvestment });
+                      setEditingPlan(false);
+                    }}
+                    disabled={upsertPlan.isPending}
+                  >
+                    {upsertPlan.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Salvar Plano"}
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 py-2" style={{ gap: 32 }}>
+                  <div className="flex flex-col items-center">
+                    <GaugeChart
+                      label="Receita"
+                      valorPlanejado={effectiveIncome}
+                      valorRealizado={income}
+                      variant="success"
+                      compact
+                    />
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <GaugeChart
+                      label="Investimento"
+                      valorPlanejado={planInvestment || 1}
+                      valorRealizado={0}
+                      variant="blue"
+                      compact
+                    />
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <GaugeChart
+                      label="Despesas"
+                      valorPlanejado={totalBudget || 1}
+                      valorRealizado={totalSpent}
+                      variant="destructive"
+                      compact
+                    />
                   </div>
                 </div>
-
-                {editingPlan ? (
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-[10px] text-muted-foreground mb-1">Meta de Receita</p>
-                      <CurrencyInput value={planIncome} onChange={setPlanIncome} />
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground mb-1">Meta de Investimento</p>
-                      <CurrencyInput value={planInvestment} onChange={setPlanInvestment} />
-                    </div>
-                    <Button
-                      size="sm"
-                      className="w-full text-xs"
-                      onClick={() => {
-                        upsertPlan.mutate({ month, year, income_target: planIncome, investment_target: planInvestment });
-                        setEditingPlan(false);
-                      }}
-                      disabled={upsertPlan.isPending}
-                    >
-                      {upsertPlan.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Salvar Plano"}
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-3 py-4" style={{ gap: 32 }}>
-                    <div className="flex flex-col items-center">
-                      <GaugeChart
-                        label="Receita"
-                        valorPlanejado={effectiveIncome}
-                        valorRealizado={income}
-                        variant="success"
-                        compact
-                      />
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <GaugeChart
-                        label="Investimento"
-                        valorPlanejado={planInvestment || 1}
-                        valorRealizado={0}
-                        variant="blue"
-                        compact
-                      />
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <GaugeChart
-                        label="Despesas"
-                        valorPlanejado={totalBudget || 1}
-                        valorRealizado={totalSpent}
-                        variant="destructive"
-                        compact
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </FadeCard>
         </div>
