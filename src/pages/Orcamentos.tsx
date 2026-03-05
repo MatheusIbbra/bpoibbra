@@ -237,11 +237,9 @@ export default function Orcamentos() {
         </FadeCard>
 
         {/* ═══════════════════════════════════════
-           1. DISCIPLINE SCORE — shared component
+           1. DISCIPLINE SCORE — Round clickable card
            ═══════════════════════════════════════ */}
-        <FadeCard delay={80}>
-          <FinancialDisciplineScore selectedMonth={selectedMonth} />
-        </FadeCard>
+        <DisciplineScoreBubble score={disciplineScore} scoreColor={scoreColor} scoreRing={scoreRing} circumference={circumference} scoreOffset={scoreOffset} selectedMonth={selectedMonth} />
 
         {/* ═══════════════════════════════════════
            2. PLANEJAMENTO — Monthly Plan
@@ -561,15 +559,6 @@ export default function Orcamentos() {
             </FadeCard>
           </div>
 
-          {/* Alerts */}
-          <FadeCard delay={760}>
-            <Card className="border-0 shadow-fintech">
-              <CardContent className="p-7">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Alertas</p>
-                <BudgetAlerts showNotifications={false} compact selectedMonth={selectedMonth} />
-              </CardContent>
-            </Card>
-          </FadeCard>
         </div>
       </div>
 
