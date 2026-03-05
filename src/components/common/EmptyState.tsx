@@ -79,15 +79,10 @@ const CONFIG: Record<EmptyVariant, {
   },
 };
 
-const iconMotion = {
-  initial: { scale: 0.8, opacity: 0 },
-  animate: { scale: 1, opacity: 1, transition: { type: "spring", stiffness: 200, damping: 15 } },
-};
+import type { Transition } from "framer-motion";
 
-const containerMotion = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
-};
+const springTransition: Transition = { type: "spring", stiffness: 200, damping: 15 };
+const easeTransition: Transition = { duration: 0.4, ease: "easeOut" };
 
 export function EmptyState({
   variant,
