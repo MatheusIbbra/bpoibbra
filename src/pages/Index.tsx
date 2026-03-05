@@ -2,6 +2,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { FintechTransactionsList } from "@/components/dashboard/FintechTransactionsList";
+import { CircuitBreakerBanner } from "@/components/open-finance/CircuitBreakerBanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FinancialDisciplineScore } from "@/components/dashboard/FinancialDisciplineScore";
@@ -192,6 +193,7 @@ const Index = () => {
   return (
     <AppLayout title="Visão Geral">
       <WelcomeModal />
+      <CircuitBreakerBanner />
       <div className="space-y-8 w-full">
 
         {/* ── Month selector ── */}
