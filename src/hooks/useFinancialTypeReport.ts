@@ -53,6 +53,7 @@ export function useFinancialTypeReport(startDate: Date, endDate: Date) {
         .from("transactions")
         .select("id, amount, type, date, financial_type")
         .neq("is_ignored", true)
+        .in("validation_status", ["validated", "pending_validation"])
         .gte("date", startStr)
         .lte("date", endStr)
         .not("financial_type", "is", null);
