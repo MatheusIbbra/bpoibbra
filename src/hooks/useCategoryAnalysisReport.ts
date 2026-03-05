@@ -88,7 +88,9 @@ export function useCategoryAnalysisReport(
         if (tx.type === "income") totalIncome += amount;
         else totalExpense += amount;
 
-        const existing = map.get(tx.category_id);
+        // Use stable string key so all uncategorized items merge into one group
+        const mapKey = tx.category_id ?? "__sem_categoria__";
+        const existing = map.get(mapKey);
         const txDetail = {
           ...tx,
           amount,
