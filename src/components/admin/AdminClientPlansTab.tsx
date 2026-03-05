@@ -99,7 +99,7 @@ export function AdminClientPlansTab() {
         .from("organization_subscriptions")
         .select("id")
         .eq("organization_id", orgId)
-        .eq("status", "active")
+        .in("status", ["active", "trialing", "past_due"])
         .maybeSingle();
 
       if (existing) {
