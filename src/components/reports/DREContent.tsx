@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
-import { useDREReport, ReportBasis } from "@/hooks/useDREReport";
+import { useDREReport, ReportBasis, DREItem } from "@/hooks/useDREReport";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { PeriodSelector } from "@/components/reports/PeriodSelector";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
@@ -31,8 +31,12 @@ import {
   DollarSign,
   FileText,
   Banknote,
+  ChevronDown,
 } from "lucide-react";
-import { startOfMonth, endOfMonth, subMonths, subYears, format } from "date-fns";
+import { startOfMonth, endOfMonth, format } from "date-fns";
+import { TransactionDialog } from "@/components/transactions/TransactionDialog";
+import { formatCurrency as fmtCurrency, parseLocalDate } from "@/lib/formatters";
+import { ptBR } from "date-fns/locale";
 
 export function DREContent() {
   const { requiresBaseSelection } = useBaseFilter();
@@ -48,6 +52,10 @@ export function DREContent() {
     localStorage.setItem("report-basis-dre", basis);
   }, [basis]);
   const [costCenterId, setCostCenterId] = useState<string | undefined>(undefined);
+  // Expanded category id in DRE expense table
+  const [expandedCatKey, setExpandedCatKey] = useState<string | null>(null);
+  // Transaction being edited
+  const [editingTx, setEditingTx] = useState<any>(null);
 
   const { data: costCenters } = useCostCenters();
   const { data, isLoading } = useDREReport(dateRange.start, dateRange.end, basis, costCenterId);
@@ -288,15 +296,44 @@ export function DREContent() {
                   <span>DESPESAS OPERACIONAIS</span>
                   <span></span>
                 </div>
-                {data?.operatingExpenses.map((exp) => (
-                  <div key={exp.category_id ?? "sem-categoria"} className="flex justify-between py-1 cursor-pointer hover:bg-muted/30 px-1 rounded transition-colors">
-                    <span className="pl-4 flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full" style={{ backgroundColor: exp.category_color }} />
-                      {exp.category_name}
-                    </span>
-                    <span className="text-destructive">{formatCurrency(exp.total)}</span>
-                  </div>
-                ))}
+                 {data?.operatingExpenses.map((exp) => {
+                   const catKey = exp.category_id ?? "__sem_categoria__";
+                   const isExpanded = expandedCatKey === catKey;
+                   return (
+                     <div key={catKey}>
+                       <button
+                         className="flex w-full justify-between items-center py-1.5 px-1 rounded transition-colors hover:bg-muted/30 cursor-pointer text-left group"
+                         onClick={() => setExpandedCatKey(isExpanded ? null : catKey)}
+                       >
+                         <span className="pl-4 flex items-center gap-2 text-sm">
+                           <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: exp.category_color }} />
+                           {exp.category_name}
+                           <ChevronDown className={`h-3 w-3 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                         </span>
+                         <span className="text-destructive text-sm font-medium">{formatCurrency(exp.total)}</span>
+                       </button>
+                       {isExpanded && (
+                         <div className="ml-7 border-l border-border/40 pl-2 space-y-0.5 my-1">
+                           {exp.transactions.map((tx) => (
+                             <button
+                               key={tx.id}
+                               className="flex items-center justify-between w-full text-left px-2 py-1 rounded text-[11px] hover:bg-primary/5 transition-colors"
+                               onClick={() => setEditingTx(tx)}
+                             >
+                               <span className="truncate text-muted-foreground max-w-[55%]">{tx.description || "—"}</span>
+                               <div className="flex items-center gap-2 shrink-0">
+                                 <span className="text-destructive font-medium">{formatCurrency(tx.amount)}</span>
+                                 <span className="text-muted-foreground text-[9px]">
+                                   {format(parseLocalDate(tx.date), "dd/MM", { locale: ptBR })}
+                                 </span>
+                               </div>
+                             </button>
+                           ))}
+                         </div>
+                       )}
+                     </div>
+                   );
+                 })}
                 <div className="flex justify-between py-2 font-semibold border-t border-b">
                   <span className="pl-4">TOTAL DESPESAS OPERACIONAIS</span>
                   <span className="text-destructive">{formatCurrency(data?.totalOperatingExpenses || 0)}</span>
@@ -349,6 +386,14 @@ export function DREContent() {
             </p>
           </div>
         </>
+      )}
+
+      {editingTx && (
+        <TransactionDialog
+          open={!!editingTx}
+          onOpenChange={(o) => { if (!o) setEditingTx(null); }}
+          transaction={editingTx}
+        />
       )}
     </div>
   );

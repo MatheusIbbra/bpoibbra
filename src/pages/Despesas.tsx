@@ -55,8 +55,10 @@ export default function Despesas() {
     search: search || undefined,
   });
 
-  // Filter to only show classified transactions (with category)
-  const classifiedTransactions = transactions?.filter(t => t.category_id !== null) || [];
+  // Filter: classified, not ignored, not transfer
+  const classifiedTransactions = transactions?.filter(
+    t => t.category_id !== null && !t.is_ignored && t.type === "expense"
+  ) || [];
 
   const deleteTransaction = useDeleteTransaction();
 
