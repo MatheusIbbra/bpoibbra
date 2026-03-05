@@ -112,7 +112,70 @@ serve(async (req) => {
       auto_validated: false, normalized_description: normalizedDescription,
     };
 
-    // ETAPA 2: REGRAS DE CONCILIAÇÃO
+    // ─────────────────────────────────────────────────────────────────
+    // ETAPA 1: REGRAS PERSONALIZADAS DO USUÁRIO (máxima prioridade)
+    // ─────────────────────────────────────────────────────────────────
+    if (organization_id) {
+      const { data: userRules } = await supabaseClient
+        .from("user_classification_rules")
+        .select(`id, keyword, category_id, cost_center_id, transaction_type, match_exact, priority,
+          categories:category_id (id, name), cost_centers:cost_center_id (id, name)`)
+        .eq("organization_id", organization_id)
+        .eq("transaction_type", type)
+        .order("priority", { ascending: false });
+
+      if (userRules && userRules.length > 0) {
+        const normalizedDesc = normalizedDescription;
+        let bestUserRule: { rule: typeof userRules[0]; score: number } | null = null;
+
+        for (const rule of userRules) {
+          if (!rule.category_id) continue;
+          const normalizedKeyword = normalizeText(rule.keyword);
+          let score = 0;
+          if (rule.match_exact) {
+            score = normalizedDesc === normalizedKeyword ? 1.0 : 0;
+          } else {
+            const keywordScore = containsKeyword(description, rule.keyword);
+            const simScore = calculateSimilarity(normalizedDesc, normalizedKeyword);
+            score = Math.max(keywordScore, simScore);
+          }
+          if (score >= 0.7 && (!bestUserRule || score > bestUserRule.score)) {
+            bestUserRule = { rule, score };
+          }
+        }
+
+        if (bestUserRule) {
+          const cat = bestUserRule.rule.categories as unknown as { id: string; name: string } | null;
+          const cc  = bestUserRule.rule.cost_centers as unknown as { id: string; name: string } | null;
+          result = {
+            category_id: bestUserRule.rule.category_id,
+            category_name: cat?.name || null,
+            cost_center_id: bestUserRule.rule.cost_center_id,
+            cost_center_name: cc?.name || null,
+            confidence: Math.min(bestUserRule.score, 0.99),
+            is_transfer: false,
+            reasoning: `Regra personalizada: "${bestUserRule.rule.keyword}" (${(bestUserRule.score * 100).toFixed(0)}%)`,
+            source: "rule",
+            auto_validated: bestUserRule.score >= 0.85,
+            normalized_description: normalizedDescription,
+          };
+
+          if (transaction_id && result.auto_validated && result.category_id) {
+            await supabaseClient.from("transactions").update({
+              category_id: result.category_id, cost_center_id: result.cost_center_id,
+              classification_source: "rule", validation_status: "validated", validated_at: new Date().toISOString(),
+            }).eq("id", transaction_id);
+          }
+
+          return new Response(JSON.stringify(result), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+          });
+        }
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // ETAPA 2: REGRAS DE CONCILIAÇÃO DA ORGANIZAÇÃO
     if (organization_id) {
       const { data: rules, error: rulesError } = await supabaseClient
         .from("reconciliation_rules")
