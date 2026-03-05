@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -8,12 +8,16 @@ import {
 import { TransactionDialog } from "@/components/transactions/TransactionDialog";
 import { AccountDialog } from "@/components/accounts/AccountDialog";
 import { hapticSuccess, hapticLight } from "@/lib/haptics";
+import { useOpenPluggyConnect, useSavePluggyItem, useSyncBankConnection } from "@/hooks/useBankConnections";
+import { useBaseFilter } from "@/contexts/BaseFilterContext";
+import { useAutoIgnoreTransfers } from "@/hooks/useAutoIgnoreTransfers";
+import { toast } from "sonner";
 
 const cadastroCards = [
   { label: "Contas", icon: Wallet, path: "/contas" },
   { label: "Categorias", icon: Tag, path: "/categorias" },
   { label: "Grupos de Custo", icon: Layers, path: "/centros-custo" },
-  { label: "Importar Extrato", icon: Upload, path: "/cadastros?tab=importar" },
+  { label: "Importar Extrato", icon: Upload, path: "/importacoes" },
 ];
 
 interface Props {
@@ -37,6 +41,16 @@ export function MobileFabMenu({ isOpen, onClose }: Props) {
   const navigate = useNavigate();
   const [showCadastros, setShowCadastros] = useState(false);
   const [transactionType, setTransactionType] = useState<"income" | "expense" | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const popupRef = useRef<Window | null>(null);
+  const pendingOrgIdRef = useRef<string | null>(null);
+  const handledRef = useRef(false);
+
+  const { getRequiredOrganizationId } = useBaseFilter();
+  const openPluggyConnect = useOpenPluggyConnect();
+  const savePluggyItem = useSavePluggyItem();
+  const syncConnection = useSyncBankConnection();
+  const autoIgnoreTransfers = useAutoIgnoreTransfers();
 
   // Reset sub-screen when closing
   useEffect(() => {
@@ -44,6 +58,61 @@ export function MobileFabMenu({ isOpen, onClose }: Props) {
       setTimeout(() => setShowCadastros(false), 300);
     }
   }, [isOpen]);
+
+  // Listen for Pluggy postMessage
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (!event.data || typeof event.data !== "object") return;
+      const { type, itemId } = event.data;
+      if (type === "pluggy-connect-success" && itemId && !handledRef.current) {
+        handledRef.current = true;
+        popupRef.current?.close();
+        const orgId = pendingOrgIdRef.current;
+        if (!orgId) return;
+        toast.success("Conexão realizada! Sincronizando...");
+        savePluggyItem.mutateAsync({ itemId, organizationId: orgId }).then((conn) => {
+          if (conn?.connection_id) {
+            syncConnection.mutateAsync({ bankConnectionId: conn.connection_id }).then(() => {
+              autoIgnoreTransfers.mutate(orgId);
+              toast.success("Contas e transações sincronizadas.");
+            });
+          }
+        }).catch(() => toast.error("Erro ao salvar conexão."));
+        setIsConnecting(false);
+        handledRef.current = false;
+      }
+      if (type === "pluggy-connect-error") {
+        popupRef.current?.close();
+        toast.error("Erro na conexão.");
+        setIsConnecting(false);
+        handledRef.current = false;
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, []);
+
+  const handleOpenPluggy = async () => {
+    onClose();
+    const organizationId = getRequiredOrganizationId?.();
+    if (!organizationId) {
+      toast.error("Selecione uma base antes de conectar.");
+      return;
+    }
+    setIsConnecting(true);
+    pendingOrgIdRef.current = organizationId;
+    handledRef.current = false;
+    try {
+      const result = await openPluggyConnect.mutateAsync({ organizationId });
+      if (!result.accessToken) { toast.error("Token inválido."); setIsConnecting(false); return; }
+      const popup = window.open(`/pluggy-connect.html#${result.accessToken}`, 'pluggy-connect', 'width=500,height=700,scrollbars=yes,resizable=yes,left=200,top=100');
+      if (!popup) { toast.error("Popup bloqueado. Permita popups para este site."); setIsConnecting(false); return; }
+      popupRef.current = popup;
+    } catch {
+      toast.error("Erro ao iniciar conexão.");
+      setIsConnecting(false);
+    }
+  };
 
   const handleNav = (path: string) => {
     onClose();
@@ -99,7 +168,7 @@ export function MobileFabMenu({ isOpen, onClose }: Props) {
                       sub: "Vincular banco automaticamente",
                       icon: Building,
                       color: "hsl(var(--brand-deep))",
-                      action: () => handleNav("/open-finance"),
+                      action: () => handleOpenPluggy(),
                     },
                     {
                       label: "Cadastros",

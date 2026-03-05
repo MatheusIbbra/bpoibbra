@@ -91,23 +91,23 @@ export default function CentrosCusto() {
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-          <Card className="responsive-stat-card">
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Total</p>
-              <p className="text-2xl font-bold">{costCenters?.length || 0}</p>
+        <div className="grid gap-2 grid-cols-3">
+          <Card className="border-0 bg-gradient-to-br from-card to-muted/30">
+            <CardContent className="p-3 text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Total</p>
+              <p className="text-xl font-bold mt-0.5">{costCenters?.length || 0}</p>
             </CardContent>
           </Card>
-          <Card className="responsive-stat-card">
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Ativos</p>
-              <p className="text-2xl font-bold text-success">{activeCenters.length}</p>
+          <Card className="border-0 bg-gradient-to-br from-card to-muted/30">
+            <CardContent className="p-3 text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Ativos</p>
+              <p className="text-xl font-bold text-success mt-0.5">{activeCenters.length}</p>
             </CardContent>
           </Card>
-          <Card className="responsive-stat-card">
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Inativos</p>
-              <p className="text-2xl font-bold text-muted-foreground">{inactiveCenters.length}</p>
+          <Card className="border-0 bg-gradient-to-br from-card to-muted/30">
+            <CardContent className="p-3 text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Inativos</p>
+              <p className="text-xl font-bold text-muted-foreground mt-0.5">{inactiveCenters.length}</p>
             </CardContent>
           </Card>
         </div>

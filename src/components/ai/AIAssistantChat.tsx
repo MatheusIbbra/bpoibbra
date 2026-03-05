@@ -145,7 +145,12 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
   const pendingOrgIdRef = useRef<string | null>(null);
   const handledRef = useRef(false);
 
-  // FAB toggle is now handled exclusively by MobileFabMenu via AppLayout
+  // Listen for FAB "IA Financeira" event to open chat
+  useEffect(() => {
+    const handler = () => setIsChatOpen(true);
+    window.addEventListener("ibbra:open-ai-chat", handler);
+    return () => window.removeEventListener("ibbra:open-ai-chat", handler);
+  }, []);
   const openPluggyConnect = useOpenPluggyConnect();
   const savePluggyItem = useSavePluggyItem();
   const syncConnection = useSyncBankConnection();
