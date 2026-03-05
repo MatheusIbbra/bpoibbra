@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAM_ID.com.ibbra.bpo",
+        "paths": [
+          "/auth/*",
+          "/transactions/*",
+          "/open-finance/*"
+        ]
+      }
+    ]
+  }
+}
