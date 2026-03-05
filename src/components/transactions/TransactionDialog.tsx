@@ -560,6 +560,20 @@ export function TransactionDialog({
                   }}
                 />
 
+                {/* Save as rule shortcut */}
+                {!isTransferType && form.watch("category_id") && form.watch("description") && (
+                  <div className="flex justify-end -mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setSaveRuleOpen(true)}
+                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <BookmarkPlus className="h-3 w-3" />
+                      Salvar como regra automática
+                    </button>
+                  </div>
+                )}
+
                 <FormField
                   control={form.control}
                   name="cost_center_id"
