@@ -346,7 +346,6 @@ export default function Orcamentos() {
                 )}
               </div>
             </div>
-            </div>
           </FadeCard>
         </div>
 
