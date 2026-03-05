@@ -41,6 +41,16 @@ export function MobileFabMenu({ isOpen, onClose }: Props) {
   const navigate = useNavigate();
   const [showCadastros, setShowCadastros] = useState(false);
   const [transactionType, setTransactionType] = useState<"income" | "expense" | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const popupRef = useRef<Window | null>(null);
+  const pendingOrgIdRef = useRef<string | null>(null);
+  const handledRef = useRef(false);
+
+  const { getRequiredOrganizationId } = useBaseFilter();
+  const openPluggyConnect = useOpenPluggyConnect();
+  const savePluggyItem = useSavePluggyItem();
+  const syncConnection = useSyncBankConnection();
+  const autoIgnoreTransfers = useAutoIgnoreTransfers();
 
   // Reset sub-screen when closing
   useEffect(() => {
@@ -49,14 +59,59 @@ export function MobileFabMenu({ isOpen, onClose }: Props) {
     }
   }, [isOpen]);
 
-  const handleNav = (path: string) => {
-    onClose();
-    setTimeout(() => navigate(path), 200);
-  };
+  // Listen for Pluggy postMessage
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (!event.data || typeof event.data !== "object") return;
+      const { type, itemId } = event.data;
+      if (type === "pluggy-connect-success" && itemId && !handledRef.current) {
+        handledRef.current = true;
+        popupRef.current?.close();
+        const orgId = pendingOrgIdRef.current;
+        if (!orgId) return;
+        toast.success("Conexão realizada! Sincronizando...");
+        savePluggyItem.mutateAsync({ itemId, organizationId: orgId }).then((conn) => {
+          if (conn?.id) {
+            syncConnection.mutateAsync(conn.id).then(() => {
+              autoIgnoreTransfers.mutate();
+              toast.success("Contas e transações sincronizadas.");
+            });
+          }
+        }).catch(() => toast.error("Erro ao salvar conexão."));
+        setIsConnecting(false);
+        handledRef.current = false;
+      }
+      if (type === "pluggy-connect-error") {
+        popupRef.current?.close();
+        toast.error("Erro na conexão.");
+        setIsConnecting(false);
+        handledRef.current = false;
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, []);
 
-  const handleTransactionClose = () => {
-    setTransactionType(null);
+  const handleOpenPluggy = async () => {
     onClose();
+    const organizationId = getRequiredOrganizationId?.();
+    if (!organizationId) {
+      toast.error("Selecione uma base antes de conectar.");
+      return;
+    }
+    setIsConnecting(true);
+    pendingOrgIdRef.current = organizationId;
+    handledRef.current = false;
+    try {
+      const result = await openPluggyConnect.mutateAsync({ organizationId });
+      if (!result.accessToken) { toast.error("Token inválido."); setIsConnecting(false); return; }
+      const popup = window.open(`/pluggy-connect.html#${result.accessToken}`, 'pluggy-connect', 'width=500,height=700,scrollbars=yes,resizable=yes,left=200,top=100');
+      if (!popup) { toast.error("Popup bloqueado. Permita popups para este site."); setIsConnecting(false); return; }
+      popupRef.current = popup;
+    } catch {
+      toast.error("Erro ao iniciar conexão.");
+      setIsConnecting(false);
+    }
   };
 
   return (
