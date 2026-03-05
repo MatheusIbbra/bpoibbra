@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useQuery } from "@tanstack/react-query";
