@@ -9,7 +9,7 @@ import { MobileFabMenu } from "./MobileFabMenu";
 import { BrandBackground } from "./BrandBackground";
 import { AIAssistantChat } from "@/components/ai/AIAssistantChat";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useBaseFilter } from "@/contexts/BaseFilterContext";
+import { useBaseFilter, useBaseFilterState } from "@/contexts/BaseFilterContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, Loader2 } from "lucide-react";
