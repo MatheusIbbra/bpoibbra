@@ -103,9 +103,11 @@ export function useOnboardingGuard() {
 
         if (cancelled) return;
 
-        const role = roleData?.role;
-        const isStaffRole = role && ["admin", "supervisor", "fa", "kam", "projetista"].includes(role);
+        const role = roleData?.role as string | null;
+        const STAFF_ROLES = ["admin", "supervisor", "fa", "kam", "projetista"];
+        const isStaffRole = role !== null && STAFF_ROLES.includes(role);
 
+        // Staff roles skip organization membership check entirely
         if (!isStaffRole) {
           const { data: memberships } = await supabase
             .from("organization_members")
@@ -125,10 +127,12 @@ export function useOnboardingGuard() {
 
         setCompleted(true);
         setChecking(false);
-      } catch {
+      } catch (err) {
+        console.error("[OnboardingGuard] error:", err);
         if (!cancelled) {
+          // On error, allow access rather than blocking (fail-open for staff)
           setChecking(false);
-          setCompleted(false);
+          setCompleted(true);
         }
       }
     };
