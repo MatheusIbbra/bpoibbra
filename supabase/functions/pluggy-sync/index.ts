@@ -466,8 +466,24 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Acesso negado' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    // Circuit breaker check
+    const cbResult = await checkCircuitBreaker(supabaseAdmin, "pluggy", orgIdToCheck);
+    if (!cbResult.allowed) {
+      const retryMin = Math.ceil((cbResult.retryAfterMs || 600000) / 60000);
+      return new Response(
+        JSON.stringify({ error: `Sincronização Pluggy temporariamente indisponível. Retentativa automática em ${retryMin} minutos.`, circuit_breaker: true }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": String(Math.ceil((cbResult.retryAfterMs || 600000) / 1000)) } }
+      );
+    }
+
     // Pluggy auth
-    const pluggyToken = await getPluggyToken(PLUGGY_CLIENT_ID, PLUGGY_CLIENT_SECRET);
+    let pluggyToken: string;
+    try {
+      pluggyToken = await getPluggyToken(PLUGGY_CLIENT_ID, PLUGGY_CLIENT_SECRET);
+    } catch (authErr) {
+      await recordFailure(supabaseAdmin, "pluggy", orgIdToCheck);
+      throw authErr;
+    }
     const pluggyHeaders = { 'X-API-KEY': pluggyToken, 'Content-Type': 'application/json' };
 
     // Get or create bank connection
