@@ -160,7 +160,7 @@ export function MobileMenuScreen({ onClose, isOpen = false }: MobileMenuScreenPr
               <p className="text-xs text-muted-foreground truncate mt-0.5">{user?.email}</p>
               {!isStaff && (
                 <button
-                  onClick={() => openUpgradeModal()}
+                  onClick={() => { onClose(); setTimeout(() => openUpgradeModal(), 200); }}
                   className="inline-flex items-center gap-1 mt-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider hover:opacity-80 transition-opacity"
                   style={{ backgroundColor: "hsl(var(--brand-deep)/0.07)", color: "hsl(var(--brand-deep))" }}
                 >
