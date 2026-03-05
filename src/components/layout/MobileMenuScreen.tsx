@@ -148,14 +148,16 @@ export function MobileMenuScreen({ onClose, isOpen = false }: MobileMenuScreenPr
                 {profile?.full_name || "Usuário"}
               </p>
               <p className="text-xs text-muted-foreground truncate mt-0.5">{user?.email}</p>
-              <button
-                onClick={() => openUpgradeModal()}
-                className="inline-flex items-center gap-1 mt-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider hover:opacity-80 transition-opacity"
-                style={{ backgroundColor: "hsl(var(--brand-deep)/0.07)", color: "hsl(var(--brand-deep))" }}
-              >
-                {subscription || "Plano Free"}
-                <ArrowUpRight className="h-2.5 w-2.5" />
-              </button>
+              {!isStaff && (
+                <button
+                  onClick={() => openUpgradeModal()}
+                  className="inline-flex items-center gap-1 mt-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider hover:opacity-80 transition-opacity"
+                  style={{ backgroundColor: "hsl(var(--brand-deep)/0.07)", color: "hsl(var(--brand-deep))" }}
+                >
+                  {subscription || "Plano Free"}
+                  <ArrowUpRight className="h-2.5 w-2.5" />
+                </button>
+              )}
             </div>
           </div>
 
