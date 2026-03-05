@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, forwardRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -34,8 +33,6 @@ import {
 import {
   Download,
   Loader2,
-  FileText,
-  Banknote,
   TrendingUp,
   TrendingDown,
   ArrowRightLeft,
