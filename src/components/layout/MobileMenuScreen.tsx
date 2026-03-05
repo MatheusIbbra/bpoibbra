@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useQuery } from "@tanstack/react-query";
@@ -64,7 +65,7 @@ function MenuRow({ icon: Icon, label, onClick, trailing }: { icon: React.Element
 
 export function MobileMenuScreen({ onClose, isOpen = false }: MobileMenuScreenProps) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { openUpgradeModal } = useUpgradeModal();
 
@@ -206,6 +207,17 @@ export function MobileMenuScreen({ onClose, isOpen = false }: MobileMenuScreenPr
 
         {/* bottom padding */}
         <div className="pb-8" />
+
+        {/* Logout */}
+        <div className="px-5 pb-10">
+          <button
+            onClick={async () => { onClose(); await signOut(); }}
+            className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border border-destructive/20 text-destructive hover:bg-destructive/5 transition-colors text-sm font-medium"
+          >
+            <LogOut className="h-4 w-4" strokeWidth={1.5} />
+            Sair da conta
+          </button>
+        </div>
       </div>
     </div>
     </>
