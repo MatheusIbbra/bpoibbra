@@ -32,17 +32,21 @@ export function useDashboardStats(selectedMonth?: Date) {
       const endOfLastMonth = new Date(lastMonthYear, lastMonth, 0).toISOString().split("T")[0];
 
       // ─────────────────────────────────────────────────────────────
-      // KPIs via financial_events — single source of financial truth.
-      // Only impact_cashflow=true events are counted (internal
-      // transfers, aportes and resgates are automatically excluded).
+      // KPIs via transactions table — filtering is_ignored=true out
+      // explicitly. Transfers, investments and redemptions are excluded
+      // by only selecting 'income' and 'expense' types.
+      // financial_events was NOT used here because it stores events for
+      // ignored transactions too (they still affect account balance),
+      // which would inflate income/expense numbers shown to the user.
       // ─────────────────────────────────────────────────────────────
-      const buildEventsQuery = (start: string, end: string) => {
+      const buildTxQuery = (start: string, end: string) => {
         let q = supabase
-          .from("financial_events" as any)
-          .select("event_type, amount")
-          .eq("impact_cashflow", true)
-          .gte("event_date", start)
-          .lte("event_date", end);
+          .from("transactions")
+          .select("type, amount")
+          .in("type", ["income", "expense"])
+          .neq("is_ignored", true)
+          .gte("date", start)
+          .lte("date", end);
 
         if (orgFilter.type === "single") {
           q = q.eq("organization_id", orgFilter.ids[0]);
@@ -53,8 +57,8 @@ export function useDashboardStats(selectedMonth?: Date) {
       };
 
       const [{ data: currentEventsData }, { data: lastEventsData }] = await Promise.all([
-        buildEventsQuery(startOfMonth, endOfMonth),
-        buildEventsQuery(startOfLastMonth, endOfLastMonth),
+        buildTxQuery(startOfMonth, endOfMonth),
+        buildTxQuery(startOfLastMonth, endOfLastMonth),
       ]);
       
       // Get local accounts with snapshot balances (no full-scan RPC)
