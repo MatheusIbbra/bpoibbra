@@ -206,10 +206,7 @@ const Index = () => {
         {/* ══════════════════════════════════════════
             DASHBOARD — Layout 1.6fr / 1fr
             ══════════════════════════════════════════ */}
-        <div className="grid gap-6 grid-cols-1 lg:grid-cols-[1.6fr_1fr]">
-
-          {/* ── LEFT COLUMN ── */}
-          <div className="space-y-6 min-w-0">
+        <div className="space-y-6">
 
             {/* 1 — PATRIMÔNIO CONSOLIDADO */}
             <AnimatedCard>
@@ -247,20 +244,10 @@ const Index = () => {
               </Card>
             </AnimatedCard>
 
-
-            {/* 8 — MOVIMENTAÇÕES RECENTES */}
-            <AnimatedCard delay={0.2}>
+            {/* MOVIMENTAÇÕES RECENTES */}
+            <AnimatedCard delay={0.1}>
               <FintechTransactionsList selectedMonth={selectedMonth} />
             </AnimatedCard>
-          </div>
-
-          {/* ── RIGHT COLUMN ── */}
-          <div className="space-y-6">
-            <div className="lg:sticky lg:top-4 space-y-6">
-
-
-            </div>
-          </div>
         </div>
 
         {/* ── Dialogs ── */}
