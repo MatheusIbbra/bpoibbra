@@ -24,6 +24,8 @@ export default function Perfil() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState(false);
+  const { data: currentRole } = useCurrentUserRole();
+  const isStaff = currentRole && currentRole !== "cliente";
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["user-profile", user?.id],
