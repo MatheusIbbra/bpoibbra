@@ -38,8 +38,30 @@ export function useOnboardingGuard() {
 
     let cancelled = false;
 
+    const STAFF_ROLES = ["admin", "supervisor", "fa", "kam", "projetista"];
+
     const checkOnboarding = async () => {
       try {
+        // 1. Check role FIRST — staff bypass all onboarding/consent checks
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (cancelled) return;
+
+        const role = roleData?.role as string | null;
+        const isStaffRole = role !== null && STAFF_ROLES.includes(role);
+
+        // Staff users get immediate access — no registration or consent checks
+        if (isStaffRole) {
+          setCompleted(true);
+          setChecking(false);
+          return;
+        }
+
+        // 2. For clients: check profile registration
         const { data: profile, error } = await supabase
           .from("profiles")
           .select("registration_completed, legal_accepted")
@@ -55,38 +77,22 @@ export function useOnboardingGuard() {
           return;
         }
 
-        // Check legal consent - if registration is done but legal not accepted, redirect to consent
+        // 3. Check legal consent freshness (clients only)
         if (!profile.legal_accepted) {
-          // Check if consent is outdated (new version published)
           const { data: isValid } = await supabase.rpc("check_user_consent_valid", { p_user_id: user.id });
-          
           if (cancelled) return;
-
           if (!isValid) {
             setCompleted(false);
             setChecking(false);
             navigate("/consent-reaccept", { replace: true });
             return;
           }
-
-          // If consent is valid but flag not set, update it
-          await supabase
-            .from("profiles")
-            .update({ legal_accepted: true })
-            .eq("user_id", user.id);
+          await supabase.from("profiles").update({ legal_accepted: true }).eq("user_id", user.id);
         } else {
-          // Even if legal_accepted is true, check version freshness
           const { data: isValid } = await supabase.rpc("check_user_consent_valid", { p_user_id: user.id });
-
           if (cancelled) return;
-
           if (isValid === false) {
-            // New version published, force reaccept
-            await supabase
-              .from("profiles")
-              .update({ legal_accepted: false })
-              .eq("user_id", user.id);
-
+            await supabase.from("profiles").update({ legal_accepted: false }).eq("user_id", user.id);
             setCompleted(false);
             setChecking(false);
             navigate("/consent-reaccept", { replace: true });
@@ -94,35 +100,20 @@ export function useOnboardingGuard() {
           }
         }
 
-        // Check user role
-        const { data: roleData } = await supabase
-          .from("user_roles")
-          .select("role")
+        // 4. Check organization membership (clients only)
+        const { data: memberships } = await supabase
+          .from("organization_members")
+          .select("id")
           .eq("user_id", user.id)
-          .maybeSingle();
+          .limit(1);
 
         if (cancelled) return;
 
-        const role = roleData?.role as string | null;
-        const STAFF_ROLES = ["admin", "supervisor", "fa", "kam", "projetista"];
-        const isStaffRole = role !== null && STAFF_ROLES.includes(role);
-
-        // Staff roles skip organization membership check entirely
-        if (!isStaffRole) {
-          const { data: memberships } = await supabase
-            .from("organization_members")
-            .select("id")
-            .eq("user_id", user.id)
-            .limit(1);
-
-          if (cancelled) return;
-
-          if (!memberships || memberships.length === 0) {
-            setCompleted(false);
-            setChecking(false);
-            navigate("/onboarding", { replace: true });
-            return;
-          }
+        if (!memberships || memberships.length === 0) {
+          setCompleted(false);
+          setChecking(false);
+          navigate("/onboarding", { replace: true });
+          return;
         }
 
         setCompleted(true);
@@ -130,7 +121,7 @@ export function useOnboardingGuard() {
       } catch (err) {
         console.error("[OnboardingGuard] error:", err);
         if (!cancelled) {
-          // On error, allow access rather than blocking (fail-open for staff)
+          // Fail-open: allow access on unexpected errors
           setChecking(false);
           setCompleted(true);
         }

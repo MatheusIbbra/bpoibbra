@@ -35,10 +35,33 @@ const DEFAULT_FREE_LIMITS = {
   allow_anomaly_detection: false,
 };
 
+const STAFF_ROLES = ["admin", "supervisor", "fa", "kam", "projetista"];
+
+const UNLIMITED_PLAN: PlanUsage = {
+  transactionsUsed: 0,
+  transactionsLimit: 999999,
+  transactionsPercent: 0,
+  aiRequestsUsed: 0,
+  aiRequestsLimit: 999999,
+  aiRequestsPercent: 0,
+  bankConnectionsUsed: 0,
+  bankConnectionsLimit: 999999,
+  bankConnectionsPercent: 0,
+  isOverTransactions: false,
+  isOverAI: false,
+  isOverConnections: false,
+  allowForecast: true,
+  allowSimulator: true,
+  allowAnomalyDetection: true,
+  planName: "Staff",
+};
+
 export function usePlanLimits() {
   const { user } = useAuth();
-  const { selectedOrganizationId } = useBaseFilter();
+  const { selectedOrganizationId, userRole } = useBaseFilter();
   const { currentPlan } = useSubscription();
+
+  const isStaff = userRole !== null && STAFF_ROLES.includes(userRole);
 
   const usageQuery = useQuery({
     queryKey: ["plan-usage", user?.id, selectedOrganizationId],
@@ -114,14 +137,15 @@ export function usePlanLimits() {
         planName,
       };
     },
-    enabled: !!user,
+    enabled: !!user && !isStaff,
     staleTime: 5 * 60 * 1000,
   });
 
+  // Staff: skip limit warnings entirely
   // Proactive warning at 80% of transaction limit
   const warnedRef = useRef(false);
   useEffect(() => {
-    if (!usageQuery.data || warnedRef.current) return;
+    if (isStaff || !usageQuery.data || warnedRef.current) return;
     const { transactionsPercent, planName } = usageQuery.data;
     if (transactionsPercent >= 80 && transactionsPercent < 100) {
       warnedRef.current = true;
@@ -131,44 +155,41 @@ export function usePlanLimits() {
         duration: 8000,
       });
     }
-  }, [usageQuery.data]);
-  /**
-   * UX-only hint: indicates if the user is likely over the limit.
-   * NOT a security gate — backend triggers and edge functions enforce actual limits.
-   * Use this to disable buttons / show warnings in the UI.
-   * When over limit, opens the upgrade modal automatically.
-   */
+  }, [usageQuery.data, isStaff]);
+
   const canPerformAction = (action: "transaction" | "ai" | "connection") => {
-    if (!usageQuery.data) return true; // Allow by default while loading
+    if (isStaff) return true; // Staff has no limits
+    if (!usageQuery.data) return true;
     switch (action) {
-      case "transaction":
-        return !usageQuery.data.isOverTransactions;
-      case "ai":
-        return !usageQuery.data.isOverAI;
-      case "connection":
-        return !usageQuery.data.isOverConnections;
+      case "transaction": return !usageQuery.data.isOverTransactions;
+      case "ai": return !usageQuery.data.isOverAI;
+      case "connection": return !usageQuery.data.isOverConnections;
     }
   };
 
-  /**
-   * Same check as canPerformAction but opens the upgrade modal when blocked.
-   * Use this on button clicks that should trigger the modal.
-   */
   const canPerformOrUpgrade = (action: "transaction" | "ai" | "connection", openModal?: (trigger: string) => void) => {
     const can = canPerformAction(action);
-    if (!can && openModal) {
+    if (!can && openModal && !isStaff) {
       const triggerMap = { transaction: "transactions", ai: "ai", connection: "connections" } as const;
       openModal(triggerMap[action]);
     }
     return can;
   };
 
+  // Staff get unlimited plan data immediately
+  if (isStaff) {
+    return {
+      usage: UNLIMITED_PLAN,
+      isLoading: false,
+      canPerformAction,
+      canPerformOrUpgrade,
+    };
+  }
+
   return {
     usage: usageQuery.data,
     isLoading: usageQuery.isLoading,
-    /** UX hint only — backend is the source of truth for enforcement */
     canPerformAction,
-    /** Same as canPerformAction but opens upgrade modal when blocked */
     canPerformOrUpgrade,
   };
 }

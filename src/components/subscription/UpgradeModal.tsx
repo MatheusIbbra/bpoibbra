@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, X, Crown, Zap, MessageCircle, Loader2, Gift, Sparkles } from "lucide-react";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useBaseFilterState } from "@/contexts/BaseFilterContext";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -38,6 +39,11 @@ export function UpgradeModal() {
   const { isOpen, trigger, closeUpgradeModal } = useUpgradeModal();
   const { currentPlan, plans } = useSubscription();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
+  // Staff users never see plan/upgrade modal — they have unlimited access
+  const { userRole } = useBaseFilterState();
+  const isStaff = userRole !== null && ["admin", "supervisor", "fa", "kam", "projetista"].includes(userRole);
+  if (isStaff || !isOpen) return null;
 
   // Show all plans sorted by price
   const allPlans = [...plans].sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
