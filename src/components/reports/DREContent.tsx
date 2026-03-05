@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
-import { useDREReport, ReportBasis } from "@/hooks/useDREReport";
+import { useDREReport, ReportBasis, DREItem } from "@/hooks/useDREReport";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { PeriodSelector } from "@/components/reports/PeriodSelector";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
@@ -32,11 +32,11 @@ import {
   FileText,
   Banknote,
   ChevronDown,
-  ChevronRight,
 } from "lucide-react";
-import { startOfMonth, endOfMonth, subMonths, subYears, format } from "date-fns";
+import { startOfMonth, endOfMonth, format } from "date-fns";
 import { TransactionDialog } from "@/components/transactions/TransactionDialog";
-import { useDRETransactions } from "@/hooks/useDREReport";
+import { formatCurrency as fmtCurrency, parseLocalDate } from "@/lib/formatters";
+import { ptBR } from "date-fns/locale";
 
 export function DREContent() {
   const { requiresBaseSelection } = useBaseFilter();
