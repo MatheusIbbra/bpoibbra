@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -8,12 +8,16 @@ import {
 import { TransactionDialog } from "@/components/transactions/TransactionDialog";
 import { AccountDialog } from "@/components/accounts/AccountDialog";
 import { hapticSuccess, hapticLight } from "@/lib/haptics";
+import { useOpenPluggyConnect, useSavePluggyItem, useSyncBankConnection } from "@/hooks/useBankConnections";
+import { useBaseFilter } from "@/contexts/BaseFilterContext";
+import { useAutoIgnoreTransfers } from "@/hooks/useAutoIgnoreTransfers";
+import { toast } from "sonner";
 
 const cadastroCards = [
   { label: "Contas", icon: Wallet, path: "/contas" },
   { label: "Categorias", icon: Tag, path: "/categorias" },
   { label: "Grupos de Custo", icon: Layers, path: "/centros-custo" },
-  { label: "Importar Extrato", icon: Upload, path: "/cadastros?tab=importar" },
+  { label: "Importar Extrato", icon: Upload, path: "/importacoes" },
 ];
 
 interface Props {
