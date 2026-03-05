@@ -3,7 +3,8 @@ import { z } from "zod";
 import { handleSupabaseError } from "@/lib/error-handler";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarIcon, Loader2, Link2, EyeOff, Check, ChevronsUpDown, Trash2 } from "lucide-react";
+import { CalendarIcon, Loader2, Link2, EyeOff, Check, ChevronsUpDown, Trash2, BookmarkPlus } from "lucide-react";
+
 import {
   AlertDialog,
   AlertDialogAction,
