@@ -169,7 +169,7 @@ export function MovimentacoesReportContent() {
   }, [transactions, currentPage]);
 
   // Reset page when filters change
-  useMemo(() => { setCurrentPage(0); }, [typeFilter, categoryFilter, costCenterFilter, accountFilter, classificationFilter, periodRange, search]);
+  useMemo(() => { setCurrentPage(0); }, [costCenterFilter, classificationFilter, periodRange, search]);
 
   // Group by date label
   const grouped = useMemo(() => {
