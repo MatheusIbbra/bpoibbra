@@ -44,6 +44,7 @@ import { useSeedCategories } from "@/hooks/useSeedCategories";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
 import { DeleteCategoryDialog } from "@/components/categories/DeleteCategoryDialog";
+import { EmptyState } from "@/components/common/EmptyState";
 import { getAutoIcon } from "@/lib/category-icons";
 
 const DRE_GROUP_OPTIONS = [
@@ -420,15 +421,7 @@ export default function Categorias() {
             </CardContent>
           </Card>
         ) : hierarchyCategories?.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-              <LucideIcon name="tag" className="h-10 w-10 text-muted-foreground mb-3" />
-              <h3 className="text-base font-semibold">Nenhuma categoria encontrada</h3>
-              <p className="text-sm text-muted-foreground">
-                Crie categorias para organizar suas transações.
-              </p>
-            </CardContent>
-          </Card>
+          <EmptyState variant="categories" primaryAction={{ label: "Nova Categoria", onClick: () => handleCreate() }} />
         ) : (
           (() => {
             const sortedCategories = [...(hierarchyCategories || [])].sort((a, b) => 

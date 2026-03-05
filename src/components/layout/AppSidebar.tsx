@@ -14,6 +14,9 @@ import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import ibbraLogoWhite from "@/assets/ibbra-logo-white.png";
 import ibbraLogoFullWhite from "@/assets/ibbra-logo-full-white.png";
 
+// Prefetch helper — silently preloads a lazy-loaded route module on hover
+const prefetch = (fn: () => Promise<unknown>) => { fn().catch(() => {}); };
+
 const reportSubItems = [
   { title: "Movimentações", url: "/relatorios?tab=movimentacoes", tab: "movimentacoes", icon: Receipt },
   { title: "Fluxo de Caixa", url: "/relatorios?tab=fluxo", tab: "fluxo", icon: CircleDollarSign },
