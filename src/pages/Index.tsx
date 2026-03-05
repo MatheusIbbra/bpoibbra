@@ -5,7 +5,7 @@ import { FintechTransactionsList } from "@/components/dashboard/FintechTransacti
 import { CircuitBreakerBanner } from "@/components/open-finance/CircuitBreakerBanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FinancialDisciplineScore } from "@/components/dashboard/FinancialDisciplineScore";
+
 import { useAchievementChecker } from "@/hooks/useAchievementChecker";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -206,10 +206,7 @@ const Index = () => {
         {/* ══════════════════════════════════════════
             DASHBOARD — Layout 1.6fr / 1fr
             ══════════════════════════════════════════ */}
-        <div className="grid gap-6 grid-cols-1 lg:grid-cols-[1.6fr_1fr]">
-
-          {/* ── LEFT COLUMN ── */}
-          <div className="space-y-6 min-w-0">
+        <div className="space-y-6">
 
             {/* 1 — PATRIMÔNIO CONSOLIDADO */}
             <AnimatedCard>
@@ -247,108 +244,10 @@ const Index = () => {
               </Card>
             </AnimatedCard>
 
-            {/* DISCIPLINA FINANCEIRA — mobile only (abaixo de Patrimônio) */}
-            <div className="lg:hidden">
-              <AnimatedCard delay={0.03}>
-                <FinancialDisciplineScore selectedMonth={selectedMonth} />
-              </AnimatedCard>
-            </div>
-
-            {/* 3 — CONTROLE ORÇAMENTÁRIO (card principal) */}
+            {/* MOVIMENTAÇÕES RECENTES */}
             <AnimatedCard delay={0.1}>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2 pt-5 px-6">
-                  <div>
-                    <CardTitle className="text-base font-semibold">Controle Orçamentário</CardTitle>
-                    <p className="text-xs text-muted-foreground">Planejado vs realizado no mês</p>
-                  </div>
-                  <Link to="/orcamentos">
-                    <Badge variant="outline" className="cursor-pointer hover:bg-secondary text-xs">Ver plano</Badge>
-                  </Link>
-                </CardHeader>
-                <CardContent className="px-6 pb-6 space-y-5">
-                  {/* Summary numbers */}
-                  <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))" }}>
-                    <div className="min-w-0">
-                      <p className="text-xs text-muted-foreground mb-1">Planejado</p>
-                      <p className="font-bold tabular-nums truncate" style={{ fontSize: "clamp(0.9rem, 3.5vw, 1.15rem)" }}><MaskedValue>{formatCurrency(totalBudget)}</MaskedValue></p>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs text-muted-foreground mb-1">Realizado</p>
-                      <p className={cn("font-bold tabular-nums truncate", totalSpent > totalBudget && "text-destructive")} style={{ fontSize: "clamp(0.9rem, 3.5vw, 1.15rem)" }}>
-                        <MaskedValue>{formatCurrency(totalSpent)}</MaskedValue>
-                      </p>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs text-muted-foreground mb-1">Disponível</p>
-                      <p className={cn("font-bold tabular-nums truncate", budgetRemaining >= 0 ? "text-success" : "text-destructive")} style={{ fontSize: "clamp(0.9rem, 3.5vw, 1.15rem)" }}>
-                        <MaskedValue>{formatCurrency(budgetRemaining)}</MaskedValue>
-                      </p>
-                    </div>
-                  </div>
-                  {/* Progress bar */}
-                  <div>
-                    <Progress value={budgetPct} className={cn("h-3 rounded-full", totalSpent > totalBudget && "[&>div]:bg-destructive")} />
-                    <div className="flex items-center justify-between mt-2">
-                      <p className="text-xs text-muted-foreground">{budgetPct.toFixed(0)}% utilizado</p>
-                      <Badge variant={budgetRemaining >= 0 ? "outline" : "destructive"} className="text-[10px]">
-                        {budgetRemaining >= 0 ? "Dentro do planejamento" : "Acima do limite"}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </AnimatedCard>
-
-            {/* 6 — CATEGORIAS CRÍTICAS */}
-            {criticalCategories.length > 0 && (
-              <AnimatedCard delay={0.15}>
-                <Card>
-                  <CardHeader className="pb-2 pt-5 px-6">
-                    <CardTitle className="text-base font-semibold">Resumo Orçamentário</CardTitle>
-                    <p className="text-xs text-muted-foreground">Maior impacto no orçamento</p>
-                  </CardHeader>
-                  <CardContent className="px-6 pb-6 space-y-3">
-                    {criticalCategories.map((b) => {
-                      const pct = Math.min((b.spent / Number(b.amount)) * 100, 100);
-                      const over = b.spent > Number(b.amount);
-                      return (
-                        <div key={b.id}>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-sm font-medium">{b.categories?.name || "Categoria"}</span>
-                            <span className={cn("text-xs font-semibold tabular-nums", over && "text-destructive")}>
-                              {formatCurrency(b.spent)} / {formatCurrency(Number(b.amount))}
-                            </span>
-                          </div>
-                          <Progress value={pct} className={cn("h-2 rounded-full", over && "[&>div]:bg-destructive")} />
-                        </div>
-                      );
-                    })}
-                  </CardContent>
-                </Card>
-              </AnimatedCard>
-            )}
-
-            {/* 8 — MOVIMENTAÇÕES RECENTES */}
-            <AnimatedCard delay={0.2}>
               <FintechTransactionsList selectedMonth={selectedMonth} />
             </AnimatedCard>
-          </div>
-
-          {/* ── RIGHT COLUMN ── */}
-          <div className="space-y-6">
-            <div className="lg:sticky lg:top-4 space-y-6">
-
-              {/* DISCIPLINA FINANCEIRA — desktop only */}
-              <div className="hidden lg:block">
-                <AnimatedCard delay={0.05}>
-                  <FinancialDisciplineScore selectedMonth={selectedMonth} />
-                </AnimatedCard>
-              </div>
-
-
-            </div>
-          </div>
         </div>
 
         {/* ── Dialogs ── */}

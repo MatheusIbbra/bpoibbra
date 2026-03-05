@@ -6,11 +6,12 @@ import { toast } from "sonner";
 import {
   Plus, Loader2, AlertCircle, Pencil, Trash2, Check,
   ChevronsUpDown, Repeat, TrendingUp, TrendingDown, Target, PiggyBank,
+  CheckCircle2,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { FinancialDisciplineScore } from "@/components/dashboard/FinancialDisciplineScore";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -30,9 +31,8 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useMonthlyPlan, useUpsertMonthlyPlan } from "@/hooks/useMonthlyPlan";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
-import { useDisciplineScore } from "@/hooks/useDisciplineScore";
+import { useDisciplineScore, DisciplineIndicator } from "@/hooks/useDisciplineScore";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
-import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
@@ -237,11 +237,9 @@ export default function Orcamentos() {
         </FadeCard>
 
         {/* ═══════════════════════════════════════
-           1. DISCIPLINE SCORE — shared component
+           1. DISCIPLINE SCORE — Round clickable card
            ═══════════════════════════════════════ */}
-        <FadeCard delay={80}>
-          <FinancialDisciplineScore selectedMonth={selectedMonth} />
-        </FadeCard>
+        <DisciplineScoreBubble score={disciplineScore} scoreColor={scoreColor} scoreRing={scoreRing} circumference={circumference} scoreOffset={scoreOffset} selectedMonth={selectedMonth} />
 
         {/* ═══════════════════════════════════════
            2. PLANEJAMENTO — Monthly Plan
@@ -561,15 +559,6 @@ export default function Orcamentos() {
             </FadeCard>
           </div>
 
-          {/* Alerts */}
-          <FadeCard delay={760}>
-            <Card className="border-0 shadow-fintech">
-              <CardContent className="p-7">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Alertas</p>
-                <BudgetAlerts showNotifications={false} compact selectedMonth={selectedMonth} />
-              </CardContent>
-            </Card>
-          </FadeCard>
         </div>
       </div>
 
@@ -706,5 +695,149 @@ export default function Orcamentos() {
         </AlertDialogContent>
       </AlertDialog>
     </AppLayout>
+  );
+}
+
+/* ────────────────────────────────────────────
+   Discipline Score Bubble — round clickable card
+   ──────────────────────────────────────────── */
+function IndicatorRow({ ind }: { ind: DisciplineIndicator }) {
+  const barColor =
+    ind.status === "ok" ? "bg-success" :
+    ind.status === "warning" ? "bg-warning" :
+    "bg-destructive";
+
+  const statusColor =
+    ind.status === "ok" ? "text-success" :
+    ind.status === "warning" ? "text-warning" :
+    "text-destructive";
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-sm">
+        <span className="font-medium text-foreground">{ind.label}</span>
+        <span className={cn("font-bold tabular-nums", statusColor)}>
+          {ind.points}/{ind.maxPoints}
+        </span>
+      </div>
+      <div className="h-2 w-full rounded-full bg-muted/40 overflow-hidden">
+        <div
+          className={cn("h-full rounded-full transition-all duration-500", barColor)}
+          style={{ width: `${ind.pct}%` }}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground leading-snug">{ind.detail}</p>
+    </div>
+  );
+}
+
+function DisciplineScoreBubble({
+  score, scoreColor, scoreRing, circumference, scoreOffset, selectedMonth,
+}: {
+  score: number;
+  scoreColor: string;
+  scoreRing: string;
+  circumference: number;
+  scoreOffset: number;
+  selectedMonth: Date;
+}) {
+  const [open, setOpen] = useState(false);
+  const { indicators, tips, isLoading } = useDisciplineScore(selectedMonth);
+
+  return (
+    <>
+      <FadeCard delay={80}>
+        <div className="flex justify-center">
+          <button
+            onClick={() => setOpen(true)}
+            className="relative h-24 w-24 rounded-full group transition-transform hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            aria-label={`Disciplina financeira: ${score} pontos`}
+          >
+            <svg className="h-24 w-24 -rotate-90" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="54" fill="none" className="stroke-muted/20" strokeWidth="6" />
+              <circle
+                cx="60" cy="60" r="54"
+                fill="none"
+                className={cn(scoreRing, "transition-all duration-700")}
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={scoreOffset}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className={cn("text-2xl font-bold", scoreColor)} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                {score}
+              </span>
+              <span className="text-[8px] text-muted-foreground uppercase tracking-wider mt-0.5">disciplina</span>
+            </div>
+          </button>
+        </div>
+      </FadeCard>
+
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] overflow-y-auto">
+          <SheetHeader className="pb-4">
+            <SheetTitle className="text-lg font-bold flex items-center gap-2" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+              <Target className="h-5 w-5 text-primary" />
+              Disciplina Financeira
+            </SheetTitle>
+          </SheetHeader>
+
+          {/* Score circle */}
+          <div className="flex justify-center mb-6">
+            <div className="relative h-28 w-28">
+              <svg className="h-28 w-28 -rotate-90" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="52" fill="none" className="stroke-muted/20" strokeWidth="8" />
+                <circle
+                  cx="60" cy="60" r="52"
+                  fill="none"
+                  className={cn(scoreRing, "transition-all duration-700")}
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={scoreOffset}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className={cn("text-3xl font-bold", scoreColor)} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                  {score}
+                </span>
+                <span className="text-[10px] text-muted-foreground">/100</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Indicators */}
+          {indicators.length > 0 && (
+            <div className="space-y-5 mb-6">
+              {indicators.map((ind, i) => (
+                <IndicatorRow key={i} ind={ind} />
+              ))}
+            </div>
+          )}
+
+          {/* Tips */}
+          {tips.length === 0 ? (
+            <div className="flex items-center gap-2 text-sm text-success py-3 border-t">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              <span className="font-medium">Disciplina perfeita neste mês!</span>
+            </div>
+          ) : (
+            <div className="space-y-2 border-t pt-4">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                O que melhorar
+              </p>
+              {tips.map((tip, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <AlertCircle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                  <span>{tip}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }

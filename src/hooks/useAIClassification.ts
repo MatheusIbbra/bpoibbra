@@ -26,13 +26,29 @@ interface ClassifyTransactionParams {
 export function useAIClassification() {
   return useMutation({
     mutationFn: async (params: ClassifyTransactionParams): Promise<ClassificationResult> => {
-      // First try the existing classify-transaction edge function (rules + patterns + Gemini fallback)
+      const start = performance.now();
       const { data, error } = await supabase.functions.invoke("classify-transaction", {
         body: params,
       });
 
       if (error) throw error;
+      
+      const elapsed = Math.round(performance.now() - start);
+      console.info(`[AI Classification] source=${data.source} confidence=${data.confidence} time=${elapsed}ms`);
       return data;
+    },
+    onSuccess: (result) => {
+      if (result.source === "ai" && result.category_name) {
+        const confidence = Math.round((result.confidence ?? 0) * 100);
+        toast(`Classificado por IA · Confiança ${confidence}%${confidence < 75 ? " · Revisão recomendada" : ""}`, {
+          description: `Categoria: ${result.category_name}`,
+          duration: 8000,
+          action: {
+            label: "OK",
+            onClick: () => {},
+          },
+        });
+      }
     },
     onError: (error) => {
       console.error("AI Classification error:", error);
