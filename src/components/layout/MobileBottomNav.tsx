@@ -1,13 +1,13 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, CreditCard, Target, Plus, Menu } from "lucide-react";
+import { Home, Target, Plus, Menu, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
 const navItems = [
   { label: "Visão", icon: Home, path: "/" },
-  { label: "Cartões", icon: CreditCard, path: "/cartoes" },
-  { label: "", icon: Plus, path: "__fab__" },
   { label: "Orçamentos", icon: Target, path: "/orcamentos" },
+  { label: "", icon: Plus, path: "__fab__" },
+  { label: "Relatórios", icon: BarChart3, path: "/relatorios" },
   { label: "Menu", icon: Menu, path: "__menu__" },
 ];
 
