@@ -18,15 +18,16 @@ export function GaugeChart({
   variant = "blue",
   compact = false,
 }: GaugeChartProps) {
-  const pct = valorPlanejado > 0 ? Math.min((valorRealizado / valorPlanejado) * 100, 150) : 0;
-  const displayPct = Math.min(pct, 100);
+  // Real percentage — no cap for display number
+  const realPct = valorPlanejado > 0 ? (valorRealizado / valorPlanejado) * 100 : 0;
+  // Visual arc capped at 100% so layout doesn't break
+  const displayPct = Math.min(realPct, 100);
 
   // 270° gauge = 3/4 circle
   const radius = 52;
   const circumference = 2 * Math.PI * radius;
   const gaugeArc = circumference * 0.75; // 270°
   const filledArc = (displayPct / 100) * gaugeArc;
-  const emptyArc = gaugeArc - filledArc;
 
   // Rotation: start from bottom-left (135°)
   const startAngle = 135;
@@ -39,7 +40,7 @@ export function GaugeChart({
     ? { start: "hsl(0, 84%, 65%)", end: "hsl(0, 84%, 45%)" }
     : { start: "hsl(210, 100%, 72%)", end: "hsl(210, 100%, 36%)" };
 
-  const isOver = pct > 100;
+  const isOver = realPct > 100;
   const size = compact ? "h-36 w-36" : "h-44 w-44";
 
   return (
@@ -98,7 +99,7 @@ export function GaugeChart({
         "text-xs font-semibold tabular-nums",
         isOver ? "text-destructive" : "text-muted-foreground"
       )}>
-        {pct.toFixed(0)}% da meta
+        {realPct.toFixed(0)}% da meta
       </span>
     </div>
   );

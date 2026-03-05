@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdn.pluggy.ai; script-src 'self' 'unsafe-inline' https://cdn.pluggy.ai; frame-ancestors 'self' https://app.ibbra.com.br">
   <title>Conectando ao banco...</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -27,15 +28,15 @@
 
   <script>
     (function() {
+      var ALLOWED_ORIGIN = 'https://app.ibbra.com.br';
       var statusEl = document.getElementById('status');
       var messageEl = document.getElementById('message');
       var spinnerEl = document.getElementById('spinner');
       var SDK_URL = 'https://cdn.pluggy.ai/pluggy-connect/latest/pluggy-connect.js';
-      var SDK_LOAD_TIMEOUT = 15000; // 15 seconds
+      var SDK_LOAD_TIMEOUT = 15000;
       var sdkLoaded = false;
       var initAttempted = false;
 
-      // ---- Utility functions ----
       function showError(msg, showRetry) {
         spinnerEl.style.display = 'none';
         messageEl.className = 'error';
@@ -67,7 +68,7 @@
               if (type === 'pluggy-success') msg.data = payload;
               else if (type === 'pluggy-error') msg.error = payload;
             }
-            window.opener.postMessage(msg, '*');
+            window.opener.postMessage(msg, ALLOWED_ORIGIN);
           }
         } catch(e) {
           console.warn('Could not notify opener:', e);
@@ -78,7 +79,6 @@
         console.log('[PluggyConnect]', msg);
       }
 
-      // ---- Token validation ----
       var token = window.location.hash.substring(1);
 
       if (!token) {
@@ -97,7 +97,6 @@
 
       log('Token found: ' + token.substring(0, 10) + '... (' + token.length + ' chars)');
 
-      // ---- SDK loading with fallback ----
       function loadSDK(callback) {
         log('Loading Pluggy SDK from CDN...');
         var script = document.createElement('script');
@@ -115,7 +114,6 @@
           clearTimeout(timeoutId);
           sdkLoaded = true;
           log('SDK script loaded successfully');
-          // Give the SDK a moment to register globals
           setTimeout(function() { callback(null); }, 200);
         };
 
@@ -132,7 +130,6 @@
         if (initAttempted) return;
         initAttempted = true;
 
-        // Check if PluggyConnect global is available
         if (typeof PluggyConnect === 'undefined') {
           log('ERROR: PluggyConnect global not found after script load');
           showError('SDK carregou mas não inicializou corretamente. Verifique se o domínio está autorizado no provedor.', true);
@@ -148,10 +145,8 @@
             connectToken: token,
             
             onSuccess: function(itemData) {
-              log('SUCCESS: Connection completed. Item ID: ' + (itemData && itemData.id) + ', Full data: ' + JSON.stringify(itemData));
-              // Ensure we send the item data in a consistent format
+              log('SUCCESS: Connection completed. Item ID: ' + (itemData && itemData.id));
               var payload = itemData;
-              // If itemData doesn't have .id directly, try to find it
               if (!payload || !payload.id) {
                 log('WARNING: itemData has no .id field. Keys: ' + (payload ? Object.keys(payload).join(',') : 'null'));
               }
@@ -190,11 +185,9 @@
         }
       }
 
-      // ---- Main flow: wait for window.onload, then load SDK, then init ----
       function start() {
         loadSDK(function(err) {
           if (err) {
-            // Fallback: try loading from alternate CDN
             log('Trying fallback SDK URL...');
             var fallbackUrl = 'https://cdn.pluggy.ai/pluggy-connect/v2.13.0/pluggy-connect.js';
             var fallbackScript = document.createElement('script');
@@ -225,7 +218,6 @@
         });
       }
 
-      // Ensure everything is ready before starting
       if (document.readyState === 'complete') {
         log('Document already complete, starting immediately');
         start();

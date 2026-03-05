@@ -1,73 +1,49 @@
-# Welcome to your Lovable project
+# IBBRA — Sistema de Gestão Financeira Multi-Tenant
 
-## Project info
+## Configuração de Ambiente
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Este projeto requer as seguintes variáveis de ambiente. Copie `.env.example` para `.env` e preencha os valores:
 
-## How can I edit this code?
+| Variável | Descrição | Obrigatória |
+|---|---|---|
+| `VITE_SUPABASE_URL` | URL do projeto Supabase (ex: `https://xxx.supabase.co`) | ✅ |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Anon key do Supabase (chave pública) | ✅ |
+| `VITE_SUPABASE_PROJECT_ID` | ID do projeto Supabase | ✅ |
+| `VITE_SENTRY_DSN` | DSN do Sentry para monitoramento de erros | Opcional |
+| `VAPID_PUBLIC_KEY` | Chave pública VAPID para push notifications | Opcional |
 
-There are several ways of editing your application.
+### Secrets de Edge Functions (Supabase Dashboard)
 
-**Use Lovable**
+Configure em **Supabase Dashboard > Settings > Edge Functions**:
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+| Secret | Descrição | Como obter |
+|---|---|---|
+| `GEMINI_API_KEY` | API key do Google Gemini para funcionalidades de IA | [Google AI Studio](https://aistudio.google.com/apikey) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (auto-configurada) | Dashboard Supabase |
 
-Changes made via Lovable will be committed automatically to this repo.
+## Tecnologias
 
-**Use your preferred IDE**
+- Vite + React + TypeScript
+- Tailwind CSS + shadcn/ui
+- Supabase (Auth, Database, Edge Functions, Storage)
+- Capacitor (iOS/Android)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Desenvolvimento Local
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+cp .env.example .env
+# Preencha as variáveis em .env
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Deploy
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Abra [Lovable](https://lovable.dev) e clique em Share → Publish.
 
-**Use GitHub Codespaces**
+## Custom Domain
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Navegue até Project > Settings > Domains e clique em Connect Domain.
+[Documentação](https://docs.lovable.dev/features/custom-domain#custom-domain)
