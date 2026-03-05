@@ -16,11 +16,7 @@ const SECTION_ICONS: Record<string, React.ReactNode> = {
 const AdminRunbook = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { data: roles, isLoading: rolesLoading } = useUserRoles();
-  const [content, setContent] = useState<string>("");
-  const [loadingDoc, setLoadingDoc] = useState(true);
-
-  const isAdmin = roles?.some(r => r.role === "admin");
+  const { isAdmin, isLoading: rolesLoading } = useIsAdmin();
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
