@@ -49,6 +49,7 @@ export function useCategories(type?: CategoryType | CategoryType[]) {
       return (data || []) as Category[];
     },
     enabled: !!user,
+    staleTime: 15 * 60 * 1000,
   });
 }
 
