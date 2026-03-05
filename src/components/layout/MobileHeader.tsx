@@ -38,7 +38,7 @@ export function MobileHeader() {
   const displayName = profile?.full_name || "Usuário";
 
   return (
-    <header className="px-5 pt-[calc(env(safe-area-inset-top)+12px)] pb-3 max-w-[420px] mx-auto w-full">
+    <header className="px-5 pt-[calc(env(safe-area-inset-top)+12px)] pb-3 max-w-screen-sm mx-auto w-full">
       <div className="flex items-center justify-between">
         {/* Left: Logo + greeting */}
         <div className="flex items-center gap-3">
