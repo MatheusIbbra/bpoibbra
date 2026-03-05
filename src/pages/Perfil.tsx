@@ -60,7 +60,18 @@ export default function Perfil() {
       if (profile.phone) setPhone(formatPhone(profile.phone));
       if ((profile as any)?.gender) setGender((profile as any).gender);
     }
-  }, [profile]);
+    // Sync Google avatar if no avatar set yet
+    if (profile && !profile.avatar_url && user) {
+      const googlePicture = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+      if (googlePicture) {
+        supabase
+          .from("profiles")
+          .update({ avatar_url: googlePicture })
+          .eq("user_id", user.id)
+          .then(() => queryClient.invalidateQueries({ queryKey: ["user-profile"] }));
+      }
+    }
+  }, [profile, user]);
 
   const updateProfile = useMutation({
     mutationFn: async (data: { fullName: string; phone: string; gender: string }) => {

@@ -55,7 +55,8 @@ export function useDREReport(startDate: Date, endDate: Date, basis: ReportBasis,
         `)
         .neq("is_ignored", true)
         .in("validation_status", ["validated", "pending_validation"])
-        .in("type", ["income", "expense", "investment", "redemption"]);
+        .in("type", ["income", "expense", "investment", "redemption"])
+        .neq("type", "transfer");
 
       if (basis === "cash") {
         query = query.gte("date", startStr).lte("date", endStr);
@@ -87,23 +88,25 @@ export function useDREReport(startDate: Date, endDate: Date, basis: ReportBasis,
       let deductions = 0;
       let investments = 0;
       let redemptions = 0;
-      const expenseMap = new Map<string | null, DREItem>();
+      const expenseMap = new Map<string, DREItem>();
 
       transactions?.forEach((tx) => {
         const amount = Number(tx.amount);
         const categoryName = (tx.categories as any)?.name || "Sem categoria";
-        const categoryColor = (tx.categories as any)?.color || "#6366f1";
+        const categoryColor = (tx.categories as any)?.color || "#6b7280";
+        // Use a stable key: use category_id if set, otherwise "sem-categoria"
+        const mapKey = tx.category_id ?? "sem-categoria";
 
         switch (tx.type) {
           case "income":
             grossRevenue += amount;
             break;
-          case "expense":
-            const existing = expenseMap.get(tx.category_id);
+          case "expense": {
+            const existing = expenseMap.get(mapKey);
             if (existing) {
               existing.total += amount;
             } else {
-              expenseMap.set(tx.category_id, {
+              expenseMap.set(mapKey, {
                 category_id: tx.category_id,
                 category_name: categoryName,
                 category_color: categoryColor,
@@ -111,6 +114,7 @@ export function useDREReport(startDate: Date, endDate: Date, basis: ReportBasis,
               });
             }
             break;
+          }
           case "investment":
             investments += amount;
             break;

@@ -8,7 +8,6 @@ import {
   FileText,
   Layers,
   Tags,
-  Lightbulb,
 } from "lucide-react";
 
 const reportCards = [
@@ -60,13 +59,6 @@ const reportCards = [
     icon: Tags,
     tab: "categorias",
     color: "160 55% 40%",
-  },
-  {
-    title: "Estratégico",
-    description: "Métricas e projeções avançadas",
-    icon: Lightbulb,
-    tab: "estrategico",
-    color: "38 92% 50%",
   },
 ];
 

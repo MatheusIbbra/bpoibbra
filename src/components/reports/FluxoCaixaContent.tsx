@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, forwardRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -34,8 +33,6 @@ import {
 import {
   Download,
   Loader2,
-  FileText,
-  Banknote,
   TrendingUp,
   TrendingDown,
   ArrowRightLeft,
@@ -92,14 +89,12 @@ export function FluxoCaixaContent() {
     end: endOfMonth(new Date()),
   });
   const [granularity, setGranularity] = useState<Granularity>("daily");
-  const [basis, setBasis] = useState<ReportBasis>(() => {
-    return (localStorage.getItem("report-basis-fluxo") as ReportBasis) || "cash";
-  });
+  const basis: ReportBasis = "cash";
   const [costCenterId, setCostCenterId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     localStorage.setItem("report-basis-fluxo", basis);
-  }, [basis]);
+  }, []);
 
   const { data: costCenters } = useCostCenters();
   const { data, isLoading } = useCashFlowReport(dateRange.start, dateRange.end, basis, granularity, costCenterId);
@@ -206,18 +201,6 @@ export function FluxoCaixaContent() {
         <div className="flex items-center gap-4 flex-wrap">
           <PeriodSelector dateRange={dateRange} onDateRangeChange={setDateRange} />
 
-          <Tabs value={basis} onValueChange={(v) => setBasis(v as ReportBasis)}>
-            <TabsList className="h-8">
-              <TabsTrigger value="cash" className="gap-2 text-xs h-7">
-                <Banknote className="h-3 w-3" />
-                Caixa
-              </TabsTrigger>
-              <TabsTrigger value="accrual" className="gap-2 text-xs h-7">
-                <FileText className="h-3 w-3" />
-                Competência
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
 
           <Select value={granularity} onValueChange={(v) => setGranularity(v as Granularity)}>
             <SelectTrigger className="w-[140px] h-9">

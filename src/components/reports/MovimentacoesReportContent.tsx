@@ -128,10 +128,7 @@ export function MovimentacoesReportContent() {
   const urlFilter = urlParams.get("filter");
 
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [costCenterFilter, setCostCenterFilter] = useState<string>("all");
-  const [accountFilter, setAccountFilter] = useState<string>("all");
   const [classificationFilter, setClassificationFilter] = useState<string>(urlFilter === "sem-categoria" ? "unclassified" : "all");
   const [periodFilter, setPeriodFilter] = useState<PeriodPreset>("this_month");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -141,9 +138,7 @@ export function MovimentacoesReportContent() {
   const PAGE_SIZE = 50;
 
   const { data: allTransactions, isLoading } = useTransactions({ search: search || undefined });
-  const { data: categories } = useCategories();
   const { data: costCenters } = useCostCenters();
-  const { data: accounts } = useAccounts();
   const deleteTransaction = useDeleteTransaction();
   const toggleIgnore = useToggleIgnoreTransaction();
 
@@ -152,10 +147,7 @@ export function MovimentacoesReportContent() {
   const transactions = useMemo(() => {
     return (allTransactions || [])
       .filter(t => {
-        if (typeFilter !== "all" && t.type !== typeFilter) return false;
-        if (categoryFilter !== "all" && t.category_id !== categoryFilter) return false;
         if (costCenterFilter !== "all" && t.cost_center_id !== costCenterFilter) return false;
-        if (accountFilter !== "all" && t.account_id !== accountFilter) return false;
         if (classificationFilter === "classified" && !t.category_id) return false;
         if (classificationFilter === "unclassified" && t.category_id) return false;
         if (periodRange) {
@@ -167,7 +159,7 @@ export function MovimentacoesReportContent() {
       .sort((a, b) => {
         return parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime();
       });
-  }, [allTransactions, typeFilter, categoryFilter, costCenterFilter, accountFilter, classificationFilter, periodRange]);
+  }, [allTransactions, costCenterFilter, classificationFilter, periodRange]);
 
   // Reset page on filter change
   const totalPages = Math.ceil(transactions.length / PAGE_SIZE);
@@ -177,7 +169,7 @@ export function MovimentacoesReportContent() {
   }, [transactions, currentPage]);
 
   // Reset page when filters change
-  useMemo(() => { setCurrentPage(0); }, [typeFilter, categoryFilter, costCenterFilter, accountFilter, classificationFilter, periodRange, search]);
+  useMemo(() => { setCurrentPage(0); }, [costCenterFilter, classificationFilter, periodRange, search]);
 
   // Group by date label
   const grouped = useMemo(() => {
@@ -256,41 +248,6 @@ export function MovimentacoesReportContent() {
               <SelectItem value="last_3">Últimos 3 meses</SelectItem>
               <SelectItem value="this_year">Ano atual</SelectItem>
               <SelectItem value="all">Todos</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[100px] h-8 text-xs">
-              <SelectValue placeholder="Tipo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="income">Receita</SelectItem>
-              <SelectItem value="expense">Despesa</SelectItem>
-              <SelectItem value="transfer">Transferência</SelectItem>
-              <SelectItem value="investment">Aporte</SelectItem>
-              <SelectItem value="redemption">Resgate</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[120px] h-8 text-xs">
-              <SelectValue placeholder="Categoria" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas Cat.</SelectItem>
-              {categories?.filter(c => !c.parent_id).map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={accountFilter} onValueChange={setAccountFilter}>
-            <SelectTrigger className="w-[120px] h-8 text-xs">
-              <SelectValue placeholder="Conta" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas Contas</SelectItem>
-              {accounts?.map((acc) => (
-                <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-              ))}
             </SelectContent>
           </Select>
           <Select value={classificationFilter} onValueChange={setClassificationFilter}>
