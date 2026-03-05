@@ -40,6 +40,8 @@ export function useCreateFileImport() {
       failed_rows?: number;
       status?: string;
     }) => {
+      if (!user) throw new Error("Sessão expirada. Faça login novamente.");
+
       const insertData: FileImportInsert = {
         ...fileImport,
         user_id: user!.id,

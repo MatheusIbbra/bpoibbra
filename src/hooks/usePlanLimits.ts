@@ -157,6 +157,14 @@ export function usePlanLimits() {
     }
   }, [usageQuery.data, isStaff]);
 
+  // Reset warned flag when usage drops back below 80% (e.g. after deleting transactions)
+  useEffect(() => {
+    if (!usageQuery.data) return;
+    if (usageQuery.data.transactionsPercent < 80) {
+      warnedRef.current = false;
+    }
+  }, [usageQuery.data?.transactionsPercent]);
+
   const canPerformAction = (action: "transaction" | "ai" | "connection") => {
     if (isStaff) return true; // Staff has no limits
     if (!usageQuery.data) return true;

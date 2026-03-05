@@ -322,6 +322,8 @@ export function useCreateTransaction() {
 
   return useMutation({
     mutationFn: async (transaction: CreateTransactionInput) => {
+      if (!user) throw new Error("Sessão expirada. Faça login novamente.");
+
       const organizationId = getRequiredOrganizationId();
       
       if (!organizationId) {
@@ -467,7 +469,7 @@ export function useUpdateTransaction() {
           .from("transactions")
           .select("id, validation_status, is_ignored, linked_transaction_id")
           .eq("id", data.linked_transaction_id)
-          .single();
+          .maybeSingle(); // avoid PGRST116 when linked tx was already deleted
 
         // Only sync to the hidden secondary leg (the balance-correction counterpart)
         if (linkedTx?.is_ignored && linkedTx.validation_status === "rejected" &&
@@ -522,7 +524,11 @@ export function useDeleteTransaction() {
 
         if (linkedTx?.linked_transaction_id === id) {
           // True bidirectional pair — delete the secondary side first
-          await supabase.from("transactions").delete().eq("id", linkedId);
+          const { error: linkedDeleteError } = await supabase
+            .from("transactions")
+            .delete()
+            .eq("id", linkedId);
+          if (linkedDeleteError) throw linkedDeleteError;
         }
       }
 

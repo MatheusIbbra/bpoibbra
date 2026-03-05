@@ -112,6 +112,8 @@ export function useCreateAccount() {
       status?: AccountStatus;
       color?: string;
     }) => {
+      if (!user) throw new Error("Sessão expirada. Faça login novamente.");
+
       const organizationId = getRequiredOrganizationId();
       
       if (!organizationId) {

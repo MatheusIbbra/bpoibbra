@@ -103,6 +103,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
       // Synchronous updates only
       if (!isMounted) return;
+
+      // Reset blocked ref on sign-out so re-login triggers a fresh check
+      if (event === 'SIGNED_OUT') {
+        lastBlockedUserIdRef.current = null;
+      }
+
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
       setLoading(false);
