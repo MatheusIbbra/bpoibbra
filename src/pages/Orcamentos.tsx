@@ -256,33 +256,36 @@ export default function Orcamentos() {
           <FadeCard delay={200}>
             <Card className="border-0 shadow-fintech overflow-hidden">
               <div className="bg-gradient-to-r from-[hsl(var(--brand-deep))] to-[hsl(var(--brand-highlight))] p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button className="flex items-center gap-1.5 text-primary-foreground/50 hover:text-primary-foreground/80 transition-colors">
-                          <HelpCircle className="h-4 w-4" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="max-w-[220px] p-3">
-                        <p className="text-xs font-semibold mb-1">Saldo Livre</p>
-                        <p className="text-lg font-bold tabular-nums" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                          {formatCurrency(freeBalance)}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          Receita − Investimento − Despesas
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <Button
-                    size="sm" variant="ghost"
-                    className="h-7 text-[10px] text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/10"
-                    onClick={() => setEditingPlan(!editingPlan)}
-                  >
-                    <Pencil className="h-3 w-3 mr-1" />
-                    {editingPlan ? "Fechar" : "Editar"}
-                  </Button>
+                <div className="flex items-center justify-end mb-4">
+                  <div className="flex items-center gap-2">
+                    {/* Saldo Livre tooltip */}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button className="flex items-center justify-center h-7 w-7 rounded-full text-primary-foreground/50 hover:text-primary-foreground/90 hover:bg-primary-foreground/10 transition-colors">
+                            <HelpCircle className="h-4 w-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-[220px] p-3 rounded-xl">
+                          <p className="text-xs font-semibold mb-1">Saldo Livre</p>
+                          <p className="text-lg font-bold tabular-nums" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                            <MaskedValue>{formatCurrency(freeBalance)}</MaskedValue>
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            Receita − Investimento − Despesas
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <Button
+                      size="sm" variant="ghost"
+                      className="h-7 text-[10px] text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/10"
+                      onClick={() => setEditingPlan(!editingPlan)}
+                    >
+                      <Pencil className="h-3 w-3 mr-1" />
+                      {editingPlan ? "Fechar" : "Editar"}
+                    </Button>
+                  </div>
                 </div>
 
                 {editingPlan ? (
@@ -308,9 +311,9 @@ export default function Orcamentos() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex items-end justify-center gap-2">
+                  <div className="flex items-end justify-center gap-1">
                     {/* Receita — left, smaller */}
-                    <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground scale-90">
+                    <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground flex-1">
                       <GaugeChart
                         label="Receita"
                         valorPlanejado={effectiveIncome}
@@ -320,7 +323,7 @@ export default function Orcamentos() {
                       />
                     </div>
                     {/* Investimento — center, larger */}
-                    <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground scale-105">
+                    <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground flex-[1.3] scale-110 origin-bottom">
                       <GaugeChart
                         label="Investimento"
                         valorPlanejado={planInvestment || 1}
@@ -330,7 +333,7 @@ export default function Orcamentos() {
                       />
                     </div>
                     {/* Despesas — right, smaller */}
-                    <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground scale-90">
+                    <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground flex-1">
                       <GaugeChart
                         label="Despesas"
                         valorPlanejado={totalBudget || 1}
