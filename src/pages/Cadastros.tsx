@@ -48,6 +48,7 @@ import { CategoriesDialog } from "@/components/categories/CategoriesDialog";
 import { CostCenterDialog } from "@/components/cost-centers/CostCenterDialog";
 import { TransferDialog } from "@/components/transfers/TransferDialog";
 import { RuleDialog } from "@/components/rules/RuleDialog";
+import { BankConnectionsManager } from "@/components/open-finance/BankConnectionsManager";
 import { ImportExtractDialog } from "@/components/import/ImportExtractDialog";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
