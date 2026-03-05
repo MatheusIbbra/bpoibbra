@@ -377,16 +377,10 @@ export default function Orcamentos() {
               </FadeCard>
             ) : budgets?.length === 0 ? (
               <FadeCard delay={400}>
-                <Card className="border-0 shadow-fintech">
-                  <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                    <Target className="h-12 w-12 text-muted-foreground/20 mb-4" />
-                    <p className="text-sm text-muted-foreground">Nenhum orçamento para {MONTHS[month - 1]}</p>
-                    <Button size="sm" className="mt-4 text-xs rounded-full px-4" onClick={() => { setEditingBudget(null); form.reset(); setDialogOpen(true); }}>
-                      <Plus className="h-3.5 w-3.5 mr-1" />
-                      Criar primeiro orçamento
-                    </Button>
-                  </CardContent>
-                </Card>
+                <EmptyState
+                  variant="budgets"
+                  primaryAction={{ label: "Criar primeiro orçamento", onClick: () => { setEditingBudget(null); form.reset(); setDialogOpen(true); } }}
+                />
               </FadeCard>
             ) : (
               budgets?.map((budget, idx) => {
