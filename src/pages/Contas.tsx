@@ -22,6 +22,7 @@ import { useBankConnections } from "@/hooks/useBankConnections";
 import { AccountDialog } from "@/components/accounts/AccountDialog";
 import { TransferDialog } from "@/components/transfers/TransferDialog";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
+import { EmptyState } from "@/components/common/EmptyState";
 
 const ACCOUNT_TYPE_ICONS: Record<AccountType, typeof Building2> = {
   checking: Building2,
