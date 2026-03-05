@@ -39,6 +39,11 @@ export function UpgradeModal() {
   const { currentPlan, plans } = useSubscription();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
+  // Staff users never see plan/upgrade modal — they have unlimited access
+  const { userRole } = useBaseFilterState();
+  const isStaff = userRole !== null && ["admin", "supervisor", "fa", "kam", "projetista"].includes(userRole);
+  if (isStaff || !isOpen) return null;
+
   // Show all plans sorted by price
   const allPlans = [...plans].sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
   const purchasablePlans = allPlans; // keep variable name for compatibility
