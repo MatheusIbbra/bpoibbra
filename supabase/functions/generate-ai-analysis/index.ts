@@ -192,11 +192,8 @@ Deno.serve(async (req) => {
 
     if (organization_id) {
       const adminClient = createClient(supabaseUrl, serviceRoleKey);
-      await adminClient.from("api_usage_logs").insert({
-        organization_id,
-        endpoint: "ai",
-        tokens_used: tokenUsage,
-        request_metadata: { model: aiData.model || "google/gemini-3-flash-preview" },
+      await logAIUsage(adminClient, organization_id, userData.user.id, tokenUsage, {
+        model: aiData.model || "google/gemini-3-flash-preview",
       });
     }
 
