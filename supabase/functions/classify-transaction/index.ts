@@ -33,9 +33,6 @@ interface ClassificationResult {
   normalized_description?: string;
 }
 
-// ========================================
-// NORMALIZAÇÃO DE TEXTO (CAMADA 1)
-// ========================================
 function normalizeText(text: string): string {
   let result = text.toLowerCase();
   result = result.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -47,9 +44,6 @@ function normalizeText(text: string): string {
   return result.trim();
 }
 
-// ========================================
-// CÁLCULO DE SIMILARIDADE
-// ========================================
 function calculateSimilarity(text1: string, text2: string): number {
   if (!text1 || !text2) return 0;
   const words1 = text1.split(" ").filter(w => w.length > 0);
@@ -103,7 +97,6 @@ serve(async (req) => {
 
     if (!description) throw new Error("Descrição é obrigatória");
 
-    // ETAPA 1: NORMALIZAÇÃO
     const normalizedDescription = normalizeText(description);
     console.log(`[NORMALIZAÇÃO] "${description}" -> "${normalizedDescription}"`);
 
@@ -133,7 +126,7 @@ serve(async (req) => {
         let bestMatch: { rule: typeof rules[0]; similarity: number } | null = null;
         
         for (const rule of rules) {
-          if (!rule.category_id) continue; // Skip rules without category
+          if (!rule.category_id) continue;
           const keywordSim = containsKeyword(description, rule.description);
           const normalizedSim = calculateSimilarity(normalizedDescription, normalizeText(rule.description));
           let similarity = Math.max(keywordSim, normalizedSim);
@@ -232,8 +225,8 @@ serve(async (req) => {
       }
     }
 
-    // ETAPA 4: IA VIA LOVABLE AI GATEWAY
-    console.log("[IA] Fallback to Lovable AI Gateway...");
+    // ETAPA 4: IA VIA GEMINI API
+    console.log("[IA] Fallback to Gemini API...");
 
     const { data: categories, error: catError } = await supabaseClient
       .from("categories").select("id, name, type, parent_id").eq("type", type).not("parent_id", "is", null);
@@ -259,33 +252,35 @@ Formato: {"category_id":"uuid|null","category_name":"nome|null","cost_center_id"
 
     const userPrompt = `Classifique: "${description}" | R$ ${amount.toFixed(2)} | ${type === "income" ? "Receita" : "Despesa"}`;
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
       result.reasoning = "IA não configurada";
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
       });
     }
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.3,
-        max_tokens: 500,
-      }),
-    });
+    const aiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            { role: "user", parts: [{ text: systemPrompt }] },
+            { role: "model", parts: [{ text: "Entendido." }] },
+            { role: "user", parts: [{ text: userPrompt }] },
+          ],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 500,
+          },
+        }),
+      }
+    );
 
     if (!aiResponse.ok) {
-      console.error("[IA] Gateway error:", aiResponse.status);
+      console.error("[IA] Gemini error:", aiResponse.status);
       result.reasoning = "IA indisponível";
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
@@ -293,7 +288,7 @@ Formato: {"category_id":"uuid|null","category_name":"nome|null","cost_center_id"
     }
 
     const aiData = await aiResponse.json();
-    const aiContent = aiData.choices?.[0]?.message?.content || "";
+    const aiContent = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     let aiClassification: any;
     try {
@@ -345,7 +340,7 @@ Formato: {"category_id":"uuid|null","category_name":"nome|null","cost_center_id"
         transaction_id, suggested_category_id: result.category_id,
         suggested_cost_center_id: result.cost_center_id,
         suggested_type: type, confidence_score: result.confidence,
-        reasoning: result.reasoning, model_version: "lovable-ai-v1",
+        reasoning: result.reasoning, model_version: "gemini-2.5-flash",
       });
     }
 
