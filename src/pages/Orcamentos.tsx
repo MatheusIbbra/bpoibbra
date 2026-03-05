@@ -6,11 +6,12 @@ import { toast } from "sonner";
 import {
   Plus, Loader2, AlertCircle, Pencil, Trash2, Check,
   ChevronsUpDown, Repeat, TrendingUp, TrendingDown, Target, PiggyBank,
+  CheckCircle2,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { FinancialDisciplineScore } from "@/components/dashboard/FinancialDisciplineScore";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -30,9 +31,8 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useMonthlyPlan, useUpsertMonthlyPlan } from "@/hooks/useMonthlyPlan";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
-import { useDisciplineScore } from "@/hooks/useDisciplineScore";
+import { useDisciplineScore, DisciplineIndicator } from "@/hooks/useDisciplineScore";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
-import { BudgetAlerts } from "@/components/budget/BudgetAlerts";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
