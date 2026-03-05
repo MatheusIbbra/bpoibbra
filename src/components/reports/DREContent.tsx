@@ -387,15 +387,14 @@ export function DREContent() {
           </div>
         </>
       )}
-    </div>
 
-    {editingTx && (
-      <TransactionDialog
-        open={!!editingTx}
-        onOpenChange={(o) => { if (!o) setEditingTx(null); }}
-        transaction={editingTx}
-      />
-    )}
-  </>
+      {editingTx && (
+        <TransactionDialog
+          open={!!editingTx}
+          onOpenChange={(o) => { if (!o) setEditingTx(null); }}
+          transaction={editingTx}
+        />
+      )}
+    </div>
   );
 }
