@@ -75,10 +75,10 @@ export function AppSidebar() {
 
   // Build nav items based on role — order: Dashboard, Orçamentos, Cartões, Importar, Relatórios, Cadastros
   const navItems = [
-    { title: "Dashboard", url: "/", icon: Home },
-    { title: "Orçamentos", url: "/orcamentos", icon: Wallet },
-    { title: "Cartões de Crédito", url: "/cartoes", icon: CreditCard },
-    { title: "Importar Extratos", url: "/importacoes", icon: Upload },
+    { title: "Dashboard", url: "/", icon: Home, prefetchFn: () => import("../../pages/Index") },
+    { title: "Orçamentos", url: "/orcamentos", icon: Wallet, prefetchFn: () => import("../../pages/Orcamentos") },
+    { title: "Cartões de Crédito", url: "/cartoes", icon: CreditCard, prefetchFn: () => import("../../pages/CartoesCredito") },
+    { title: "Importar Extratos", url: "/importacoes", icon: Upload, prefetchFn: () => import("../../pages/Importacoes") },
   ];
 
   // "Relatórios" and "Cadastros" are handled separately as submenus
@@ -87,7 +87,7 @@ export function AppSidebar() {
   const renderNavItem = (item: typeof navItems[0]) => {
     const active = isActive(item.url);
     return (
-    <SidebarMenuItem key={item.title} className="relative">
+    <SidebarMenuItem key={item.title} className="relative" onMouseEnter={item.prefetchFn ? () => prefetch(item.prefetchFn!) : undefined}>
       <SidebarMenuButton asChild isActive={active} tooltip={collapsed ? item.title : undefined}>
         <NavLink
           to={item.url}
