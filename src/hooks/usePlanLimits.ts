@@ -35,10 +35,33 @@ const DEFAULT_FREE_LIMITS = {
   allow_anomaly_detection: false,
 };
 
+const STAFF_ROLES = ["admin", "supervisor", "fa", "kam", "projetista"];
+
+const UNLIMITED_PLAN: PlanUsage = {
+  transactionsUsed: 0,
+  transactionsLimit: 999999,
+  transactionsPercent: 0,
+  aiRequestsUsed: 0,
+  aiRequestsLimit: 999999,
+  aiRequestsPercent: 0,
+  bankConnectionsUsed: 0,
+  bankConnectionsLimit: 999999,
+  bankConnectionsPercent: 0,
+  isOverTransactions: false,
+  isOverAI: false,
+  isOverConnections: false,
+  allowForecast: true,
+  allowSimulator: true,
+  allowAnomalyDetection: true,
+  planName: "Staff",
+};
+
 export function usePlanLimits() {
   const { user } = useAuth();
-  const { selectedOrganizationId } = useBaseFilter();
+  const { selectedOrganizationId, userRole } = useBaseFilter();
   const { currentPlan } = useSubscription();
+
+  const isStaff = userRole !== null && STAFF_ROLES.includes(userRole);
 
   const usageQuery = useQuery({
     queryKey: ["plan-usage", user?.id, selectedOrganizationId],
@@ -114,7 +137,7 @@ export function usePlanLimits() {
         planName,
       };
     },
-    enabled: !!user,
+    enabled: !!user && !isStaff,
     staleTime: 5 * 60 * 1000,
   });
 
