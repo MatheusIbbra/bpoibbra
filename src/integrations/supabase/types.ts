@@ -229,6 +229,44 @@ export type Database = {
           },
         ]
       }
+      ai_usage_quotas: {
+        Row: {
+          created_at: string
+          daily_limit: number
+          hourly_limit: number
+          id: string
+          organization_id: string
+          updated_at: string
+          user_hourly_limit: number
+        }
+        Insert: {
+          created_at?: string
+          daily_limit?: number
+          hourly_limit?: number
+          id?: string
+          organization_id: string
+          updated_at?: string
+          user_hourly_limit?: number
+        }
+        Update: {
+          created_at?: string
+          daily_limit?: number
+          hourly_limit?: number
+          id?: string
+          organization_id?: string
+          updated_at?: string
+          user_hourly_limit?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_quotas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_usage_logs: {
         Row: {
           created_at: string
@@ -552,6 +590,53 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      circuit_breaker_state: {
+        Row: {
+          created_at: string
+          failure_count: number
+          half_open_at: string | null
+          id: string
+          last_failure_at: string | null
+          opened_at: string | null
+          organization_id: string | null
+          provider: string
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          failure_count?: number
+          half_open_at?: string | null
+          id?: string
+          last_failure_at?: string | null
+          opened_at?: string | null
+          organization_id?: string | null
+          provider: string
+          state?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          failure_count?: number
+          half_open_at?: string | null
+          id?: string
+          last_failure_at?: string | null
+          opened_at?: string | null
+          organization_id?: string | null
+          provider?: string
+          state?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "circuit_breaker_state_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
