@@ -69,6 +69,8 @@ export function MobileMenuScreen({ onClose, isOpen = false }: MobileMenuScreenPr
   const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { openUpgradeModal } = useUpgradeModal();
+  const { data: currentRole } = useCurrentUserRole();
+  const isStaff = currentRole && currentRole !== "cliente";
 
   const { data: profile } = useQuery({
     queryKey: ["user-profile", user?.id],
