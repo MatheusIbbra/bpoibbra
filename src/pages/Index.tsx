@@ -336,12 +336,6 @@ const Index = () => {
 
             {/* 8 — MOVIMENTAÇÕES RECENTES */}
             <AnimatedCard delay={0.2}>
-              <Card>
-                <CardHeader className="pb-2 pt-5 px-6">
-                  <CardTitle className="text-base font-semibold">Movimentações Recentes</CardTitle>
-                  <p className="text-xs text-muted-foreground">Últimas transações do período</p>
-                </CardHeader>
-              </Card>
               <FintechTransactionsList selectedMonth={selectedMonth} />
             </AnimatedCard>
           </div>
