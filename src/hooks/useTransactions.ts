@@ -106,6 +106,7 @@ export function useTransactions(filters?: TransactionFilters) {
             name
           )
         `)
+        .neq("is_ignored", true)
         .order("date", { ascending: false });
       
       // Aplicar filtro de organização
