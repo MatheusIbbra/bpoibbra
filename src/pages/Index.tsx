@@ -244,6 +244,70 @@ const Index = () => {
               </Card>
             </AnimatedCard>
 
+        {/* 2 — MINI CARDS: ORÇAMENTO + INVESTIMENTO */}
+            <AnimatedCard delay={0.05}>
+              <div className="grid grid-cols-2 gap-3">
+                {/* Orçamento */}
+                <Card className="overflow-hidden">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="h-7 w-7 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+                        <Target className="h-3.5 w-3.5 text-warning" />
+                      </div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium leading-tight">Orçamento</p>
+                    </div>
+                    {totalBudget > 0 ? (
+                      <>
+                        <p className="text-base font-bold tabular-nums text-foreground mb-1">
+                          <MaskedValue>{Math.round(budgetPct)}%</MaskedValue>
+                        </p>
+                        <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden mb-2">
+                          <div
+                            className={cn("h-full rounded-full transition-all", budgetPct >= 100 ? "bg-destructive" : budgetPct >= 80 ? "bg-warning" : "bg-success")}
+                            style={{ width: `${Math.min(budgetPct, 100)}%` }}
+                          />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground tabular-nums truncate">
+                          <MaskedValue>{formatCurrency(budgetRemaining >= 0 ? budgetRemaining : Math.abs(budgetRemaining))}</MaskedValue>
+                          <span className="ml-1">{budgetRemaining >= 0 ? "restante" : "excedido"}</span>
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Sem orçamento</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Investimento */}
+                <Card className="overflow-hidden">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <PiggyBank className="h-3.5 w-3.5 text-primary" />
+                      </div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium leading-tight">Investimentos</p>
+                    </div>
+                    <p className="text-base font-bold tabular-nums text-foreground mb-1">
+                      <MaskedValue>{formatCurrency(totalInvested)}</MaskedValue>
+                    </p>
+                    {income > 0 && (
+                      <p className="text-[10px] text-muted-foreground tabular-nums">
+                        <span className={cn("font-semibold", investmentRate >= 20 ? "text-success" : investmentRate >= 10 ? "text-warning" : "text-muted-foreground")}>
+                          {investmentRate.toFixed(1)}%
+                        </span>
+                        {" da receita"}
+                      </p>
+                    )}
+                    {investmentAccounts.length > 0 && (
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        {investmentAccounts.length} conta{investmentAccounts.length > 1 ? "s" : ""}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </AnimatedCard>
+
         {/* MOVIMENTAÇÕES RECENTES */}
             <AnimatedCard delay={0.1}>
               <DashboardCardBoundary label="Movimentações Recentes">
