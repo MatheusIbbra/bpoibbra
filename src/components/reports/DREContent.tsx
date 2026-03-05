@@ -289,7 +289,7 @@ export function DREContent() {
                   <span></span>
                 </div>
                 {data?.operatingExpenses.map((exp) => (
-                  <div key={exp.category_id} className="flex justify-between py-1">
+                  <div key={exp.category_id ?? "sem-categoria"} className="flex justify-between py-1 cursor-pointer hover:bg-muted/30 px-1 rounded transition-colors" onClick={() => exp.category_id === null && setEditingCategory && setEditingCategory(exp)}>
                     <span className="pl-4 flex items-center gap-2">
                       <div className="h-2 w-2 rounded-full" style={{ backgroundColor: exp.category_color }} />
                       {exp.category_name}
