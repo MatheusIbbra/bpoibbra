@@ -1,7 +1,8 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { parseLocalDate } from "@/lib/formatters";
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Check, X, ChevronLeft, ChevronRight, Filter, Sparkles, Loader2, ArrowLeftRight, TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowRight, Building2, BookOpen, Brain, Zap, Search, Calendar, RefreshCw, Trash2, Wand2, EyeOff, CheckCheck } from "lucide-react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { AlertCircle, Check, X, Filter, Sparkles, Loader2, ArrowLeftRight, TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowRight, Building2, BookOpen, Brain, Zap, Search, Calendar, RefreshCw, Trash2, Wand2, EyeOff, CheckCheck } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +83,7 @@ export default function Pendencias() {
   const [isClearingAll, setIsClearingAll] = useState(false);
   const [isBulkClassifying, setIsBulkClassifying] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
+  const listParentRef = useRef<HTMLDivElement>(null);
   
   const { data: allTransactions, isLoading, refetch } = useTransactions();
   const { data: categories } = useCategories();
@@ -136,10 +138,17 @@ export default function Pendencias() {
     return filtered;
   }, [allTransactions, searchTerm, accountFilter, typeFilter, dateRange]);
   
-  // Pagination
+  // Pagination — keep for count display, but use virtualizer instead of sliced list
   const totalPages = Math.ceil(pendingTransactions.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedTransactions = pendingTransactions.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const paginatedTransactions = pendingTransactions; // virtualizer renders all
+
+  const rowVirtualizer = useVirtualizer({
+    count: pendingTransactions.length,
+    getScrollElement: () => listParentRef.current,
+    estimateSize: () => 130,
+    overscan: 5,
+  });
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", { 
@@ -507,54 +516,53 @@ export default function Pendencias() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-2">
-            {paginatedTransactions.map((transaction) => (
-              <TransactionPendingCard
-                key={transaction.id}
-                transaction={transaction}
-                categories={categories || []}
-                costCenters={costCenters || []}
-                accounts={accounts || []}
-                organizationName={getOrganizationName(transaction.organization_id)}
-                onValidate={handleValidate}
-                onReject={handleReject}
-                onIgnore={(id) => setIgnoreTargetId(id)}
-                onClassifyWithAI={handleClassifyWithAI}
-                isClassifying={classifyingId === transaction.id}
-              />
-            ))}
-            
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between pt-3 border-t border-border/50">
-                <p className="text-[11px] text-muted-foreground">
-                  {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, pendingTransactions.length)} de {pendingTransactions.length}
-                </p>
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
+          <div
+            ref={listParentRef}
+            className="overflow-auto"
+            style={{ maxHeight: "75vh" }}
+          >
+            <div
+              style={{
+                height: `${rowVirtualizer.getTotalSize()}px`,
+                width: "100%",
+                position: "relative",
+              }}
+            >
+              {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+                const transaction = pendingTransactions[virtualItem.index];
+                return (
+                  <div
+                    key={transaction.id}
+                    data-index={virtualItem.index}
+                    ref={rowVirtualizer.measureElement}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      transform: `translateY(${virtualItem.start}px)`,
+                    }}
+                    className="pb-2"
                   >
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                  </Button>
-                  <span className="text-xs text-muted-foreground">
-                    {currentPage}/{totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-            )}
+                    <TransactionPendingCard
+                      transaction={transaction}
+                      categories={categories || []}
+                      costCenters={costCenters || []}
+                      accounts={accounts || []}
+                      organizationName={getOrganizationName(transaction.organization_id)}
+                      onValidate={handleValidate}
+                      onReject={handleReject}
+                      onIgnore={(id) => setIgnoreTargetId(id)}
+                      onClassifyWithAI={handleClassifyWithAI}
+                      isClassifying={classifyingId === transaction.id}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-center text-[11px] text-muted-foreground pt-2 pb-1">
+              {pendingTransactions.length} movimentação(ões) pendente(s)
+            </p>
           </div>
         )}
       </div>

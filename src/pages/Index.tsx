@@ -13,6 +13,7 @@ import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useBudgets } from "@/hooks/useBudgets";
 import { useTransactions, Transaction } from "@/hooks/useTransactions";
+import { usePaginatedTransactions } from "@/hooks/usePaginatedTransactions";
 import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -49,16 +50,11 @@ const Index = () => {
   // Achievement checker
   useAchievementChecker(selectedMonth);
 
-  const { data: allTransactions } = useTransactions({});
-  const selMonth = selectedMonth.getMonth();
-  const selYear = selectedMonth.getFullYear();
-  const monthTransactions = allTransactions?.filter((t) => {
-    const d = parseLocalDate(t.date);
-    return d.getMonth() === selMonth && d.getFullYear() === selYear;
-  }) || [];
-
   const startDate = format(startOfMonth(selectedMonth), "yyyy-MM-dd");
   const endDate = format(endOfMonth(selectedMonth), "yyyy-MM-dd");
+
+  const { data: paginatedMonthData } = usePaginatedTransactions({ startDate, endDate, page: 0 });
+  const monthTransactions = paginatedMonthData?.data || [];
 
   const { data: budgets } = useBudgets(selectedMonth.getMonth() + 1, selectedMonth.getFullYear());
   const { data: expenseTransactions } = useTransactions({ type: "expense", startDate, endDate });
