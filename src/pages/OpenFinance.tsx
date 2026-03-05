@@ -181,7 +181,7 @@ export default function OpenFinance() {
                   ) : logsLoading ? (
                     <LoadingState />
                   ) : !logs || logs.length === 0 ? (
-                    <EmptyState />
+                    <EmptyState variant="generic" title="Nenhuma atividade registrada" description="Nenhuma ação de integração foi registrada." />
                   ) : (
                     <div 
                       className="space-y-3 max-h-[400px] overflow-y-auto overscroll-contain"
