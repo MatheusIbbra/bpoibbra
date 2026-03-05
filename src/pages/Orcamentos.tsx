@@ -11,7 +11,7 @@ import {
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Popover as HoverPopover, PopoverContent as HoverPopoverContent, PopoverTrigger as HoverPopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -33,6 +33,7 @@ import { useMonthlyPlan, useUpsertMonthlyPlan } from "@/hooks/useMonthlyPlan";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { useDisciplineScore, DisciplineIndicator } from "@/hooks/useDisciplineScore";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
+import { GaugeChart } from "@/components/dashboard/GaugeChart";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
@@ -230,7 +231,7 @@ export default function Orcamentos() {
         {/* Month Selector */}
         <FadeCard delay={0}>
           <div className="flex items-center justify-center">
-            <div className="inline-flex items-center rounded-full border border-border/40 bg-card px-5 py-2 shadow-fintech">
+            <div className="inline-flex items-center rounded-full border border-border/40 bg-card px-1.5 py-0.5 shadow-fintech">
               <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
             </div>
           </div>
