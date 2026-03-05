@@ -93,15 +93,16 @@ export function FinancialDisciplineScore({ selectedMonth }: Props) {
             <div className="relative h-24 w-24">
               <svg className="h-24 w-24 -rotate-90" viewBox="0 0 120 120">
                 <circle cx="60" cy="60" r="52" fill="none" className="stroke-muted/30" strokeWidth="8" />
-                <circle
-                  cx="60" cy="60" r="52"
-                  fill="none"
-                  className={cn(ringColor, "transition-all duration-700")}
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                  strokeDasharray={circumference}
-                  strokeDashoffset={offset}
-                />
+                 <circle
+                   cx="60" cy="60" r="52"
+                   fill="none"
+                   stroke={scoreHsl}
+                   className="transition-all duration-700"
+                   strokeWidth="8"
+                   strokeLinecap="round"
+                   strokeDasharray={circumference}
+                   strokeDashoffset={offset}
+                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span
