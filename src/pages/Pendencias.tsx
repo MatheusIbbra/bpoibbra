@@ -83,6 +83,7 @@ export default function Pendencias() {
   const [isClearingAll, setIsClearingAll] = useState(false);
   const [isBulkClassifying, setIsBulkClassifying] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
+  const listParentRef = useRef<HTMLDivElement>(null);
   
   const { data: allTransactions, isLoading, refetch } = useTransactions();
   const { data: categories } = useCategories();
