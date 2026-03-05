@@ -68,10 +68,10 @@ export default function AdminHealth() {
   const { isAdmin, isLoading: rolesLoading } = useIsAdmin();
 
   useEffect(() => {
-    if (!rolesLoading && !userRoles?.includes("admin")) {
+    if (!rolesLoading && !isAdmin) {
       navigate("/");
     }
-  }, [userRoles, rolesLoading, navigate]);
+  }, [isAdmin, rolesLoading, navigate]);
 
   const { data: aiMetrics, isLoading: aiLoading } = useQuery({
     queryKey: ["health-ai-metrics"],
