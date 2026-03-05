@@ -256,33 +256,36 @@ export default function Orcamentos() {
           <FadeCard delay={200}>
             <Card className="border-0 shadow-fintech overflow-hidden">
               <div className="bg-gradient-to-r from-[hsl(var(--brand-deep))] to-[hsl(var(--brand-highlight))] p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button className="flex items-center gap-1.5 text-primary-foreground/50 hover:text-primary-foreground/80 transition-colors">
-                          <HelpCircle className="h-4 w-4" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="max-w-[220px] p-3">
-                        <p className="text-xs font-semibold mb-1">Saldo Livre</p>
-                        <p className="text-lg font-bold tabular-nums" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                          {formatCurrency(freeBalance)}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          Receita − Investimento − Despesas
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <Button
-                    size="sm" variant="ghost"
-                    className="h-7 text-[10px] text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/10"
-                    onClick={() => setEditingPlan(!editingPlan)}
-                  >
-                    <Pencil className="h-3 w-3 mr-1" />
-                    {editingPlan ? "Fechar" : "Editar"}
-                  </Button>
+                <div className="flex items-center justify-end mb-4">
+                  <div className="flex items-center gap-2">
+                    {/* Saldo Livre tooltip */}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button className="flex items-center justify-center h-7 w-7 rounded-full text-primary-foreground/50 hover:text-primary-foreground/90 hover:bg-primary-foreground/10 transition-colors">
+                            <HelpCircle className="h-4 w-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-[220px] p-3 rounded-xl">
+                          <p className="text-xs font-semibold mb-1">Saldo Livre</p>
+                          <p className="text-lg font-bold tabular-nums" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                            <MaskedValue>{formatCurrency(freeBalance)}</MaskedValue>
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            Receita − Investimento − Despesas
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <Button
+                      size="sm" variant="ghost"
+                      className="h-7 text-[10px] text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/10"
+                      onClick={() => setEditingPlan(!editingPlan)}
+                    >
+                      <Pencil className="h-3 w-3 mr-1" />
+                      {editingPlan ? "Fechar" : "Editar"}
+                    </Button>
+                  </div>
                 </div>
 
                 {editingPlan ? (
@@ -308,9 +311,9 @@ export default function Orcamentos() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex items-end justify-center gap-2">
+                  <div className="flex items-end justify-center gap-1">
                     {/* Receita — left, smaller */}
-                    <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground scale-90">
+                    <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground flex-1">
                       <GaugeChart
                         label="Receita"
                         valorPlanejado={effectiveIncome}
@@ -320,7 +323,7 @@ export default function Orcamentos() {
                       />
                     </div>
                     {/* Investimento — center, larger */}
-                    <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground scale-105">
+                    <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground flex-[1.3] scale-110 origin-bottom">
                       <GaugeChart
                         label="Investimento"
                         valorPlanejado={planInvestment || 1}
@@ -330,7 +333,7 @@ export default function Orcamentos() {
                       />
                     </div>
                     {/* Despesas — right, smaller */}
-                    <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground scale-90">
+                    <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground flex-1">
                       <GaugeChart
                         label="Despesas"
                         valorPlanejado={totalBudget || 1}
@@ -352,7 +355,7 @@ export default function Orcamentos() {
         <div className="space-y-3">
           <FadeCard delay={280}>
             <div className="flex items-center justify-between">
-              <SectionTitle delay={280}>Realizado</SectionTitle>
+              <SectionTitle delay={280}>Orçamentos</SectionTitle>
               <Button size="sm" className="h-8 text-xs rounded-full px-4" onClick={() => { setEditingBudget(null); setIsRecurring(false); form.reset(); setDialogOpen(true); }}>
                 <Plus className="h-3.5 w-3.5 mr-1" />
                 Nova Categoria
@@ -364,37 +367,37 @@ export default function Orcamentos() {
           <FadeCard delay={300}>
             <Card className="border-0 shadow-fintech">
               <CardContent className="p-5">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Resumo Orçamentário</p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-4">Resumo Orçamentário</p>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                   <div>
-                    <p className="text-[10px] text-muted-foreground">Planejado</p>
-                    <p className="text-base font-bold tabular-nums" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                    <p className="text-[10px] text-muted-foreground mb-0.5">Planejado</p>
+                    <p className="text-lg font-bold tabular-nums" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
                       <MaskedValue>{formatCurrency(totalBudget)}</MaskedValue>
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground">Realizado</p>
-                    <p className={cn("text-base font-bold tabular-nums", totalSpent > totalBudget && "text-destructive")} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                    <p className="text-[10px] text-muted-foreground mb-0.5">Realizado</p>
+                    <p className={cn("text-lg font-bold tabular-nums", totalSpent > totalBudget && "text-destructive")} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
                       <MaskedValue>{formatCurrency(totalSpent)}</MaskedValue>
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground">Disponível</p>
-                    <p className={cn("text-base font-bold tabular-nums", budgetRemaining >= 0 ? "text-success" : "text-destructive")} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                    <p className="text-[10px] text-muted-foreground mb-0.5">Disponível</p>
+                    <p className={cn("text-lg font-bold tabular-nums", budgetRemaining >= 0 ? "text-success" : "text-destructive")} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
                       <MaskedValue>{formatCurrency(budgetRemaining)}</MaskedValue>
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground">Status</p>
+                    <p className="text-[10px] text-muted-foreground mb-0.5">Status</p>
                     <div className="flex items-center gap-2 mt-1">
                       {overBudgetCount > 0 ? (
-                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                        <Badge variant="destructive" className="text-[10px] px-2 py-0.5">
                           {overBudgetCount} excedido{overBudgetCount > 1 ? "s" : ""}
                         </Badge>
                       ) : budgets && budgets.length > 0 ? (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-success text-success">
+                        <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-success text-success">
                           <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
-                          OK
+                          No limite
                         </Badge>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>

@@ -8,7 +8,7 @@ import { MobileMenuScreen } from "./MobileMenuScreen";
 import { MobileFabMenu } from "./MobileFabMenu";
 import { BrandBackground } from "./BrandBackground";
 import { AIAssistantChat } from "@/components/ai/AIAssistantChat";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobileOrTablet } from "@/hooks/use-breakpoint";
 import { useBaseFilter, useBaseFilterState } from "@/contexts/BaseFilterContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -24,7 +24,7 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, title }: AppLayoutProps) {
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobileOrTablet();
   const { user } = useAuth();
   const { availableOrganizations, isLoading: baseLoading, userRole } = useBaseFilterState();
   useOpenFinanceLoginToast();
@@ -68,11 +68,11 @@ export function AppLayout({ children, title }: AppLayoutProps) {
         <MobileHeader />
 
         {/* Base selector */}
-        <div className="px-5 pb-4 max-w-[420px] mx-auto w-full">
+        <div className="px-5 pb-4 max-w-screen-sm mx-auto w-full">
           <BaseSelectorEnhanced />
         </div>
 
-        <main className="flex-1 w-full max-w-[420px] mx-auto px-5 pb-28 space-y-6 overflow-x-hidden">
+        <main className="flex-1 w-full max-w-screen-sm mx-auto px-5 pb-28 space-y-6 overflow-x-hidden">
           {baseLoading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
