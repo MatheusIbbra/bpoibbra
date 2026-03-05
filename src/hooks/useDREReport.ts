@@ -54,7 +54,8 @@ export function useDREReport(startDate: Date, endDate: Date, basis: ReportBasis,
           )
         `)
         .neq("is_ignored", true)
-        .in("validation_status", ["validated", "pending_validation"]);
+        .in("validation_status", ["validated", "pending_validation"])
+        .in("type", ["income", "expense", "investment", "redemption"]);
 
       if (basis === "cash") {
         query = query.gte("date", startStr).lte("date", endStr);
