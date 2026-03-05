@@ -27,6 +27,7 @@ import { AnomalyDetectionCard } from "@/components/dashboard/AnomalyDetectionCar
 import { StrategicHistoryCard } from "@/components/dashboard/StrategicHistoryCard";
 import { MacroSimulationCard } from "@/components/dashboard/MacroSimulationCard";
 import { MonthlyEvolutionChart } from "@/components/dashboard/MonthlyEvolutionChart";
+import { StaggerGrid, StaggerItem } from "@/components/ui/motion";
 
 const TITLE_MAP: Record<string, string> = {
   movimentacoes: "Movimentações",
