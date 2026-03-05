@@ -1,18 +1,15 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConsentLogs } from "@/hooks/useConsentLogs";
-import { useDataExport } from "@/hooks/useDataExport";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Shield, Download, FileText, Clock, CheckCircle, AlertCircle, Loader2, Trash2 } from "lucide-react";
+import { Shield, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
 export function PrivacySection() {
   const { user } = useAuth();
