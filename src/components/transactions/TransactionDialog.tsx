@@ -796,6 +796,44 @@ export function TransactionDialog({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    {/* Save as rule dialog */}
+    <AlertDialog open={saveRuleOpen} onOpenChange={setSaveRuleOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2">
+            <BookmarkPlus className="h-4 w-4 text-primary" />
+            Salvar regra automática
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-sm">
+            A descrição <span className="font-semibold text-foreground">"{form.watch("description")}"</span> será
+            sempre classificada automaticamente com a categoria selecionada nas próximas importações.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={async () => {
+              const desc = form.watch("description");
+              const catId = form.watch("category_id");
+              const ccId  = form.watch("cost_center_id");
+              const txType = (form.watch("type") === "income" ? "income" : "expense") as "income" | "expense";
+              if (!desc || !catId) return;
+              await createRule.mutateAsync({
+                keyword: desc,
+                category_id: catId,
+                cost_center_id: ccId || null,
+                transaction_type: txType,
+              });
+              setSaveRuleOpen(false);
+            }}
+            disabled={createRule.isPending}
+          >
+            {createRule.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar Regra"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }
