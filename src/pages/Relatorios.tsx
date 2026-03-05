@@ -26,7 +26,7 @@ import { PatrimonyEvolutionCard } from "@/components/dashboard/PatrimonyEvolutio
 import { AnomalyDetectionCard } from "@/components/dashboard/AnomalyDetectionCard";
 import { StrategicHistoryCard } from "@/components/dashboard/StrategicHistoryCard";
 import { MacroSimulationCard } from "@/components/dashboard/MacroSimulationCard";
-import { StaggerGrid, StaggerItem } from "@/components/ui/motion";
+import { MonthlyEvolutionChart } from "@/components/dashboard/MonthlyEvolutionChart";
 
 const TITLE_MAP: Record<string, string> = {
   movimentacoes: "Movimentações",
@@ -100,13 +100,11 @@ export default function Relatorios() {
               {hasFeature("anomaly_detection") && <StaggerItem><AnomalyDetectionCard /></StaggerItem>}
             </StaggerGrid>
             <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+              <StaggerItem><MonthlyEvolutionChart selectedMonthFilter={new Date()} /></StaggerItem>
               <StaggerItem><StructuredLiquidityCard /></StaggerItem>
-              <StaggerItem><PersonalRunwayCard /></StaggerItem>
             </StaggerGrid>
             <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-              {hasFeature("cashflow_forecast") && <StaggerItem><CashflowForecastCard /></StaggerItem>}
-              <StaggerItem><LifestylePatternCard /></StaggerItem>
-            </StaggerGrid>
+              <StaggerItem><PersonalRunwayCard /></StaggerItem>
             {hasFeature("financial_simulator") && <FinancialSimulatorCard />}
           </div>
         )}
