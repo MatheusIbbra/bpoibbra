@@ -138,10 +138,17 @@ export default function Pendencias() {
     return filtered;
   }, [allTransactions, searchTerm, accountFilter, typeFilter, dateRange]);
   
-  // Pagination
+  // Pagination — keep for count display, but use virtualizer instead of sliced list
   const totalPages = Math.ceil(pendingTransactions.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedTransactions = pendingTransactions.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const paginatedTransactions = pendingTransactions; // virtualizer renders all
+
+  const rowVirtualizer = useVirtualizer({
+    count: pendingTransactions.length,
+    getScrollElement: () => listParentRef.current,
+    estimateSize: () => 130,
+    overscan: 5,
+  });
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", { 
