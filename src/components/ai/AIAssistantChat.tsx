@@ -464,14 +464,15 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
                     className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-lg px-4 py-2 ${
+                      className={cn(
+                        "max-w-[85%] rounded-2xl px-4 py-2.5",
                         message.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
-                      }`}
+                          ? "bg-primary text-primary-foreground rounded-br-md"
+                          : "bg-muted rounded-bl-md"
+                      )}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      <p className="text-xs opacity-70 mt-1">
+                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                      <p className="text-[10px] opacity-50 mt-1">
                         {message.timestamp.toLocaleTimeString("pt-BR", {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -482,15 +483,15 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
                 ))}
                 {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
                   <div className="flex justify-start">
-                    <div className="bg-muted rounded-lg px-4 py-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                    <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                     </div>
                   </div>
                 )}
               </div>
             </ScrollArea>
 
-            <div className="p-4 border-t">
+            <div className="p-3 border-t bg-card">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -503,8 +504,9 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Pergunte sobre seu patrimônio..."
                   disabled={isLoading}
+                  className="rounded-xl h-10 text-sm"
                 />
-                <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+                <Button type="submit" size="icon" disabled={isLoading || !input.trim()} className="rounded-xl h-10 w-10 shrink-0">
                   <Send className="h-4 w-4" />
                 </Button>
               </form>
