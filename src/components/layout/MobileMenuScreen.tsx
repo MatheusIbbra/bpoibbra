@@ -23,12 +23,12 @@ const reportItems = [
   { label: "Orçamento", icon: Target, path: "/relatorios?tab=analise" },
   { label: "Demonstrativo", icon: LayoutDashboard, path: "/relatorios?tab=demonstrativo" },
   { label: "Tipo Financeiro", icon: PieChart, path: "/relatorios?tab=tipo-financeiro" },
-  { label: "Análise Categorias", icon: CreditCard, path: "/relatorios?tab=categorias" },
-  { label: "Análises Estratégicas", icon: Brain, path: "/relatorios?tab=estrategico" },
+  { label: "Análise Categorias", icon: Tag, path: "/relatorios?tab=categorias" },
 ];
 
 const cadastroItems = [
   { label: "Contas", icon: Wallet, path: "/contas" },
+  { label: "Cartões de Crédito", icon: CreditCardIcon, path: "/cartoes" },
   { label: "Categorias", icon: Tag, path: "/categorias" },
   { label: "Grupo de Custos", icon: Layers, path: "/centros-custo" },
   { label: "Open Finance", icon: Building, path: "/open-finance" },
