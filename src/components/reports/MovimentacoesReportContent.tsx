@@ -128,10 +128,7 @@ export function MovimentacoesReportContent() {
   const urlFilter = urlParams.get("filter");
 
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [costCenterFilter, setCostCenterFilter] = useState<string>("all");
-  const [accountFilter, setAccountFilter] = useState<string>("all");
   const [classificationFilter, setClassificationFilter] = useState<string>(urlFilter === "sem-categoria" ? "unclassified" : "all");
   const [periodFilter, setPeriodFilter] = useState<PeriodPreset>("this_month");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -141,9 +138,7 @@ export function MovimentacoesReportContent() {
   const PAGE_SIZE = 50;
 
   const { data: allTransactions, isLoading } = useTransactions({ search: search || undefined });
-  const { data: categories } = useCategories();
   const { data: costCenters } = useCostCenters();
-  const { data: accounts } = useAccounts();
   const deleteTransaction = useDeleteTransaction();
   const toggleIgnore = useToggleIgnoreTransaction();
 
@@ -152,10 +147,7 @@ export function MovimentacoesReportContent() {
   const transactions = useMemo(() => {
     return (allTransactions || [])
       .filter(t => {
-        if (typeFilter !== "all" && t.type !== typeFilter) return false;
-        if (categoryFilter !== "all" && t.category_id !== categoryFilter) return false;
         if (costCenterFilter !== "all" && t.cost_center_id !== costCenterFilter) return false;
-        if (accountFilter !== "all" && t.account_id !== accountFilter) return false;
         if (classificationFilter === "classified" && !t.category_id) return false;
         if (classificationFilter === "unclassified" && t.category_id) return false;
         if (periodRange) {
@@ -167,7 +159,7 @@ export function MovimentacoesReportContent() {
       .sort((a, b) => {
         return parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime();
       });
-  }, [allTransactions, typeFilter, categoryFilter, costCenterFilter, accountFilter, classificationFilter, periodRange]);
+  }, [allTransactions, costCenterFilter, classificationFilter, periodRange]);
 
   // Reset page on filter change
   const totalPages = Math.ceil(transactions.length / PAGE_SIZE);
