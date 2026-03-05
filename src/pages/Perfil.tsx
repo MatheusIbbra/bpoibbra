@@ -75,15 +75,22 @@ export default function Perfil() {
 
   const updateProfile = useMutation({
     mutationFn: async (data: { fullName: string; phone: string; gender: string }) => {
+      // Strip formatting from phone before saving
+      const rawPhone = data.phone.replace(/\D/g, "");
       const { error } = await supabase
         .from("profiles")
-        .update({ full_name: data.fullName, phone: data.phone, gender: data.gender })
+        .update({
+          full_name: data.fullName,
+          phone: rawPhone || data.phone,
+          gender: data.gender || null,
+        })
         .eq("user_id", user!.id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user-profile"] });
       queryClient.invalidateQueries({ queryKey: ["sidebar-profile"] });
+      queryClient.invalidateQueries({ queryKey: ["subscription-label-mobile"] });
       toast.success("Perfil atualizado com sucesso!");
       setEditing(false);
     },
