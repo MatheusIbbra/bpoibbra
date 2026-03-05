@@ -257,7 +257,7 @@ export function AdminClientPlansTab() {
                           <Badge variant="outline" className="text-xs text-muted-foreground">Sem plano</Badge>
                         )}
                         {org.subscription?.status === "trialing" && (
-                          <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 ml-1">Trial</Badge>
+                          <Badge variant="outline" className="text-xs text-warning border-warning/40 ml-1">Trial</Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-center">{org.member_count}</TableCell>
