@@ -325,7 +325,7 @@ export default function Orcamentos() {
                       label="Receita"
                       valorPlanejado={effectiveIncome}
                       valorRealizado={income}
-                      variant="success"
+                      variant="income"
                       compact
                     />
                   </div>
@@ -334,7 +334,7 @@ export default function Orcamentos() {
                       label="Investimento"
                       valorPlanejado={planInvestment || 1}
                       valorRealizado={0}
-                      variant="blue"
+                      variant="investment"
                       compact
                     />
                   </div>
@@ -343,7 +343,7 @@ export default function Orcamentos() {
                       label="Despesas"
                       valorPlanejado={totalBudget || 1}
                       valorRealizado={totalSpent}
-                      variant="destructive"
+                      variant="expense"
                       compact
                     />
                   </div>
