@@ -9,7 +9,7 @@ import { MobileFabMenu } from "./MobileFabMenu";
 import { BrandBackground } from "./BrandBackground";
 import { AIAssistantChat } from "@/components/ai/AIAssistantChat";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useBaseFilter } from "@/contexts/BaseFilterContext";
+import { useBaseFilter, useBaseFilterState } from "@/contexts/BaseFilterContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, Loader2 } from "lucide-react";
@@ -26,7 +26,7 @@ interface AppLayoutProps {
 export function AppLayout({ children, title }: AppLayoutProps) {
   const isMobile = useIsMobile();
   const { user } = useAuth();
-  const { availableOrganizations, isLoading: baseLoading } = useBaseFilter();
+  const { availableOrganizations, isLoading: baseLoading, userRole } = useBaseFilterState();
   useOpenFinanceLoginToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
@@ -58,7 +58,8 @@ export function AppLayout({ children, title }: AppLayoutProps) {
     } catch {}
   }, []);
 
-  const hasNoBases = !baseLoading && user && availableOrganizations.length === 0;
+  const isStaffRole = userRole && ["admin", "supervisor", "fa", "kam", "projetista"].includes(userRole);
+  const hasNoBases = !baseLoading && user && availableOrganizations.length === 0 && !isStaffRole;
 
   // Mobile layout — premium fintech app experience
   if (isMobile) {
