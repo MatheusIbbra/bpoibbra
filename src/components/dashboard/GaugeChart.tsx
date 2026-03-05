@@ -2,10 +2,6 @@ import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
 import { MaskedValue } from "@/contexts/ValuesVisibilityContext";
 
-import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/formatters";
-import { MaskedValue } from "@/contexts/ValuesVisibilityContext";
-
 type GaugeVariant = "income" | "investment" | "expense" | "blue" | "success" | "destructive";
 
 interface GaugeChartProps {
