@@ -12,7 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useBudgets } from "@/hooks/useBudgets";
-import { useTransactions, Transaction } from "@/hooks/useTransactions";
+import { usePaginatedTransactions } from "@/hooks/usePaginatedTransactions";
 import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
