@@ -99,7 +99,7 @@ export function GaugeChart({
         "text-xs font-semibold tabular-nums",
         isOver ? "text-destructive" : "text-muted-foreground"
       )}>
-        {realPct.toFixed(0)}% da meta
+        {realPct >= 1000 ? `${Math.round(realPct).toLocaleString("pt-BR")}%` : `${realPct.toFixed(0)}%`} da meta
       </span>
     </div>
   );
