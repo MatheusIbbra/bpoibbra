@@ -69,6 +69,11 @@ export function FinancialDisciplineScore({ selectedMonth }: Props) {
     );
   }
 
+  // 0–39 = red (fi-score-low), 40–69 = amber (fi-score-mid), 70–100 = green (fi-score-high)
+  const scoreHsl =
+    score >= 70 ? "hsl(var(--fi-score-high))" :
+    score >= 40 ? "hsl(var(--fi-score-mid))"  :
+                  "hsl(var(--fi-score-low))";
   const color = score >= 70 ? "text-success" : score >= 40 ? "text-warning" : "text-destructive";
   const ringColor = score >= 70 ? "stroke-success" : score >= 40 ? "stroke-warning" : "stroke-destructive";
   const circumference = 2 * Math.PI * 52;
@@ -99,7 +104,10 @@ export function FinancialDisciplineScore({ selectedMonth }: Props) {
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className={cn("text-2xl font-bold", color)} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                <span
+                  className="text-2xl font-bold"
+                  style={{ fontFamily: "'Playfair Display', Georgia, serif", color: scoreHsl }}
+                >
                   {score}
                 </span>
                 <span className="text-[9px] text-muted-foreground">/100</span>
