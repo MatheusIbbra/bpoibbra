@@ -23,11 +23,10 @@ import { StatCardSkeleton } from "@/components/ui/premium-skeleton";
 import { TransactionDialog } from "@/components/transactions/TransactionDialog";
 import {
   Loader2, RefreshCw, Wallet, ArrowUpRight, ArrowDownRight,
-  TrendingUp, ChevronDown, ChevronUp, CalendarDays,
-  Target, AlertTriangle, PiggyBank, Gauge, Shield
+  TrendingUp, ChevronDown, ChevronUp, Target, AlertTriangle, PiggyBank, Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, startOfMonth, endOfMonth, differenceInDays, eachDayOfInterval, isWeekend, getDaysInMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, getDaysInMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useBaseFilter, useBaseFilterState, useBaseFilterActions } from "@/contexts/BaseFilterContext";
 import { MonthSelector } from "@/components/dashboard/MonthSelector";
