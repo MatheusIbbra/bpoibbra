@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { checkCircuitBreaker, recordSuccess, recordFailure } from "../_shared/circuit-breaker.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -465,8 +466,24 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Acesso negado' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    // Circuit breaker check
+    const cbResult = await checkCircuitBreaker(supabaseAdmin, "pluggy", orgIdToCheck);
+    if (!cbResult.allowed) {
+      const retryMin = Math.ceil((cbResult.retryAfterMs || 600000) / 60000);
+      return new Response(
+        JSON.stringify({ error: `Sincronização Pluggy temporariamente indisponível. Retentativa automática em ${retryMin} minutos.`, circuit_breaker: true }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": String(Math.ceil((cbResult.retryAfterMs || 600000) / 1000)) } }
+      );
+    }
+
     // Pluggy auth
-    const pluggyToken = await getPluggyToken(PLUGGY_CLIENT_ID, PLUGGY_CLIENT_SECRET);
+    let pluggyToken: string;
+    try {
+      pluggyToken = await getPluggyToken(PLUGGY_CLIENT_ID, PLUGGY_CLIENT_SECRET);
+    } catch (authErr) {
+      await recordFailure(supabaseAdmin, "pluggy", orgIdToCheck);
+      throw authErr;
+    }
     const pluggyHeaders = { 'X-API-KEY': pluggyToken, 'Content-Type': 'application/json' };
 
     // Get or create bank connection
@@ -990,6 +1007,9 @@ Deno.serve(async (req) => {
       console.warn('[OF-TABLES] Error populating open finance tables (non-blocking):', ofErr);
     }
 
+    // Record circuit breaker success
+    await recordSuccess(supabaseAdmin, "pluggy", connectionToSync.organization_id);
+
     return new Response(JSON.stringify({
       success: true, imported, skipped, duplicates_detected: duplicatesDetected, total: allTransactions.length,
       accounts: accounts.length, connection_id: connectionToSync.id,
@@ -998,6 +1018,16 @@ Deno.serve(async (req) => {
 
   } catch (error: unknown) {
     console.error('Error in pluggy-sync:', error);
+    // Record circuit breaker failure
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const admin = createClient(supabaseUrl, serviceKey);
+      // Try to extract org id from the error context
+      const bodyText = await req.clone().text().catch(() => '{}');
+      const body = JSON.parse(bodyText).organization_id;
+      if (body) await recordFailure(admin, "pluggy", body);
+    } catch { /* best effort */ }
     const msg = error instanceof Error ? error.message : 'Erro interno do servidor';
     return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkCircuitBreaker, recordSuccess, recordFailure } from "../_shared/circuit-breaker.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -130,6 +131,16 @@ Deno.serve(async (req) => {
       'secretKey': KLAVI_SECRET_KEY,
       'Content-Type': 'application/json'
     };
+
+    // Circuit breaker check
+    const cbResult = await checkCircuitBreaker(supabaseAdmin, "klavi", connectionToSync.organization_id);
+    if (!cbResult.allowed) {
+      const retryMin = Math.ceil((cbResult.retryAfterMs || 600000) / 60000);
+      return new Response(
+        JSON.stringify({ error: `Sincronização Klavi temporariamente indisponível. Retentativa em ${retryMin} min.`, circuit_breaker: true }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": String(Math.ceil((cbResult.retryAfterMs || 600000) / 1000)) } }
+      );
+    }
 
     console.log('Fetching accounts from Klavi...');
 
@@ -302,6 +313,9 @@ Deno.serve(async (req) => {
       payload: { imported, skipped, total: transactions.length, accounts_count: accounts.length }
     });
 
+    // Record circuit breaker success
+    await recordSuccess(supabaseAdmin, "klavi", connectionToSync.organization_id);
+
     return new Response(
       JSON.stringify({ 
         success: true,
@@ -316,6 +330,12 @@ Deno.serve(async (req) => {
 
   } catch (error: unknown) {
     console.error('Error in klavi-sync:', error);
+    // Record circuit breaker failure
+    try {
+      const bodyText = await req.clone().text().catch(() => '{}');
+      const orgId = JSON.parse(bodyText).organization_id;
+      if (orgId) await recordFailure(supabaseAdmin, "klavi", orgId);
+    } catch { /* best effort */ }
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     return new Response(
       JSON.stringify({ error: errorMessage }),

@@ -2,6 +2,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { FintechTransactionsList } from "@/components/dashboard/FintechTransactionsList";
+import { CircuitBreakerBanner } from "@/components/open-finance/CircuitBreakerBanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FinancialDisciplineScore } from "@/components/dashboard/FinancialDisciplineScore";
@@ -192,11 +193,12 @@ const Index = () => {
   return (
     <AppLayout title="Visão Geral">
       <WelcomeModal />
+      <CircuitBreakerBanner />
       <div className="space-y-8 w-full">
 
         {/* ── Month selector ── */}
         <div className="flex items-center justify-center">
-          <div className="inline-flex items-center rounded-full border border-border/40 bg-card px-3 py-1 shadow-fintech">
+          <div className="inline-flex items-center rounded-full border border-border/40 bg-card px-2 py-0.5 shadow-fintech">
             <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
           </div>
         </div>

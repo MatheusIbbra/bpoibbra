@@ -152,24 +152,41 @@ export function useSyncBankConnection() {
         throw new Error("Você precisa estar logado");
       }
 
-      const { data, error } = await supabase.functions.invoke('pluggy-sync', {
-        body: { 
-          bank_connection_id: bankConnectionId,
-          organization_id: organizationId,
-          item_id: itemId,
-          from_date: fromDate,
-          to_date: toDate
+      // Retry with exponential backoff (max 3 attempts)
+      const MAX_RETRIES = 3;
+      let lastError: Error | null = null;
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        if (attempt > 0) {
+          const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
+          await new Promise(r => setTimeout(r, delay));
         }
-      });
 
-      if (error) throw error;
-      
-      // Handle item_status errors (LOGIN_ERROR, OUTDATED)
-      if (data && data.success === false && data.error) {
-        throw new Error(data.error);
+        const { data, error } = await supabase.functions.invoke('pluggy-sync', {
+          body: { 
+            bank_connection_id: bankConnectionId,
+            organization_id: organizationId,
+            item_id: itemId,
+            from_date: fromDate,
+            to_date: toDate
+          }
+        });
+
+        if (error) {
+          lastError = error;
+          // Don't retry on 4xx errors or circuit breaker
+          if ((error as any)?.status >= 400 && (error as any)?.status < 500) throw error;
+          if (data?.circuit_breaker) throw new Error(data.error || "Circuit breaker ativo");
+          continue;
+        }
+        
+        // Handle item_status errors (LOGIN_ERROR, OUTDATED) — don't retry
+        if (data && data.success === false && data.error) {
+          throw new Error(data.error);
+        }
+        
+        return data as { success: boolean; imported: number; skipped: number; total: number; connection_id?: string; item_status?: string; accounts?: number; api_balance?: number; balance_difference?: number };
       }
-      
-      return data as { success: boolean; imported: number; skipped: number; total: number; connection_id?: string; item_status?: string; accounts?: number; api_balance?: number; balance_difference?: number };
+      throw lastError || new Error("Falha após múltiplas tentativas");
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["bank-connections"] });
