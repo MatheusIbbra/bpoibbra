@@ -25,37 +25,37 @@ export function useDashboardStats(selectedMonth?: Date) {
       const currentYear = refDate.getFullYear();
       const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1;
       const lastMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
-      
+
       const startOfMonth = `${currentYear}-${String(currentMonth).padStart(2, "0")}-01`;
       const endOfMonth = new Date(currentYear, currentMonth, 0).toISOString().split("T")[0];
-      
       const startOfLastMonth = `${lastMonthYear}-${String(lastMonth).padStart(2, "0")}-01`;
       const endOfLastMonth = new Date(lastMonthYear, lastMonth, 0).toISOString().split("T")[0];
-      
-      // Build base query for transactions - exclude ignored and pending
-      const buildTransactionQuery = (start: string, end: string) => {
-        let query = supabase
-          .from("transactions")
-          .select("amount, type")
-          .gte("date", start)
-          .lte("date", end)
-          .neq("is_ignored", true)
-          .in("validation_status", ["validated", "pending_validation"]);
-        
-        if (orgFilter.type === 'single') {
-          query = query.eq("organization_id", orgFilter.ids[0]);
-        } else if (orgFilter.type === 'multiple' && orgFilter.ids.length > 0) {
-          query = query.in("organization_id", orgFilter.ids);
+
+      // ─────────────────────────────────────────────────────────────
+      // KPIs via financial_events — single source of financial truth.
+      // Only impact_cashflow=true events are counted (internal
+      // transfers, aportes and resgates are automatically excluded).
+      // ─────────────────────────────────────────────────────────────
+      const buildEventsQuery = (start: string, end: string) => {
+        let q = supabase
+          .from("financial_events" as any)
+          .select("event_type, amount")
+          .eq("impact_cashflow", true)
+          .gte("event_date", start)
+          .lte("event_date", end);
+
+        if (orgFilter.type === "single") {
+          q = q.eq("organization_id", orgFilter.ids[0]);
+        } else if (orgFilter.type === "multiple" && orgFilter.ids.length > 0) {
+          q = q.in("organization_id", orgFilter.ids);
         }
-        
-        return query;
+        return q;
       };
-      
-      // Current month transactions
-      const { data: currentMonthData } = await buildTransactionQuery(startOfMonth, endOfMonth);
-      
-      // Last month transactions
-      const { data: lastMonthData } = await buildTransactionQuery(startOfLastMonth, endOfLastMonth);
+
+      const [{ data: currentEventsData }, { data: lastEventsData }] = await Promise.all([
+        buildEventsQuery(startOfMonth, endOfMonth),
+        buildEventsQuery(startOfLastMonth, endOfLastMonth),
+      ]);
       
       // Get local accounts with snapshot balances (no full-scan RPC)
       let accountsQuery = supabase
