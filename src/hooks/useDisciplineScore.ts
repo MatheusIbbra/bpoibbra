@@ -55,15 +55,18 @@ export function useDisciplineScore(selectedMonth: Date): DisciplineScoreResult {
     const tips: string[] = [];
     let totalScore = 0;
 
-    // ── 1. Investment (30 pts) ────────────────────────────────────────────
+    // ── 1. Investment (30 pts) — MORE is BETTER, never penalize above target ──
     const investTarget = plan?.investment_target ?? 0;
     const totalInvested = (monthTx || [])
       .filter(t => t.type === "investment" && !t.is_ignored)
       .reduce((s, t) => s + Number(t.amount), 0);
-    const investPct = investTarget > 0 ? Math.min(totalInvested / investTarget, 1) : (totalInvested > 0 ? 1 : 0);
-    const investPts = investTarget > 0
-      ? Math.round(investPct * 30)
-      : totalInvested > 0 ? 22 : 15; // partial credit if no target
+
+    // Ratio capped at 1 for score (100% = full points), but UI pct can exceed 100
+    const investRatio = investTarget > 0 ? totalInvested / investTarget : (totalInvested > 0 ? 1 : 0);
+    const investPct   = investTarget > 0 ? Math.round(investRatio * 100) : (totalInvested > 0 ? 100 : 0);
+    const investPts   = investTarget > 0
+      ? Math.round(Math.min(investRatio, 1) * 30)
+      : totalInvested > 0 ? 22 : 15;
 
     totalScore += investPts;
     const investStatus: DisciplineIndicator["status"] =
@@ -74,10 +77,12 @@ export function useDisciplineScore(selectedMonth: Date): DisciplineScoreResult {
       target: investTarget,
       points: investPts,
       maxPoints: 30,
-      pct: Math.round(investPct * 100),
+      pct: Math.min(investPct, 100), // bar capped at 100%
       status: investStatus,
       detail: investTarget > 0
-        ? `${fmt(totalInvested)} de ${fmt(investTarget)} (${Math.round(investPct * 100)}%)`
+        ? investRatio >= 1
+          ? `${fmt(totalInvested)} ✓ Meta atingida! (${investPct}%)`
+          : `${fmt(totalInvested)} de ${fmt(investTarget)} (${investPct}%)`
         : totalInvested > 0
           ? `${fmt(totalInvested)} investido (sem meta definida)`
           : "Nenhum aporte no mês",
@@ -85,17 +90,16 @@ export function useDisciplineScore(selectedMonth: Date): DisciplineScoreResult {
     if (investTarget === 0) tips.push("Defina uma meta de investimento mensal");
     else if (totalInvested < investTarget) tips.push(`Faltam ${fmt(investTarget - totalInvested)} para atingir a meta de aporte`);
 
-    // ── 2. Income vs target (25 pts) ─────────────────────────────────────
+    // ── 2. Income vs target (25 pts) — MORE is BETTER, never penalize above ──
     const incomeTarget = plan?.income_target ?? 0;
     const actualIncome = stats.monthlyIncome ?? 0;
-    let incomePts = 0;
-    let incomePct = 0;
+    const incomeRatio  = incomeTarget > 0 ? actualIncome / incomeTarget : (actualIncome > 0 ? 1 : 0);
+    const incomePct    = incomeTarget > 0 ? Math.round(incomeRatio * 100) : (actualIncome > 0 ? 100 : 0);
+    let incomePts      = 0;
     if (incomeTarget > 0) {
-      incomePct = Math.min(actualIncome / incomeTarget, 1);
-      incomePts = Math.round(incomePct * 25);
+      incomePts = Math.round(Math.min(incomeRatio, 1) * 25);
     } else {
       incomePts = actualIncome > 0 ? 15 : 8;
-      incomePct = actualIncome > 0 ? 0.6 : 0;
     }
     totalScore += incomePts;
     const incomeStatus: DisciplineIndicator["status"] =
@@ -106,16 +110,18 @@ export function useDisciplineScore(selectedMonth: Date): DisciplineScoreResult {
       target: incomeTarget,
       points: incomePts,
       maxPoints: 25,
-      pct: Math.round(incomePct * 100),
+      pct: Math.min(incomePct, 100),
       status: incomeStatus,
       detail: incomeTarget > 0
-        ? `${fmt(actualIncome)} de ${fmt(incomeTarget)} (${Math.round(incomePct * 100)}%)`
+        ? incomeRatio >= 1
+          ? `${fmt(actualIncome)} ✓ Meta atingida! (${incomePct}%)`
+          : `${fmt(actualIncome)} de ${fmt(incomeTarget)} (${incomePct}%)`
         : actualIncome > 0
           ? `${fmt(actualIncome)} recebido (sem meta definida)`
           : "Nenhuma receita registrada",
     });
     if (incomeTarget === 0) tips.push("Defina uma meta de receita mensal");
-    else if (actualIncome < incomeTarget * 0.9) tips.push(`Receita ${Math.round((1 - incomePct) * 100)}% abaixo da meta`);
+    else if (actualIncome < incomeTarget * 0.9) tips.push(`Receita ${Math.round((1 - Math.min(incomeRatio, 1)) * 100)}% abaixo da meta`);
 
     // ── 3. Expense control / budget adherence (20 pts) ───────────────────
     const totalCategories = budgetAnalysis.items.length;

@@ -671,35 +671,17 @@ function DisciplineScoreBubble({
             sideOffset={8}
           >
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-bold" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                  Disciplina Financeira
-                </h3>
-              </div>
-
-              {/* Score circle */}
-              <div className="flex justify-center">
-                <div className="relative h-24 w-24">
-                  <svg className="h-24 w-24 -rotate-90" viewBox="0 0 120 120">
-                    <circle cx="60" cy="60" r="52" fill="none" className="stroke-muted/20" strokeWidth="7" />
-                    <circle
-                      cx="60" cy="60" r="52"
-                      fill="none"
-                      className={cn(scoreRing, "transition-all duration-700")}
-                      strokeWidth="7"
-                      strokeLinecap="round"
-                      strokeDasharray={circumference}
-                      strokeDashoffset={scoreOffset}
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className={cn("text-2xl font-bold", scoreColor)} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                      {score}
-                    </span>
-                    <span className="text-[9px] text-muted-foreground">/100</span>
-                  </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-bold" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                    Disciplina Financeira
+                  </h3>
                 </div>
+                {/* Score label — single occurrence inside popover */}
+                <span className={cn("text-lg font-bold tabular-nums", scoreColor)} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                  {score}<span className="text-xs font-normal text-muted-foreground">/100</span>
+                </span>
               </div>
 
               {/* Indicators */}
