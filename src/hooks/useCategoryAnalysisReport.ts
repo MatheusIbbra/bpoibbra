@@ -102,7 +102,7 @@ export function useCategoryAnalysisReport(
           existing.count += 1;
           existing.transactions.push(txDetail);
         } else {
-          map.set(tx.category_id, {
+          map.set(mapKey, {
             category_id: tx.category_id,
             category_name: catName,
             category_color: catColor,
