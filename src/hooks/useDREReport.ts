@@ -6,11 +6,19 @@ import { format } from "date-fns";
 
 export type ReportBasis = "cash" | "accrual";
 
-interface DREItem {
+export interface DREItem {
   category_id: string | null;
   category_name: string;
   category_color: string;
   total: number;
+  transactions: Array<{
+    id: string;
+    description: string | null;
+    amount: number;
+    date: string;
+    category_id: string | null;
+    [key: string]: any;
+  }>;
 }
 
 interface DREData {
@@ -26,6 +34,60 @@ interface DREData {
   netIncome: number;
 }
 
+function buildBaseQuery(
+  supabaseClient: typeof supabase,
+  startStr: string,
+  endStr: string,
+  basis: ReportBasis,
+  orgFilter: { type: string; ids: string[] },
+  costCenterId?: string
+) {
+  let query = supabaseClient
+    .from("transactions")
+    .select(`
+      id,
+      description,
+      amount,
+      type,
+      date,
+      accrual_date,
+      category_id,
+      account_id,
+      cost_center_id,
+      status,
+      is_ignored,
+      validation_status,
+      categories (
+        name,
+        color
+      ),
+      accounts (id, name)
+    `)
+    .neq("is_ignored", true)
+    .in("validation_status", ["validated", "pending_validation"])
+    .in("type", ["income", "expense", "investment", "redemption"]);
+
+  if (basis === "cash") {
+    query = query.gte("date", startStr).lte("date", endStr);
+  } else {
+    query = query.or(
+      `and(accrual_date.gte.${startStr},accrual_date.lte.${endStr}),and(accrual_date.is.null,date.gte.${startStr},date.lte.${endStr})`
+    );
+  }
+
+  if (orgFilter.type === "single") {
+    query = query.eq("organization_id", orgFilter.ids[0]);
+  } else if (orgFilter.type === "multiple" && orgFilter.ids.length > 0) {
+    query = query.in("organization_id", orgFilter.ids);
+  }
+
+  if (costCenterId) {
+    query = query.eq("cost_center_id", costCenterId);
+  }
+
+  return query;
+}
+
 export function useDREReport(startDate: Date, endDate: Date, basis: ReportBasis, costCenterId?: string) {
   const { user } = useAuth();
   const { getOrganizationFilter } = useBaseFilter();
@@ -36,52 +98,8 @@ export function useDREReport(startDate: Date, endDate: Date, basis: ReportBasis,
   return useQuery({
     queryKey: ["dre-report", user?.id, orgFilter.type, orgFilter.ids, startStr, endStr, basis, costCenterId],
     queryFn: async (): Promise<DREData> => {
-      // Get all transactions for the period
-      // For accrual basis, we need accrual_date with fallback to date
-      let query = supabase
-        .from("transactions")
-        .select(`
-          id,
-          description,
-          amount,
-          type,
-          date,
-          accrual_date,
-          category_id,
-          categories (
-            name,
-            color
-          )
-        `)
-        .neq("is_ignored", true)
-        .in("validation_status", ["validated", "pending_validation"])
-        .in("type", ["income", "expense", "investment", "redemption"])
-        .neq("type", "transfer");
-
-      if (basis === "cash") {
-        query = query.gte("date", startStr).lte("date", endStr);
-      } else {
-        // For accrual: fetch a broader range and filter client-side
-        // to handle COALESCE(accrual_date, date) logic
-        query = query.or(
-          `and(accrual_date.gte.${startStr},accrual_date.lte.${endStr}),and(accrual_date.is.null,date.gte.${startStr},date.lte.${endStr})`
-        );
-      }
-
-      // Aplicar filtro de organização
-      if (orgFilter.type === 'single') {
-        query = query.eq("organization_id", orgFilter.ids[0]);
-      } else if (orgFilter.type === 'multiple' && orgFilter.ids.length > 0) {
-        query = query.in("organization_id", orgFilter.ids);
-      }
-
-      // Aplicar filtro de centro de custo
-      if (costCenterId) {
-        query = query.eq("cost_center_id", costCenterId);
-      }
-
+      const query = buildBaseQuery(supabase, startStr, endStr, basis, orgFilter, costCenterId);
       const { data: transactions, error } = await query;
-
       if (error) throw error;
 
       let grossRevenue = 0;
@@ -94,8 +112,7 @@ export function useDREReport(startDate: Date, endDate: Date, basis: ReportBasis,
         const amount = Number(tx.amount);
         const categoryName = (tx.categories as any)?.name || "Sem categoria";
         const categoryColor = (tx.categories as any)?.color || "#6b7280";
-        // Use a stable key: use category_id if set, otherwise "sem-categoria"
-        const mapKey = tx.category_id ?? "sem-categoria";
+        const mapKey = tx.category_id ?? "__sem_categoria__";
 
         switch (tx.type) {
           case "income":
@@ -105,12 +122,14 @@ export function useDREReport(startDate: Date, endDate: Date, basis: ReportBasis,
             const existing = expenseMap.get(mapKey);
             if (existing) {
               existing.total += amount;
+              existing.transactions.push({ ...tx, amount });
             } else {
               expenseMap.set(mapKey, {
                 category_id: tx.category_id,
                 category_name: categoryName,
                 category_color: categoryColor,
                 total: amount,
+                transactions: [{ ...tx, amount }],
               });
             }
             break;
