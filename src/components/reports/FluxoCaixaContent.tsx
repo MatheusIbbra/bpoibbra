@@ -92,9 +92,7 @@ export function FluxoCaixaContent() {
     end: endOfMonth(new Date()),
   });
   const [granularity, setGranularity] = useState<Granularity>("daily");
-  const [basis, setBasis] = useState<ReportBasis>(() => {
-    return (localStorage.getItem("report-basis-fluxo") as ReportBasis) || "cash";
-  });
+  const basis: ReportBasis = "cash";
   const [costCenterId, setCostCenterId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
