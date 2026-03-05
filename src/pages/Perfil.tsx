@@ -237,7 +237,7 @@ export default function Perfil() {
           </CardContent>
         </Card>
 
-        <AchievementsBadges />
+        {!isStaff && <AchievementsBadges />}
         <ChangePasswordCard />
         <PrivacySection />
         <PushNotificationSettings />
