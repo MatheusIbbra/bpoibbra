@@ -43,6 +43,8 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const { isAdmin } = useIsAdmin();
+  const { data: currentRole } = useCurrentUserRole();
+  const isStaff = currentRole && currentRole !== "cliente";
   const { data: pendingCount } = usePendingTransactionsCount();
   const { currentPlan } = useSubscription();
   const { openUpgradeModal } = useUpgradeModal();
