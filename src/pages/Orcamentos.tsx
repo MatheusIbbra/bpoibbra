@@ -262,7 +262,7 @@ export default function Orcamentos() {
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <button className="flex items-center justify-center h-7 w-7 rounded-full text-primary-foreground/50 hover:text-primary-foreground/90 hover:bg-primary-foreground/10 transition-colors">
+                          <button className="flex items-center justify-center h-7 w-7 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                             <HelpCircle className="h-4 w-4" />
                           </button>
                         </TooltipTrigger>
@@ -279,7 +279,7 @@ export default function Orcamentos() {
                     </TooltipProvider>
                     <Button
                       size="sm" variant="ghost"
-                      className="h-7 text-[10px] text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/10"
+                      className="h-7 text-[10px] text-muted-foreground hover:text-foreground"
                       onClick={() => setEditingPlan(!editingPlan)}
                     >
                       <Pencil className="h-3 w-3 mr-1" />
@@ -291,16 +291,16 @@ export default function Orcamentos() {
                 {editingPlan ? (
                   <div className="space-y-4">
                     <div>
-                      <p className="text-[10px] text-primary-foreground/50 mb-1">Meta de Receita</p>
-                      <CurrencyInput value={planIncome} onChange={setPlanIncome} className="bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/30" />
+                      <p className="text-[10px] text-muted-foreground mb-1">Meta de Receita</p>
+                      <CurrencyInput value={planIncome} onChange={setPlanIncome} />
                     </div>
                     <div>
-                      <p className="text-[10px] text-primary-foreground/50 mb-1">Meta de Investimento</p>
-                      <CurrencyInput value={planInvestment} onChange={setPlanInvestment} className="bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/30" />
+                      <p className="text-[10px] text-muted-foreground mb-1">Meta de Investimento</p>
+                      <CurrencyInput value={planInvestment} onChange={setPlanInvestment} />
                     </div>
                     <Button
                       size="sm"
-                      className="w-full bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground text-xs"
+                      className="w-full text-xs"
                       onClick={() => {
                         upsertPlan.mutate({ month, year, income_target: planIncome, investment_target: planInvestment });
                         setEditingPlan(false);
