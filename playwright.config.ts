@@ -10,4 +10,10 @@ export default defineConfig({
     video: "retain-on-failure",
   },
   projects: [{ name: "chromium" }],
+  webServer: {
+    command: "npm run build && npx vite preview --port 8080",
+    port: 8080,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120000,
+  },
 });
