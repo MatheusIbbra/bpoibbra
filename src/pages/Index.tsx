@@ -2,7 +2,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { FintechTransactionsList } from "@/components/dashboard/FintechTransactionsList";
-import { MonthlyEvolutionChart } from "@/components/dashboard/MonthlyEvolutionChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FinancialDisciplineScore } from "@/components/dashboard/FinancialDisciplineScore";
