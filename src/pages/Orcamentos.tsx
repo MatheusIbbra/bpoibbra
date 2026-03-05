@@ -259,9 +259,8 @@ export default function Orcamentos() {
           <FadeCard delay={200}>
             {/* Apple-style glass card */}
             <div
-              className="rounded-[24px] border border-white/40 backdrop-blur-xl px-5 py-5"
+              className="rounded-[24px] border border-border/30 backdrop-blur-xl px-5 py-5 bg-card/60 dark:bg-card/40 dark:border-border/20"
               style={{
-                background: "rgba(255,255,255,0.45)",
                 boxShadow: "0 4px 24px 0 rgba(60,60,90,0.08), 0 1.5px 6px 0 rgba(60,60,90,0.04)",
               }}
             >
