@@ -127,23 +127,22 @@ export function useDashboardStats(selectedMonth?: Date) {
         }
       }
       
-      const calculateTotals = (data: { amount: number; type: string }[] | null) => {
-        if (!data) return { income: 0, expenses: 0 };
-        return data.reduce(
-          (acc, t) => {
-            if (t.type === "income") {
-              acc.income += Number(t.amount);
-            } else if (t.type === "expense") {
-              acc.expenses += Number(t.amount);
-            }
+      // Aggregate income/expenses from financial_events
+      const calcEventTotals = (events: { event_type: string; amount: number }[] | null) => {
+        if (!events) return { income: 0, expenses: 0 };
+        return (events as any[]).reduce(
+          (acc: { income: number; expenses: number }, ev: any) => {
+            const amt = Number(ev.amount);
+            if (ev.event_type === "income") acc.income += amt;
+            else if (ev.event_type === "expense" || ev.event_type === "loan_payment" || ev.event_type === "credit_card_payment") acc.expenses += amt;
             return acc;
           },
           { income: 0, expenses: 0 }
         );
       };
-      
-      const currentTotals = calculateTotals(currentMonthData);
-      const lastTotals = calculateTotals(lastMonthData);
+
+      const currentTotals = calcEventTotals(currentEventsData as any);
+      const lastTotals    = calcEventTotals(lastEventsData as any);
       
       const totalBalance = totalAccountBalance;
       const monthlyIncome = currentTotals.income;

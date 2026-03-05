@@ -39,7 +39,7 @@ export function useUserClassificationRules() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as UserClassificationRule[];
+      return (data || []) as unknown as UserClassificationRule[];
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
