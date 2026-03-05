@@ -419,32 +419,38 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
   }
 
   return (
-    <Card className="fixed bottom-4 right-4 md:bottom-6 md:right-6 w-[calc(100%-2rem)] max-w-sm md:max-w-md h-[500px] md:h-[600px] shadow-xl z-50 flex flex-col">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary" />
-          <CardTitle className="text-lg">Wealth Advisor IA</CardTitle>
+    <Card className="fixed bottom-4 right-4 md:bottom-6 md:right-6 w-[calc(100%-2rem)] max-w-sm md:max-w-md h-[min(500px,80vh)] md:h-[600px] shadow-2xl z-50 flex flex-col rounded-2xl border-border/50 overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-5 pt-4 border-b bg-gradient-to-r from-primary/5 to-transparent">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Sparkles className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <CardTitle className="text-sm font-semibold">Wealth Advisor IA</CardTitle>
+            <p className="text-[10px] text-muted-foreground">Assistente financeiro inteligente</p>
+          </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => setIsChatOpen(false)}>
+        <Button variant="ghost" size="icon" onClick={() => setIsChatOpen(false)} className="h-8 w-8 rounded-xl">
           <X className="h-4 w-4" />
         </Button>
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
         {!isPaidUser ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Lock className="h-8 w-8 text-muted-foreground" />
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+            <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center mb-5">
+              <Lock className="h-9 w-9 text-primary/60" />
             </div>
-            <h3 className="font-semibold text-lg mb-2">Recurso Premium</h3>
-            <p className="text-muted-foreground text-sm mb-4">
+            <h3 className="font-semibold text-base mb-1.5" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Recurso Premium</h3>
+            <p className="text-muted-foreground text-xs mb-5 leading-relaxed max-w-[260px]">
               O Wealth Advisor está disponível para assinantes dos planos pagos. Compare os planos e faça upgrade.
             </p>
             <Button
               onClick={() => { openUpgradeModal("ai"); }}
-              className="gap-2"
+              className="gap-2 rounded-xl h-10 px-6"
+              size="sm"
             >
-              <Sparkles className="h-4 w-4" />
+              <Sparkles className="h-3.5 w-3.5" />
               Ver planos disponíveis
             </Button>
           </div>
@@ -458,14 +464,15 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
                     className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-lg px-4 py-2 ${
+                      className={cn(
+                        "max-w-[85%] rounded-2xl px-4 py-2.5",
                         message.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
-                      }`}
+                          ? "bg-primary text-primary-foreground rounded-br-md"
+                          : "bg-muted rounded-bl-md"
+                      )}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      <p className="text-xs opacity-70 mt-1">
+                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                      <p className="text-[10px] opacity-50 mt-1">
                         {message.timestamp.toLocaleTimeString("pt-BR", {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -476,15 +483,15 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
                 ))}
                 {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
                   <div className="flex justify-start">
-                    <div className="bg-muted rounded-lg px-4 py-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                    <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                     </div>
                   </div>
                 )}
               </div>
             </ScrollArea>
 
-            <div className="p-4 border-t">
+            <div className="p-3 border-t bg-card">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -497,8 +504,9 @@ export function AIAssistantChat({ isPaidUser = false }: AIAssistantChatProps) {
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Pergunte sobre seu patrimônio..."
                   disabled={isLoading}
+                  className="rounded-xl h-10 text-sm"
                 />
-                <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+                <Button type="submit" size="icon" disabled={isLoading || !input.trim()} className="rounded-xl h-10 w-10 shrink-0">
                   <Send className="h-4 w-4" />
                 </Button>
               </form>

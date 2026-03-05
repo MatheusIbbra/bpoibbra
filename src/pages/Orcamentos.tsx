@@ -11,7 +11,7 @@ import {
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Popover as HoverPopover, PopoverContent as HoverPopoverContent, PopoverTrigger as HoverPopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -33,6 +33,7 @@ import { useMonthlyPlan, useUpsertMonthlyPlan } from "@/hooks/useMonthlyPlan";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { useDisciplineScore, DisciplineIndicator } from "@/hooks/useDisciplineScore";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
+import { GaugeChart } from "@/components/dashboard/GaugeChart";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
@@ -230,7 +231,7 @@ export default function Orcamentos() {
         {/* Month Selector */}
         <FadeCard delay={0}>
           <div className="flex items-center justify-center">
-            <div className="inline-flex items-center rounded-full border border-border/40 bg-card px-5 py-2 shadow-fintech">
+            <div className="inline-flex items-center rounded-full border border-border/40 bg-card px-1.5 py-0.5 shadow-fintech">
               <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
             </div>
           </div>
@@ -251,8 +252,8 @@ export default function Orcamentos() {
 
           <FadeCard delay={200}>
             <Card className="border-0 shadow-fintech overflow-hidden">
-              <div className="bg-gradient-to-r from-[hsl(var(--brand-deep))] to-[hsl(var(--brand-highlight))] p-7">
-                <div className="flex items-center justify-between mb-5">
+              <div className="bg-gradient-to-r from-[hsl(var(--brand-deep))] to-[hsl(var(--brand-highlight))] p-6">
+                <div className="flex items-center justify-between mb-4">
                   <p className="text-[11px] uppercase tracking-[0.2em] font-medium text-primary-foreground/50">
                     Plano do Mês — {MONTHS[month - 1]}
                   </p>
@@ -290,27 +291,37 @@ export default function Orcamentos() {
                   </div>
                 ) : (
                   <>
-                   <div className="grid grid-cols-3 gap-3 mb-5">
-                      {[
-                        { label: "Receita", value: effectiveIncome },
-                        { label: "Investimento", value: planInvestment },
-                        { label: "Despesas", value: totalBudget },
-                      ].map(({ label, value }) => (
-                        <div key={label} className="min-w-0">
-                          <p className="text-[9px] text-primary-foreground/40 mb-1 uppercase tracking-wider">{label}</p>
-                          <p
-                            className="font-bold text-primary-foreground leading-none truncate tabular-nums"
-                            style={{
-                              fontFamily: "'Playfair Display', Georgia, serif",
-                              fontSize: "clamp(0.75rem, 3.5vw, 1.35rem)",
-                            }}
-                          >
-                            <MaskedValue>{formatCurrency(value)}</MaskedValue>
-                          </p>
-                        </div>
-                      ))}
+                    {/* Gauge Charts */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground">
+                        <GaugeChart
+                          label="Receita"
+                          valorPlanejado={effectiveIncome}
+                          valorRealizado={income}
+                          variant="success"
+                          compact
+                        />
+                      </div>
+                      <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground">
+                        <GaugeChart
+                          label="Investimento"
+                          valorPlanejado={planInvestment || 1}
+                          valorRealizado={0}
+                          variant="blue"
+                          compact
+                        />
+                      </div>
+                      <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground">
+                        <GaugeChart
+                          label="Despesas"
+                          valorPlanejado={totalBudget || 1}
+                          valorRealizado={totalSpent}
+                          variant="destructive"
+                          compact
+                        />
+                      </div>
                     </div>
-                    <div className="border-t border-primary-foreground/10 pt-4 flex items-end justify-between">
+                    <div className="border-t border-primary-foreground/10 pt-4 mt-4 flex items-end justify-between">
                       <div>
                         <p className="text-[10px] text-primary-foreground/40">Saldo Livre</p>
                         <p
@@ -713,20 +724,20 @@ function IndicatorRow({ ind }: { ind: DisciplineIndicator }) {
     "text-destructive";
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-sm">
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs">
         <span className="font-medium text-foreground">{ind.label}</span>
         <span className={cn("font-bold tabular-nums", statusColor)}>
           {ind.points}/{ind.maxPoints}
         </span>
       </div>
-      <div className="h-2 w-full rounded-full bg-muted/40 overflow-hidden">
+      <div className="h-1.5 w-full rounded-full bg-muted/40 overflow-hidden">
         <div
           className={cn("h-full rounded-full transition-all duration-500", barColor)}
           style={{ width: `${ind.pct}%` }}
         />
       </div>
-      <p className="text-xs text-muted-foreground leading-snug">{ind.detail}</p>
+      <p className="text-[10px] text-muted-foreground leading-snug">{ind.detail}</p>
     </div>
   );
 }
@@ -741,103 +752,107 @@ function DisciplineScoreBubble({
   scoreOffset: number;
   selectedMonth: Date;
 }) {
-  const [open, setOpen] = useState(false);
   const { indicators, tips, isLoading } = useDisciplineScore(selectedMonth);
 
   return (
-    <>
-      <FadeCard delay={80}>
-        <div className="flex justify-center">
-          <button
-            onClick={() => setOpen(true)}
-            className="relative h-24 w-24 rounded-full group transition-transform hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            aria-label={`Disciplina financeira: ${score} pontos`}
-          >
-            <svg className="h-24 w-24 -rotate-90" viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="54" fill="none" className="stroke-muted/20" strokeWidth="6" />
-              <circle
-                cx="60" cy="60" r="54"
-                fill="none"
-                className={cn(scoreRing, "transition-all duration-700")}
-                strokeWidth="6"
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                strokeDashoffset={scoreOffset}
-              />
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className={cn("text-2xl font-bold", scoreColor)} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                {score}
-              </span>
-              <span className="text-[8px] text-muted-foreground uppercase tracking-wider mt-0.5">disciplina</span>
-            </div>
-          </button>
-        </div>
-      </FadeCard>
-
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] overflow-y-auto">
-          <SheetHeader className="pb-4">
-            <SheetTitle className="text-lg font-bold flex items-center gap-2" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-              <Target className="h-5 w-5 text-primary" />
-              Disciplina Financeira
-            </SheetTitle>
-          </SheetHeader>
-
-          {/* Score circle */}
-          <div className="flex justify-center mb-6">
-            <div className="relative h-28 w-28">
-              <svg className="h-28 w-28 -rotate-90" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="52" fill="none" className="stroke-muted/20" strokeWidth="8" />
+    <FadeCard delay={80}>
+      <div className="flex justify-center">
+        <HoverPopover>
+          <HoverPopoverTrigger asChild>
+            <button
+              className="relative h-24 w-24 rounded-full group transition-transform hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              aria-label={`Disciplina financeira: ${score} pontos`}
+            >
+              <svg className="h-24 w-24 -rotate-90" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="54" fill="none" className="stroke-muted/20" strokeWidth="6" />
                 <circle
-                  cx="60" cy="60" r="52"
+                  cx="60" cy="60" r="54"
                   fill="none"
                   className={cn(scoreRing, "transition-all duration-700")}
-                  strokeWidth="8"
+                  strokeWidth="6"
                   strokeLinecap="round"
                   strokeDasharray={circumference}
                   strokeDashoffset={scoreOffset}
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className={cn("text-3xl font-bold", scoreColor)} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                <span className={cn("text-2xl font-bold", scoreColor)} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
                   {score}
                 </span>
-                <span className="text-[10px] text-muted-foreground">/100</span>
+                <span className="text-[8px] text-muted-foreground uppercase tracking-wider mt-0.5">disciplina</span>
               </div>
-            </div>
-          </div>
+            </button>
+          </HoverPopoverTrigger>
+          <HoverPopoverContent
+            className="w-80 md:w-96 p-5 rounded-2xl shadow-xl border border-border/50 bg-card"
+            side="bottom"
+            align="center"
+            sideOffset={8}
+          >
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Target className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-bold" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                  Disciplina Financeira
+                </h3>
+              </div>
 
-          {/* Indicators */}
-          {indicators.length > 0 && (
-            <div className="space-y-5 mb-6">
-              {indicators.map((ind, i) => (
-                <IndicatorRow key={i} ind={ind} />
-              ))}
-            </div>
-          )}
-
-          {/* Tips */}
-          {tips.length === 0 ? (
-            <div className="flex items-center gap-2 text-sm text-success py-3 border-t">
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
-              <span className="font-medium">Disciplina perfeita neste mês!</span>
-            </div>
-          ) : (
-            <div className="space-y-2 border-t pt-4">
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                O que melhorar
-              </p>
-              {tips.map((tip, i) => (
-                <div key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <AlertCircle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-                  <span>{tip}</span>
+              {/* Score circle */}
+              <div className="flex justify-center">
+                <div className="relative h-24 w-24">
+                  <svg className="h-24 w-24 -rotate-90" viewBox="0 0 120 120">
+                    <circle cx="60" cy="60" r="52" fill="none" className="stroke-muted/20" strokeWidth="7" />
+                    <circle
+                      cx="60" cy="60" r="52"
+                      fill="none"
+                      className={cn(scoreRing, "transition-all duration-700")}
+                      strokeWidth="7"
+                      strokeLinecap="round"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={scoreOffset}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className={cn("text-2xl font-bold", scoreColor)} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                      {score}
+                    </span>
+                    <span className="text-[9px] text-muted-foreground">/100</span>
+                  </div>
                 </div>
-              ))}
+              </div>
+
+              {/* Indicators */}
+              {indicators.length > 0 && (
+                <div className="space-y-3">
+                  {indicators.map((ind, i) => (
+                    <IndicatorRow key={i} ind={ind} />
+                  ))}
+                </div>
+              )}
+
+              {/* Tips */}
+              {tips.length === 0 ? (
+                <div className="flex items-center gap-2 text-xs text-success pt-2 border-t">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                  <span className="font-medium">Disciplina perfeita neste mês!</span>
+                </div>
+              ) : (
+                <div className="space-y-1.5 border-t pt-3">
+                  <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide">
+                    O que melhorar
+                  </p>
+                  {tips.slice(0, 3).map((tip, i) => (
+                    <div key={i} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                      <AlertCircle className="h-3 w-3 text-warning shrink-0 mt-0.5" />
+                      <span>{tip}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </SheetContent>
-      </Sheet>
-    </>
+          </HoverPopoverContent>
+        </HoverPopover>
+      </div>
+    </FadeCard>
   );
 }
