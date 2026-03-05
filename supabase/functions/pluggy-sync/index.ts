@@ -1007,6 +1007,9 @@ Deno.serve(async (req) => {
       console.warn('[OF-TABLES] Error populating open finance tables (non-blocking):', ofErr);
     }
 
+    // Record circuit breaker success
+    await recordSuccess(supabaseAdmin, "pluggy", connectionToSync.organization_id);
+
     return new Response(JSON.stringify({
       success: true, imported, skipped, duplicates_detected: duplicatesDetected, total: allTransactions.length,
       accounts: accounts.length, connection_id: connectionToSync.id,
@@ -1015,6 +1018,16 @@ Deno.serve(async (req) => {
 
   } catch (error: unknown) {
     console.error('Error in pluggy-sync:', error);
+    // Record circuit breaker failure
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const admin = createClient(supabaseUrl, serviceKey);
+      // Try to extract org id from the error context
+      const bodyText = await req.clone().text().catch(() => '{}');
+      const body = JSON.parse(bodyText).organization_id;
+      if (body) await recordFailure(admin, "pluggy", body);
+    } catch { /* best effort */ }
     const msg = error instanceof Error ? error.message : 'Erro interno do servidor';
     return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
