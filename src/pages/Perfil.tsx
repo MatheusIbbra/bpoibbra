@@ -14,6 +14,7 @@ import { PrivacySection } from "@/components/profile/PrivacySection";
 import { ChangePasswordCard } from "@/components/profile/ChangePasswordCard";
 import { PushNotificationSettings } from "@/components/profile/PushNotificationSettings";
 import { AchievementsBadges } from "@/components/profile/AchievementsBadges";
+import { useCurrentUserRole } from "@/hooks/useUserRoles";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";

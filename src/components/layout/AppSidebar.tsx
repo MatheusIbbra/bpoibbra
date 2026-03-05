@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sidebar, SidebarContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, SidebarSeparator } from "@/components/ui/sidebar";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
-import { useIsAdmin } from "@/hooks/useUserRoles";
+import { useIsAdmin, useCurrentUserRole } from "@/hooks/useUserRoles";
 import { usePendingTransactionsCount } from "@/hooks/usePendingTransactionsCount";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
