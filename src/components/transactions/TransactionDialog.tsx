@@ -32,7 +32,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { useCategories, CategoryType } from "@/hooks/useCategories";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCostCenters } from "@/hooks/useCostCenters";
-import { useTransactions, useCreateTransaction, useUpdateTransaction, Transaction, TransactionType } from "@/hooks/useTransactions";
+import { useTransactions, useCreateTransaction, useUpdateTransaction, useDeleteTransaction, Transaction, TransactionType } from "@/hooks/useTransactions";
 import { cn } from "@/lib/utils";
 import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 
