@@ -50,11 +50,11 @@ const Index = () => {
   // Achievement checker
   useAchievementChecker(selectedMonth);
 
-  const { data: paginatedMonthData } = usePaginatedTransactions({ startDate, endDate, page: 0 });
-  const monthTransactions = paginatedMonthData?.data || [];
-
   const startDate = format(startOfMonth(selectedMonth), "yyyy-MM-dd");
   const endDate = format(endOfMonth(selectedMonth), "yyyy-MM-dd");
+
+  const { data: paginatedMonthData } = usePaginatedTransactions({ startDate, endDate, page: 0 });
+  const monthTransactions = paginatedMonthData?.data || [];
 
   const { data: budgets } = useBudgets(selectedMonth.getMonth() + 1, selectedMonth.getFullYear());
   const { data: expenseTransactions } = useTransactions({ type: "expense", startDate, endDate });
