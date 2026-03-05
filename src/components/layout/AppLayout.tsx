@@ -68,11 +68,11 @@ export function AppLayout({ children, title }: AppLayoutProps) {
         <MobileHeader />
 
         {/* Base selector */}
-        <div className="px-5 pb-4 max-w-[420px] mx-auto w-full">
+        <div className="px-5 pb-4 max-w-screen-sm mx-auto w-full">
           <BaseSelectorEnhanced />
         </div>
 
-        <main className="flex-1 w-full max-w-[420px] mx-auto px-5 pb-28 space-y-6 overflow-x-hidden">
+        <main className="flex-1 w-full max-w-screen-sm mx-auto px-5 pb-28 space-y-6 overflow-x-hidden">
           {baseLoading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
