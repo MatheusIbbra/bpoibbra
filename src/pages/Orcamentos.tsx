@@ -714,20 +714,20 @@ function IndicatorRow({ ind }: { ind: DisciplineIndicator }) {
     "text-destructive";
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-sm">
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs">
         <span className="font-medium text-foreground">{ind.label}</span>
         <span className={cn("font-bold tabular-nums", statusColor)}>
           {ind.points}/{ind.maxPoints}
         </span>
       </div>
-      <div className="h-2 w-full rounded-full bg-muted/40 overflow-hidden">
+      <div className="h-1.5 w-full rounded-full bg-muted/40 overflow-hidden">
         <div
           className={cn("h-full rounded-full transition-all duration-500", barColor)}
           style={{ width: `${ind.pct}%` }}
         />
       </div>
-      <p className="text-xs text-muted-foreground leading-snug">{ind.detail}</p>
+      <p className="text-[10px] text-muted-foreground leading-snug">{ind.detail}</p>
     </div>
   );
 }
@@ -742,103 +742,107 @@ function DisciplineScoreBubble({
   scoreOffset: number;
   selectedMonth: Date;
 }) {
-  const [open, setOpen] = useState(false);
   const { indicators, tips, isLoading } = useDisciplineScore(selectedMonth);
 
   return (
-    <>
-      <FadeCard delay={80}>
-        <div className="flex justify-center">
-          <button
-            onClick={() => setOpen(true)}
-            className="relative h-24 w-24 rounded-full group transition-transform hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            aria-label={`Disciplina financeira: ${score} pontos`}
-          >
-            <svg className="h-24 w-24 -rotate-90" viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="54" fill="none" className="stroke-muted/20" strokeWidth="6" />
-              <circle
-                cx="60" cy="60" r="54"
-                fill="none"
-                className={cn(scoreRing, "transition-all duration-700")}
-                strokeWidth="6"
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                strokeDashoffset={scoreOffset}
-              />
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className={cn("text-2xl font-bold", scoreColor)} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                {score}
-              </span>
-              <span className="text-[8px] text-muted-foreground uppercase tracking-wider mt-0.5">disciplina</span>
-            </div>
-          </button>
-        </div>
-      </FadeCard>
-
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] overflow-y-auto">
-          <SheetHeader className="pb-4">
-            <SheetTitle className="text-lg font-bold flex items-center gap-2" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-              <Target className="h-5 w-5 text-primary" />
-              Disciplina Financeira
-            </SheetTitle>
-          </SheetHeader>
-
-          {/* Score circle */}
-          <div className="flex justify-center mb-6">
-            <div className="relative h-28 w-28">
-              <svg className="h-28 w-28 -rotate-90" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="52" fill="none" className="stroke-muted/20" strokeWidth="8" />
+    <FadeCard delay={80}>
+      <div className="flex justify-center">
+        <HoverPopover>
+          <HoverPopoverTrigger asChild>
+            <button
+              className="relative h-24 w-24 rounded-full group transition-transform hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              aria-label={`Disciplina financeira: ${score} pontos`}
+            >
+              <svg className="h-24 w-24 -rotate-90" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="54" fill="none" className="stroke-muted/20" strokeWidth="6" />
                 <circle
-                  cx="60" cy="60" r="52"
+                  cx="60" cy="60" r="54"
                   fill="none"
                   className={cn(scoreRing, "transition-all duration-700")}
-                  strokeWidth="8"
+                  strokeWidth="6"
                   strokeLinecap="round"
                   strokeDasharray={circumference}
                   strokeDashoffset={scoreOffset}
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className={cn("text-3xl font-bold", scoreColor)} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                <span className={cn("text-2xl font-bold", scoreColor)} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
                   {score}
                 </span>
-                <span className="text-[10px] text-muted-foreground">/100</span>
+                <span className="text-[8px] text-muted-foreground uppercase tracking-wider mt-0.5">disciplina</span>
               </div>
-            </div>
-          </div>
+            </button>
+          </HoverPopoverTrigger>
+          <HoverPopoverContent
+            className="w-80 md:w-96 p-5 rounded-2xl shadow-xl border border-border/50 bg-card"
+            side="bottom"
+            align="center"
+            sideOffset={8}
+          >
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Target className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-bold" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                  Disciplina Financeira
+                </h3>
+              </div>
 
-          {/* Indicators */}
-          {indicators.length > 0 && (
-            <div className="space-y-5 mb-6">
-              {indicators.map((ind, i) => (
-                <IndicatorRow key={i} ind={ind} />
-              ))}
-            </div>
-          )}
-
-          {/* Tips */}
-          {tips.length === 0 ? (
-            <div className="flex items-center gap-2 text-sm text-success py-3 border-t">
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
-              <span className="font-medium">Disciplina perfeita neste mês!</span>
-            </div>
-          ) : (
-            <div className="space-y-2 border-t pt-4">
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                O que melhorar
-              </p>
-              {tips.map((tip, i) => (
-                <div key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <AlertCircle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-                  <span>{tip}</span>
+              {/* Score circle */}
+              <div className="flex justify-center">
+                <div className="relative h-24 w-24">
+                  <svg className="h-24 w-24 -rotate-90" viewBox="0 0 120 120">
+                    <circle cx="60" cy="60" r="52" fill="none" className="stroke-muted/20" strokeWidth="7" />
+                    <circle
+                      cx="60" cy="60" r="52"
+                      fill="none"
+                      className={cn(scoreRing, "transition-all duration-700")}
+                      strokeWidth="7"
+                      strokeLinecap="round"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={scoreOffset}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className={cn("text-2xl font-bold", scoreColor)} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                      {score}
+                    </span>
+                    <span className="text-[9px] text-muted-foreground">/100</span>
+                  </div>
                 </div>
-              ))}
+              </div>
+
+              {/* Indicators */}
+              {indicators.length > 0 && (
+                <div className="space-y-3">
+                  {indicators.map((ind, i) => (
+                    <IndicatorRow key={i} ind={ind} />
+                  ))}
+                </div>
+              )}
+
+              {/* Tips */}
+              {tips.length === 0 ? (
+                <div className="flex items-center gap-2 text-xs text-success pt-2 border-t">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                  <span className="font-medium">Disciplina perfeita neste mês!</span>
+                </div>
+              ) : (
+                <div className="space-y-1.5 border-t pt-3">
+                  <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide">
+                    O que melhorar
+                  </p>
+                  {tips.slice(0, 3).map((tip, i) => (
+                    <div key={i} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                      <AlertCircle className="h-3 w-3 text-warning shrink-0 mt-0.5" />
+                      <span>{tip}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </SheetContent>
-      </Sheet>
-    </>
+          </HoverPopoverContent>
+        </HoverPopover>
+      </div>
+    </FadeCard>
   );
 }
