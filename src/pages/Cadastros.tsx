@@ -459,6 +459,29 @@ export default function Cadastros() {
             <BankConnectionsManager />
           </TabsContent>
 
+          {/* Importar Extratos Tab */}
+          <TabsContent value="importar" className="mt-4">
+            <Card>
+              <CardHeader className="pb-3 pt-5 px-6">
+                <div className="flex items-center gap-2">
+                  <Upload className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-base font-semibold">Importar Extratos</CardTitle>
+                </div>
+                <p className="text-xs text-muted-foreground">Importe transações via arquivo OFX, CSV ou PDF</p>
+              </CardHeader>
+              <CardContent className="px-6 pb-6">
+                <ImportExtractDialog
+                  trigger={
+                    <Button className="w-full sm:w-auto">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Selecionar Arquivo
+                    </Button>
+                  }
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Centros de Custo Tab */}
           <TabsContent value="centros" className="mt-4">
             <Card>
