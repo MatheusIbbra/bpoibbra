@@ -18,9 +18,9 @@ export function GaugeChart({
   variant = "blue",
   compact = false,
 }: GaugeChartProps) {
-  // Real percentage — no cap for display number
+  // Real percentage — no cap on displayed number (mathematical accuracy)
   const realPct = valorPlanejado > 0 ? (valorRealizado / valorPlanejado) * 100 : 0;
-  // Visual arc capped at 100% so layout doesn't break
+  // Visual arc capped at 100% so layout doesn't break, but number shows real %
   const displayPct = Math.min(realPct, 100);
 
   // 270° gauge = 3/4 circle
