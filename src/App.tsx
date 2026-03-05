@@ -83,6 +83,8 @@ class GlobalErrorBoundary extends Component<
   { children: ReactNode },
   { hasError: boolean; error: Error | null }
 > {
+  private authResetTimeout: ReturnType<typeof setTimeout> | null = null;
+
   constructor(props: { children: ReactNode }) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -97,12 +99,23 @@ class GlobalErrorBoundary extends Component<
     Sentry.captureException(error, { extra: { componentStack: errorInfo.componentStack } });
   }
 
+  componentWillUnmount() {
+    if (this.authResetTimeout) clearTimeout(this.authResetTimeout);
+  }
+
   render() {
     if (this.state.hasError) {
       // Don't show error boundary on auth page - let it reload naturally
       const isAuthPage = typeof window !== 'undefined' && window.location.pathname === '/auth';
       if (isAuthPage) {
-        setTimeout(() => { this.setState({ hasError: false, error: null }); }, 100);
+        // Clear any pending timeout before scheduling a new one
+        if (this.authResetTimeout) clearTimeout(this.authResetTimeout);
+        this.authResetTimeout = setTimeout(() => {
+          // Only reset if still in error state to avoid infinite loops
+          if (this.state.hasError) {
+            this.setState({ hasError: false, error: null });
+          }
+        }, 100);
         return this.props.children;
       }
       return (

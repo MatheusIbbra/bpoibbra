@@ -60,40 +60,32 @@ export function useAIClassification() {
 export function useBulkAIClassification() {
   return useMutation({
     mutationFn: async (transactions: ClassifyTransactionParams[]): Promise<ClassificationResult[]> => {
+      const BATCH_SIZE = 10;
       const results: ClassificationResult[] = [];
 
-      for (const tx of transactions) {
-        try {
-          const { data, error } = await supabase.functions.invoke("classify-transaction", {
-            body: tx,
-          });
-
-          if (error) {
-            console.error("Error classifying transaction:", error);
-            results.push({
-              category_id: null,
-              category_name: null,
-              cost_center_id: null,
-              cost_center_name: null,
-              confidence: 0,
-              is_transfer: false,
-              reasoning: "Erro ao classificar",
-            });
-          } else {
-            results.push(data);
-          }
-        } catch (e) {
-          console.error("Error in bulk classification:", e);
-          results.push({
-            category_id: null,
-            category_name: null,
-            cost_center_id: null,
-            cost_center_name: null,
-            confidence: 0,
-            is_transfer: false,
-            reasoning: "Erro ao classificar",
-          });
-        }
+      for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
+        const batch = transactions.slice(i, i + BATCH_SIZE);
+        const batchResults = await Promise.all(
+          batch.map(async (tx) => {
+            try {
+              const { data, error } = await supabase.functions.invoke("classify-transaction", { body: tx });
+              if (error) throw error;
+              return data as ClassificationResult;
+            } catch (e) {
+              console.error("Error classifying transaction:", e);
+              return {
+                category_id: null,
+                category_name: null,
+                cost_center_id: null,
+                cost_center_name: null,
+                confidence: 0,
+                is_transfer: false,
+                reasoning: "Erro ao classificar",
+              } as ClassificationResult;
+            }
+          })
+        );
+        results.push(...batchResults);
       }
 
       return results;
