@@ -59,6 +59,7 @@ const Index = () => {
 
   const { data: budgets } = useBudgets(selectedMonth.getMonth() + 1, selectedMonth.getFullYear());
   const { data: expenseTransactions } = useTransactions({ type: "expense", startDate, endDate });
+  // Note: useTransactions already excludes is_ignored=true by default
 
   const { isLoading: baseLoading, availableOrganizations, userRole } = useBaseFilterState();
   const { refreshOrganizations } = useBaseFilterActions();
