@@ -1,8 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from "react";
 import { trackEvent } from "@/lib/analytics";
-import { useBaseFilterState } from "@/contexts/BaseFilterContext";
-
-const STAFF_ROLES = ["admin", "supervisor", "fa", "kam", "projetista"];
 
 type UpgradeTrigger = "transactions" | "ai" | "connections" | "forecast" | "simulator" | "anomaly" | "general";
 
@@ -18,16 +15,12 @@ const UpgradeModalContext = createContext<UpgradeModalState | undefined>(undefin
 export function UpgradeModalProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [trigger, setTrigger] = useState<UpgradeTrigger>("general");
-  const { userRole } = useBaseFilterState();
-  const isStaff = userRole !== null && STAFF_ROLES.includes(userRole);
 
   const openUpgradeModal = useCallback((t: UpgradeTrigger = "general") => {
-    // Never show upgrade modal to staff users
-    if (isStaff) return;
     trackEvent("upgrade_modal_opened", { trigger: t });
     setTrigger(t);
     setIsOpen(true);
-  }, [isStaff]);
+  }, []);
 
   // Listen for custom events from non-React code (error-handler, etc.)
   useEffect(() => {
@@ -41,8 +34,8 @@ export function UpgradeModalProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(() => ({
-    isOpen: isStaff ? false : isOpen, trigger, openUpgradeModal, closeUpgradeModal,
-  }), [isOpen, isStaff, trigger, openUpgradeModal, closeUpgradeModal]);
+    isOpen, trigger, openUpgradeModal, closeUpgradeModal,
+  }), [isOpen, trigger, openUpgradeModal, closeUpgradeModal]);
 
   return (
     <UpgradeModalContext.Provider value={value}>
