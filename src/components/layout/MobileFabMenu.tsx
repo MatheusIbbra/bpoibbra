@@ -92,7 +92,7 @@ export function MobileFabMenu({ isOpen, onClose }: Props) {
                       sub: "Receita ou despesa manual",
                       icon: TrendingUp,
                       color: "hsl(var(--success))",
-                      action: () => setTransactionType("income"),
+                      action: () => { onClose(); setTransactionType("income"); },
                     },
                     {
                       label: "Conectar Open Finance",
