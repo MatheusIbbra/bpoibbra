@@ -3,7 +3,18 @@ import { z } from "zod";
 import { handleSupabaseError } from "@/lib/error-handler";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarIcon, Loader2, Link2, EyeOff, Check, ChevronsUpDown } from "lucide-react";
+import { CalendarIcon, Loader2, Link2, EyeOff, Check, ChevronsUpDown, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { TransactionComments } from "@/components/transactions/TransactionComments";
 import { format } from "date-fns";
@@ -21,7 +32,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { useCategories, CategoryType } from "@/hooks/useCategories";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCostCenters } from "@/hooks/useCostCenters";
-import { useTransactions, useCreateTransaction, useUpdateTransaction, Transaction, TransactionType } from "@/hooks/useTransactions";
+import { useTransactions, useCreateTransaction, useUpdateTransaction, useDeleteTransaction, Transaction, TransactionType } from "@/hooks/useTransactions";
 import { cn } from "@/lib/utils";
 import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 
@@ -68,6 +79,8 @@ export function TransactionDialog({
 }: TransactionDialogProps) {
   const [showLinkOption, setShowLinkOption] = useState(false);
   const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const deleteTransaction = useDeleteTransaction();
 
   const form = useForm<FormData>({
     resolver: zodResolver(transactionSchema),
@@ -263,6 +276,7 @@ export function TransactionDialog({
   const showDestinationAccount = isTransferType && !showLinkOption;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto w-[calc(100vw-1rem)] sm:w-full p-4 sm:p-6 [&_input]:bg-white [&_input]:dark:bg-muted [&_textarea]:bg-white [&_textarea]:dark:bg-muted">
         <DialogHeader className="pb-1">
@@ -688,18 +702,81 @@ export function TransactionDialog({
               <TransactionComments transactionId={transaction.id} />
             )}
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" size="sm" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {transaction ? "Salvar" : "Criar"}
-              </Button>
+            <div className="flex items-center justify-between pt-2">
+              {/* Delete button — only when editing */}
+              {transaction ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-40"
+                          disabled={isOpenFinanceImported}
+                          onClick={() => setDeleteConfirmOpen(true)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Excluir
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {isOpenFinanceImported && (
+                      <TooltipContent side="top" className="max-w-[200px] text-xs">
+                        Movimentações importadas via Open Finance não podem ser excluídas manualmente.
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <span />
+              )}
+
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" size="sm" disabled={isLoading}>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {transaction ? "Salvar" : "Criar"}
+                </Button>
+              </div>
             </div>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
+
+    {/* Delete confirmation */}
+    <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir movimentação?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Esta ação não pode ser desfeita. A movimentação será removida permanentemente.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={async () => {
+              if (!transaction) return;
+              try {
+                await deleteTransaction.mutateAsync(transaction.id);
+                setDeleteConfirmOpen(false);
+                onOpenChange(false);
+              } catch (error) {
+                handleSupabaseError(error, "excluir transação");
+              }
+            }}
+          >
+            {deleteTransaction.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
