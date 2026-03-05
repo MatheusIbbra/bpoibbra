@@ -32,17 +32,21 @@ export function useDashboardStats(selectedMonth?: Date) {
       const endOfLastMonth = new Date(lastMonthYear, lastMonth, 0).toISOString().split("T")[0];
 
       // ─────────────────────────────────────────────────────────────
-      // KPIs via financial_events — single source of financial truth.
-      // Only impact_cashflow=true events are counted (internal
-      // transfers, aportes and resgates are automatically excluded).
+      // KPIs via transactions table — filtering is_ignored=true out
+      // explicitly. Transfers, investments and redemptions are excluded
+      // by only selecting 'income' and 'expense' types.
+      // financial_events was NOT used here because it stores events for
+      // ignored transactions too (they still affect account balance),
+      // which would inflate income/expense numbers shown to the user.
       // ─────────────────────────────────────────────────────────────
-      const buildEventsQuery = (start: string, end: string) => {
+      const buildTxQuery = (start: string, end: string) => {
         let q = supabase
-          .from("financial_events" as any)
-          .select("event_type, amount")
-          .eq("impact_cashflow", true)
-          .gte("event_date", start)
-          .lte("event_date", end);
+          .from("transactions")
+          .select("type, amount")
+          .in("type", ["income", "expense"])
+          .neq("is_ignored", true)
+          .gte("date", start)
+          .lte("date", end);
 
         if (orgFilter.type === "single") {
           q = q.eq("organization_id", orgFilter.ids[0]);
@@ -53,8 +57,8 @@ export function useDashboardStats(selectedMonth?: Date) {
       };
 
       const [{ data: currentEventsData }, { data: lastEventsData }] = await Promise.all([
-        buildEventsQuery(startOfMonth, endOfMonth),
-        buildEventsQuery(startOfLastMonth, endOfLastMonth),
+        buildTxQuery(startOfMonth, endOfMonth),
+        buildTxQuery(startOfLastMonth, endOfLastMonth),
       ]);
       
       // Get local accounts with snapshot balances (no full-scan RPC)
@@ -127,14 +131,14 @@ export function useDashboardStats(selectedMonth?: Date) {
         }
       }
       
-      // Aggregate income/expenses from financial_events
-      const calcEventTotals = (events: { event_type: string; amount: number }[] | null) => {
-        if (!events) return { income: 0, expenses: 0 };
-        return (events as any[]).reduce(
-          (acc: { income: number; expenses: number }, ev: any) => {
-            const amt = Number(ev.amount);
-            if (ev.event_type === "income") acc.income += amt;
-            else if (ev.event_type === "expense" || ev.event_type === "loan_payment" || ev.event_type === "credit_card_payment") acc.expenses += amt;
+      // Aggregate income/expenses from transactions
+      const calcEventTotals = (txs: { type: string; amount: number }[] | null) => {
+        if (!txs) return { income: 0, expenses: 0 };
+        return (txs as any[]).reduce(
+          (acc: { income: number; expenses: number }, tx: any) => {
+            const amt = Number(tx.amount);
+            if (tx.type === "income") acc.income += amt;
+            else if (tx.type === "expense") acc.expenses += amt;
             return acc;
           },
           { income: 0, expenses: 0 }
