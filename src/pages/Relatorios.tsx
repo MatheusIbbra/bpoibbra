@@ -16,18 +16,6 @@ import { FinancialTypeReportContent } from "@/components/reports/FinancialTypeRe
 import { CategoryAnalysisContent } from "@/components/reports/CategoryAnalysisContent";
 import { ReportsHub } from "@/components/reports/ReportsHub";
 
-// Strategic analysis cards
-import { StructuredLiquidityCard } from "@/components/dashboard/StructuredLiquidityCard";
-import { PersonalRunwayCard } from "@/components/dashboard/PersonalRunwayCard";
-import { CashflowForecastCard } from "@/components/dashboard/CashflowForecastCard";
-import { LifestylePatternCard } from "@/components/dashboard/LifestylePatternCard";
-import { FinancialSimulatorCard } from "@/components/dashboard/FinancialSimulatorCard";
-import { PatrimonyEvolutionCard } from "@/components/dashboard/PatrimonyEvolutionCard";
-import { AnomalyDetectionCard } from "@/components/dashboard/AnomalyDetectionCard";
-import { StrategicHistoryCard } from "@/components/dashboard/StrategicHistoryCard";
-import { MacroSimulationCard } from "@/components/dashboard/MacroSimulationCard";
-import { MonthlyEvolutionChart } from "@/components/dashboard/MonthlyEvolutionChart";
-import { StaggerGrid, StaggerItem } from "@/components/ui/motion";
 
 const TITLE_MAP: Record<string, string> = {
   movimentacoes: "Movimentações",

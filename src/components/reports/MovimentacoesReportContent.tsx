@@ -258,41 +258,6 @@ export function MovimentacoesReportContent() {
               <SelectItem value="all">Todos</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[100px] h-8 text-xs">
-              <SelectValue placeholder="Tipo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="income">Receita</SelectItem>
-              <SelectItem value="expense">Despesa</SelectItem>
-              <SelectItem value="transfer">Transferência</SelectItem>
-              <SelectItem value="investment">Aporte</SelectItem>
-              <SelectItem value="redemption">Resgate</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[120px] h-8 text-xs">
-              <SelectValue placeholder="Categoria" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas Cat.</SelectItem>
-              {categories?.filter(c => !c.parent_id).map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={accountFilter} onValueChange={setAccountFilter}>
-            <SelectTrigger className="w-[120px] h-8 text-xs">
-              <SelectValue placeholder="Conta" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas Contas</SelectItem>
-              {accounts?.map((acc) => (
-                <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Select value={classificationFilter} onValueChange={setClassificationFilter}>
             <SelectTrigger className="w-[130px] h-8 text-xs">
               <SelectValue placeholder="Classificação" />

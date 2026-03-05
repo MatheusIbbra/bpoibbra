@@ -206,18 +206,6 @@ export function FluxoCaixaContent() {
         <div className="flex items-center gap-4 flex-wrap">
           <PeriodSelector dateRange={dateRange} onDateRangeChange={setDateRange} />
 
-          <Tabs value={basis} onValueChange={(v) => setBasis(v as ReportBasis)}>
-            <TabsList className="h-8">
-              <TabsTrigger value="cash" className="gap-2 text-xs h-7">
-                <Banknote className="h-3 w-3" />
-                Caixa
-              </TabsTrigger>
-              <TabsTrigger value="accrual" className="gap-2 text-xs h-7">
-                <FileText className="h-3 w-3" />
-                Competência
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
 
           <Select value={granularity} onValueChange={(v) => setGranularity(v as Granularity)}>
             <SelectTrigger className="w-[140px] h-9">

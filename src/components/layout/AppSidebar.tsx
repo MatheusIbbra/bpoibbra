@@ -25,7 +25,7 @@ const reportSubItems = [
   { title: "Demonstrativo", url: "/relatorios?tab=demonstrativo", tab: "demonstrativo", icon: FileText },
   { title: "Tipo Financeiro", url: "/relatorios?tab=tipo-financeiro", tab: "tipo-financeiro", icon: Layers },
   { title: "Análise Categorias", url: "/relatorios?tab=categorias", tab: "categorias", icon: Tags },
-  { title: "Análises Estratégicas", url: "/relatorios?tab=estrategico", tab: "estrategico", icon: Lightbulb },
+  
 ];
 
 const cadastrosSubItems = [
