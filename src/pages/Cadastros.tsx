@@ -18,6 +18,7 @@ import {
   ChevronDown,
   Sparkles,
   AlertTriangle,
+  Upload,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,6 +49,7 @@ import { CostCenterDialog } from "@/components/cost-centers/CostCenterDialog";
 import { TransferDialog } from "@/components/transfers/TransferDialog";
 import { RuleDialog } from "@/components/rules/RuleDialog";
 import { BankConnectionsManager } from "@/components/open-finance/BankConnectionsManager";
+import { ImportExtractDialog } from "@/components/import/ImportExtractDialog";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { cn } from "@/lib/utils";
@@ -74,6 +76,7 @@ export default function Cadastros() {
   const navigate = useNavigate();
   const { isAdmin } = useIsAdmin();
   const [activeTab, setActiveTab] = useState("contas");
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   
   // Account state
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
@@ -234,11 +237,12 @@ export default function Cadastros() {
       <div className="space-y-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <TabsList className={`grid w-full sm:w-auto ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'}`}>
+            <TabsList className={`grid w-full sm:w-auto ${isAdmin ? 'grid-cols-6' : 'grid-cols-5'}`}>
               <TabsTrigger value="contas" className="text-xs sm:text-sm">Contas</TabsTrigger>
               <TabsTrigger value="categorias" className="text-xs sm:text-sm">Categorias</TabsTrigger>
               <TabsTrigger value="centros" className="text-xs sm:text-sm">Centros</TabsTrigger>
               <TabsTrigger value="openfinance" className="text-xs sm:text-sm">Open Finance</TabsTrigger>
+              <TabsTrigger value="importar" className="text-xs sm:text-sm">Importar</TabsTrigger>
               {isAdmin && <TabsTrigger value="regras" className="text-xs sm:text-sm">Regras</TabsTrigger>}
             </TabsList>
             
@@ -453,6 +457,29 @@ export default function Cadastros() {
           {/* Open Finance Tab */}
           <TabsContent value="openfinance" className="mt-4">
             <BankConnectionsManager />
+          </TabsContent>
+
+          {/* Importar Extratos Tab */}
+          <TabsContent value="importar" className="mt-4">
+            <Card>
+              <CardHeader className="pb-3 pt-5 px-6">
+                <div className="flex items-center gap-2">
+                  <Upload className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-base font-semibold">Importar Extratos</CardTitle>
+                </div>
+                <p className="text-xs text-muted-foreground">Importe transações via arquivo CSV do seu banco</p>
+              </CardHeader>
+              <CardContent className="px-6 pb-6">
+                <ImportExtractDialog
+                  open={importDialogOpen}
+                  onOpenChange={setImportDialogOpen}
+                />
+                <Button className="w-full sm:w-auto" onClick={() => setImportDialogOpen(true)}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Selecionar Arquivo
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Centros de Custo Tab */}

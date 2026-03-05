@@ -2,7 +2,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { FintechTransactionsList } from "@/components/dashboard/FintechTransactionsList";
-import { MonthlyEvolutionChart } from "@/components/dashboard/MonthlyEvolutionChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FinancialDisciplineScore } from "@/components/dashboard/FinancialDisciplineScore";
@@ -23,11 +22,10 @@ import { StatCardSkeleton } from "@/components/ui/premium-skeleton";
 import { TransactionDialog } from "@/components/transactions/TransactionDialog";
 import {
   Loader2, RefreshCw, Wallet, ArrowUpRight, ArrowDownRight,
-  TrendingUp, ChevronDown, ChevronUp, CalendarDays,
-  Target, AlertTriangle, PiggyBank, Gauge, Shield
+  TrendingUp, ChevronDown, ChevronUp, Target, AlertTriangle, PiggyBank, Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, startOfMonth, endOfMonth, differenceInDays, eachDayOfInterval, isWeekend, getDaysInMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, getDaysInMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useBaseFilter, useBaseFilterState, useBaseFilterActions } from "@/contexts/BaseFilterContext";
 import { MonthSelector } from "@/components/dashboard/MonthSelector";
@@ -254,11 +252,6 @@ const Index = () => {
               </AnimatedCard>
             </div>
 
-            {/* 2 — EVOLUÇÃO FINANCEIRA (12 meses) */}
-            <AnimatedCard delay={0.05}>
-              <MonthlyEvolutionChart selectedMonthFilter={selectedMonth} />
-            </AnimatedCard>
-
             {/* 3 — CONTROLE ORÇAMENTÁRIO (card principal) */}
             <AnimatedCard delay={0.1}>
               <Card>
@@ -336,12 +329,6 @@ const Index = () => {
 
             {/* 8 — MOVIMENTAÇÕES RECENTES */}
             <AnimatedCard delay={0.2}>
-              <Card>
-                <CardHeader className="pb-2 pt-5 px-6">
-                  <CardTitle className="text-base font-semibold">Movimentações Recentes</CardTitle>
-                  <p className="text-xs text-muted-foreground">Últimas transações do período</p>
-                </CardHeader>
-              </Card>
               <FintechTransactionsList selectedMonth={selectedMonth} />
             </AnimatedCard>
           </div>
@@ -356,104 +343,6 @@ const Index = () => {
                   <FinancialDisciplineScore selectedMonth={selectedMonth} />
                 </AnimatedCard>
               </div>
-
-              {/* 4 — PROJEÇÃO DO MÊS */}
-              <AnimatedCard delay={0.08}>
-                <Card>
-                  <CardHeader className="pb-2 pt-5 px-6">
-                    <div className="flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                      <CardTitle className="text-sm font-semibold">Projeção do Mês</CardTitle>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Baseada no ritmo diário atual</p>
-                  </CardHeader>
-                  <CardContent className="px-6 pb-6 space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3 rounded-xl bg-muted/40 min-w-0">
-                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1.5">Orçamento</p>
-                        <p className="text-sm font-bold tabular-nums truncate"><MaskedValue>{formatCurrency(totalBudget)}</MaskedValue></p>
-                      </div>
-                      <div className="p-3 rounded-xl bg-muted/40 min-w-0">
-                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1.5">Projeção</p>
-                        <p className={cn("text-sm font-bold tabular-nums truncate", projectionDiff > 0 ? "text-destructive" : "text-success")}>
-                          <MaskedValue>{formatCurrency(projectedExpenses)}</MaskedValue>
-                        </p>
-                      </div>
-                    </div>
-                    {totalBudget > 0 && (
-                      <div className={cn(
-                        "p-3 rounded-xl text-xs font-medium flex items-center gap-2 leading-snug",
-                        projectionDiff > 0 ? "bg-destructive/8 text-destructive" : "bg-success/8 text-success"
-                      )}>
-                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                        <span className="min-w-0">
-                          {projectionDiff > 0
-                            ? `Estouro previsto: ${formatCurrency(projectionDiff)}`
-                            : `Economia projetada: ${formatCurrency(Math.abs(projectionDiff))}`}
-                        </span>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </AnimatedCard>
-
-              {/* KPIs — INDICADORES FINANCEIROS */}
-              <AnimatedCard delay={0.15}>
-                <Card>
-                  <CardHeader className="pb-2 pt-5 px-6">
-                    <div className="flex items-center gap-2">
-                      <Gauge className="h-4 w-4 text-muted-foreground" />
-                      <CardTitle className="text-sm font-semibold">Indicadores Financeiros</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="px-6 pb-5 space-y-0">
-                    {[
-                      {
-                        label: "Disciplina Financeira",
-                        sub: "planejado vs realizado",
-                        value: disciplineScore,
-                        suffix: "/100",
-                        color: disciplineScore >= 80 ? "text-success" : disciplineScore >= 50 ? "text-warning" : "text-destructive",
-                      },
-                      {
-                        label: "Acumulação Patrimonial",
-                        sub: "poupança ÷ renda",
-                        value: accumulationRate,
-                        suffix: "%",
-                        color: accumulationRate >= 20 ? "text-success" : accumulationRate >= 0 ? "text-warning" : "text-destructive",
-                      },
-                      {
-                        label: "Estabilidade Financeira",
-                        sub: "despesas ÷ renda",
-                        value: fixedExpenseRatio,
-                        suffix: "%",
-                        color: fixedExpenseRatio <= 70 ? "text-success" : fixedExpenseRatio <= 90 ? "text-warning" : "text-destructive",
-                      },
-                      {
-                        label: "Independência",
-                        sub: "patrimônio ÷ despesas mensais",
-                        value: independenceMonths,
-                        suffix: " meses",
-                        color: "text-foreground",
-                      },
-                    ].map((kpi, idx, arr) => (
-                      <div key={kpi.label}>
-                        <div className="flex items-center justify-between py-3">
-                          <div className="min-w-0 flex-1 pr-2">
-                            <p className="text-xs font-medium text-foreground leading-tight">{kpi.label}</p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">{kpi.sub}</p>
-                          </div>
-                          <div className={cn("text-xl font-bold tabular-nums shrink-0", kpi.color)}>
-                            {kpi.value}
-                            <span className="text-xs text-muted-foreground font-normal">{kpi.suffix}</span>
-                          </div>
-                        </div>
-                        {idx < arr.length - 1 && <div className="border-t border-border/25" />}
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </AnimatedCard>
 
 
             </div>
