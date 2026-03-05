@@ -24,7 +24,7 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, title }: AppLayoutProps) {
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobileOrTablet();
   const { user } = useAuth();
   const { availableOrganizations, isLoading: baseLoading, userRole } = useBaseFilterState();
   useOpenFinanceLoginToast();
