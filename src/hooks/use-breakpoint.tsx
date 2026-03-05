@@ -5,24 +5,31 @@ export type Breakpoint = "mobile" | "tablet" | "desktop";
 const TABLET_MIN = 768;
 const DESKTOP_MIN = 1024;
 
-export function useBreakpoint(): Breakpoint {
-  const getBreakpoint = (): Breakpoint => {
-    const w = window.innerWidth;
-    if (w < TABLET_MIN) return "mobile";
-    if (w < DESKTOP_MIN) return "tablet";
-    return "desktop";
-  };
+function deriveBreakpoint(mqlMobile: MediaQueryList, mqlTablet: MediaQueryList): Breakpoint {
+  if (mqlMobile.matches) return "mobile";
+  if (mqlTablet.matches) return "tablet";
+  return "desktop";
+}
 
-  const [breakpoint, setBreakpoint] = React.useState<Breakpoint>(() => getBreakpoint());
+export function useBreakpoint(): Breakpoint {
+  const [breakpoint, setBreakpoint] = React.useState<Breakpoint>(() => {
+    const mqlMobile = window.matchMedia(`(max-width: ${TABLET_MIN - 1}px)`);
+    const mqlTablet = window.matchMedia(`(max-width: ${DESKTOP_MIN - 1}px)`);
+    return deriveBreakpoint(mqlMobile, mqlTablet);
+  });
 
   React.useEffect(() => {
-    const onChange = () => setBreakpoint(getBreakpoint());
-    const mql = window.matchMedia(`(max-width: ${DESKTOP_MIN - 1}px)`);
-    mql.addEventListener("change", onChange);
-    window.addEventListener("resize", onChange);
+    const mqlMobile = window.matchMedia(`(max-width: ${TABLET_MIN - 1}px)`);
+    const mqlTablet = window.matchMedia(`(max-width: ${DESKTOP_MIN - 1}px)`);
+
+    const onChange = () => setBreakpoint(deriveBreakpoint(mqlMobile, mqlTablet));
+
+    mqlMobile.addEventListener("change", onChange);
+    mqlTablet.addEventListener("change", onChange);
+
     return () => {
-      mql.removeEventListener("change", onChange);
-      window.removeEventListener("resize", onChange);
+      mqlMobile.removeEventListener("change", onChange);
+      mqlTablet.removeEventListener("change", onChange);
     };
   }, []);
 

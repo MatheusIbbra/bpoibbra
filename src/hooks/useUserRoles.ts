@@ -90,6 +90,7 @@ export function useCurrentUserRole() {
       return data?.role as AppRole | null;
     },
     enabled: !!user,
+    staleTime: 15 * 60 * 1000,
   });
 }
 

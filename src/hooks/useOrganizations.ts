@@ -50,6 +50,7 @@ export function useOrganizations() {
       return data as Organization[];
     },
     enabled: !!user,
+    staleTime: 30 * 60 * 1000,
   });
 }
 

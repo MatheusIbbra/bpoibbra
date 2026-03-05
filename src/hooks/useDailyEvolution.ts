@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { startOfMonth, endOfMonth, format, eachDayOfInterval, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { getLegacyInitialBalanceAdjustment } from "@/lib/legacy-initial-balance";
+import { getLegacyInitialBalanceAdjustment } from "@/lib/initial-balance-adjustment";
 
 interface DailyData {
   day: string;

@@ -47,6 +47,7 @@ import { TransactionDialog } from "@/components/transactions/TransactionDialog";
 import { useTransactions, useDeleteTransaction, Transaction } from "@/hooks/useTransactions";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { BaseRequiredAlert } from "@/components/common/BaseRequiredAlert";
+import { EmptyState } from "@/components/common/EmptyState";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency, parseLocalDate } from "@/lib/formatters";
@@ -216,13 +217,7 @@ export default function Transacoes() {
             {isLoading ? (
               <SkeletonCard variant="table" rows={10} />
             ) : transactions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold">Nenhuma transação encontrada</h3>
-                <p className="text-muted-foreground">
-                  Aqui aparecem transferências entre contas, aplicações e resgates.
-                </p>
-              </div>
+              <EmptyState variant="transactions" />
             ) : (
               <div className="space-y-2">
                 {transactions.map((transaction) => {

@@ -16,9 +16,9 @@ import {
   CheckCircle2, 
   Clock, 
   AlertTriangle,
-  ScrollText 
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/common/EmptyState";
 
 interface IntegrationLog {
   id: string;
@@ -71,13 +71,6 @@ const LoadingState = () => (
     {[1, 2, 3].map((i) => (
       <Skeleton key={i} className="h-12 w-full" />
     ))}
-  </div>
-);
-
-const EmptyState = () => (
-  <div className="text-center py-6 text-muted-foreground">
-    <ScrollText className="h-8 w-8 mx-auto mb-2 opacity-50" aria-hidden="true" />
-    <p className="text-sm">Nenhuma atividade registrada</p>
   </div>
 );
 
@@ -187,7 +180,7 @@ export default function OpenFinance() {
                   ) : logsLoading ? (
                     <LoadingState />
                   ) : !logs || logs.length === 0 ? (
-                    <EmptyState />
+                    <EmptyState variant="generic" title="Nenhuma atividade registrada" description="Nenhuma ação de integração foi registrada." />
                   ) : (
                     <div 
                       className="space-y-3 max-h-[400px] overflow-y-auto overscroll-contain"

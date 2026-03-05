@@ -14,6 +14,9 @@ import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import ibbraLogoWhite from "@/assets/ibbra-logo-white.png";
 import ibbraLogoFullWhite from "@/assets/ibbra-logo-full-white.png";
 
+// Prefetch helper — silently preloads a lazy-loaded route module on hover
+const prefetch = (fn: () => Promise<unknown>) => { fn().catch(() => {}); };
+
 const reportSubItems = [
   { title: "Movimentações", url: "/relatorios?tab=movimentacoes", tab: "movimentacoes", icon: Receipt },
   { title: "Fluxo de Caixa", url: "/relatorios?tab=fluxo", tab: "fluxo", icon: CircleDollarSign },
@@ -72,19 +75,19 @@ export function AppSidebar() {
 
   // Build nav items based on role — order: Dashboard, Orçamentos, Cartões, Importar, Relatórios, Cadastros
   const navItems = [
-    { title: "Dashboard", url: "/", icon: Home },
-    { title: "Orçamentos", url: "/orcamentos", icon: Wallet },
-    { title: "Cartões de Crédito", url: "/cartoes", icon: CreditCard },
-    { title: "Importar Extratos", url: "/importacoes", icon: Upload },
+    { title: "Dashboard", url: "/", icon: Home, prefetchFn: () => import("../../pages/Index") },
+    { title: "Orçamentos", url: "/orcamentos", icon: Wallet, prefetchFn: () => import("../../pages/Orcamentos") },
+    { title: "Cartões de Crédito", url: "/cartoes", icon: CreditCard, prefetchFn: () => import("../../pages/CartoesCredito") },
+    { title: "Importar Extratos", url: "/importacoes", icon: Upload, prefetchFn: () => import("../../pages/Importacoes") },
   ];
 
   // "Relatórios" and "Cadastros" are handled separately as submenus
   const isCadastrosActive = cadastrosPages.includes(location.pathname);
 
-  const renderNavItem = (item: typeof navItems[0]) => {
+  const renderNavItem = (item: { title: string; url: string; icon: React.ElementType; prefetchFn?: () => Promise<unknown> }) => {
     const active = isActive(item.url);
     return (
-    <SidebarMenuItem key={item.title} className="relative">
+    <SidebarMenuItem key={item.title} className="relative" onMouseEnter={item.prefetchFn ? () => prefetch(item.prefetchFn!) : undefined}>
       <SidebarMenuButton asChild isActive={active} tooltip={collapsed ? item.title : undefined}>
         <NavLink
           to={item.url}

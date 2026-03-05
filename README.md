@@ -1,16 +1,21 @@
 # IBBRA — Sistema de Gestão Financeira Multi-Tenant
 
-## Configuração de Ambiente
+## ⚙️ Configuração de Ambiente
 
-Este projeto requer as seguintes variáveis de ambiente. Copie `.env.example` para `.env` e preencha os valores:
+> ⚠️ **NUNCA commite o arquivo `.env`** — ele contém credenciais reais e está no `.gitignore`.
 
-| Variável | Descrição | Obrigatória |
+Copie o template e preencha os valores:
+
+```sh
+cp .env.example .env
+```
+
+| Variável | Descrição | Onde obter |
 |---|---|---|
-| `VITE_SUPABASE_URL` | URL do projeto Supabase (ex: `https://xxx.supabase.co`) | ✅ |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Anon key do Supabase (chave pública) | ✅ |
-| `VITE_SUPABASE_PROJECT_ID` | ID do projeto Supabase | ✅ |
-| `VITE_SENTRY_DSN` | DSN do Sentry para monitoramento de erros | Opcional |
-| `VAPID_PUBLIC_KEY` | Chave pública VAPID para push notifications | Opcional |
+| `VITE_SUPABASE_URL` | URL do projeto Supabase (ex: `https://xxx.supabase.co`) | [Supabase Dashboard → Settings → API](https://supabase.com/dashboard) |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Anon key do Supabase (chave pública) | [Supabase Dashboard → Settings → API](https://supabase.com/dashboard) |
+| `VITE_SUPABASE_PROJECT_ID` | ID do projeto Supabase | [Supabase Dashboard → Settings → General](https://supabase.com/dashboard) |
+| `VITE_SENTRY_DSN` | DSN do Sentry para monitoramento de erros | [Sentry → Settings → Projects → DSN](https://sentry.io) |
 
 ### Secrets de Edge Functions (Supabase Dashboard)
 

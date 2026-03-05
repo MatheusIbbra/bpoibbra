@@ -22,6 +22,7 @@ import { useBankConnections } from "@/hooks/useBankConnections";
 import { AccountDialog } from "@/components/accounts/AccountDialog";
 import { TransferDialog } from "@/components/transfers/TransferDialog";
 import { BaseRequiredAlert, useCanCreate } from "@/components/common/BaseRequiredAlert";
+import { EmptyState } from "@/components/common/EmptyState";
 
 const ACCOUNT_TYPE_ICONS: Record<AccountType, typeof Building2> = {
   checking: Building2,
@@ -173,22 +174,7 @@ export default function Contas() {
         {loadingAccounts ? (
           <p className="text-muted-foreground text-center py-8 text-sm">Carregando...</p>
         ) : accounts?.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-10">
-              <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
-                <Building2 className="h-6 w-6 text-muted-foreground/50" />
-              </div>
-              <p className="text-sm text-muted-foreground mb-3">Nenhuma conta cadastrada</p>
-              <Button
-                size="sm"
-                onClick={() => setAccountDialogOpen(true)}
-                disabled={!canCreate}
-              >
-                <Plus className="mr-1.5 h-3.5 w-3.5" />
-                Adicionar Conta
-              </Button>
-            </CardContent>
-          </Card>
+          <EmptyState variant="accounts" />
         ) : (
           <div className="space-y-2">
             {accounts?.map((account) => {

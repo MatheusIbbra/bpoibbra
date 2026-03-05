@@ -77,10 +77,6 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run build
-      - name: Start preview server
-        run: npx vite preview --port 8080 &
-      - run: sleep 3
       - name: Run Playwright tests
         run: npx playwright test
         env:
