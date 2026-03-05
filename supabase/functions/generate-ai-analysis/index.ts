@@ -44,9 +44,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
+      console.error("GEMINI_API_KEY not configured");
       return new Response(
         JSON.stringify({ error: "AI service not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -136,47 +136,41 @@ Deno.serve(async (req) => {
       }
     }
 
-    const messages: Array<{ role: string; content: string }> = [];
+    const contents = [];
     
     if (system_instruction) {
-      messages.push({ role: "system", content: system_instruction });
+      contents.push({ role: "user", parts: [{ text: system_instruction }] });
+      contents.push({ role: "model", parts: [{ text: "Entendido." }] });
     }
     
-    messages.push({
+    contents.push({
       role: "user",
-      content: context ? `${context}\n\n${prompt}` : prompt,
+      parts: [{ text: context ? `${context}\n\n${prompt}` : prompt }],
     });
 
-    // console.log removed per lint rules
-
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages,
-        temperature,
-        max_tokens,
-      }),
-    });
+    const aiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents,
+          generationConfig: {
+            temperature,
+            maxOutputTokens: max_tokens,
+          },
+        }),
+      }
+    );
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error("[generate-ai-analysis] Gateway error:", aiResponse.status, errorText);
+      console.error("[generate-ai-analysis] Gemini error:", aiResponse.status, errorText);
       
       if (aiResponse.status === 429) {
         return new Response(
           JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please add funds." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
@@ -187,22 +181,20 @@ Deno.serve(async (req) => {
     }
 
     const aiData = await aiResponse.json();
-    const textContent = aiData.choices?.[0]?.message?.content || "";
-    const tokenUsage = aiData.usage?.total_tokens || 0;
+    const textContent = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const tokenUsage = aiData.usageMetadata?.totalTokenCount || 0;
 
     if (organization_id) {
       const adminClient = createClient(supabaseUrl, serviceRoleKey);
       await logAIUsage(adminClient, organization_id, userData.user.id, tokenUsage, {
-        model: aiData.model || "google/gemini-3-flash-preview",
+        model: "gemini-2.5-flash",
       });
     }
-
-    // AI response processed
 
     return new Response(
       JSON.stringify({
         text: textContent,
-        model: aiData.model || "google/gemini-3-flash-preview",
+        model: "gemini-2.5-flash",
         token_usage: tokenUsage,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

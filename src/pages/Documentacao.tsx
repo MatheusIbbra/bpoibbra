@@ -287,9 +287,7 @@ export default function Documentacao() {
           <p>IBBRA - Sistema de Gestão Financeira Multi-Tenant</p>
           <p>Documentação gerada automaticamente • v5.0</p>
           <div className="flex justify-center gap-3 mt-3">
-            <a href="/docs/IBBRA-SYSTEM-DOCUMENTATION-V5.md" target="_blank" className="text-xs text-accent underline hover:no-underline">Documentação Completa (Markdown)</a>
-            <span className="text-xs text-muted-foreground">•</span>
-            <a href="/docs/IBBRA-RECREATION-PROMPT-V4.md" target="_blank" className="text-xs text-accent underline hover:no-underline">Prompt de Recriação</a>
+            <span className="text-xs text-muted-foreground">Documentação disponível internamente via código-fonte</span>
           </div>
         </div>
       </div>

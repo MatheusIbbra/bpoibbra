@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   Plus, Loader2, AlertCircle, Pencil, Trash2, Check,
   ChevronsUpDown, Repeat, TrendingUp, TrendingDown, Target, PiggyBank,
-  CheckCircle2,
+  CheckCircle2, HelpCircle,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import {
   AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { MonthSelector } from "@/components/dashboard/MonthSelector";
 import { useBudgets, useCreateBudget, useUpdateBudget, useDeleteBudget, Budget } from "@/hooks/useBudgets";
@@ -196,8 +197,6 @@ export default function Orcamentos() {
 
   const effectiveIncome = planIncome > 0 ? planIncome : income;
   const freeBalance = effectiveIncome - planInvestment - totalBudget;
-  const isZeroBased = Math.abs(freeBalance) < 0.01 && effectiveIncome > 0;
-  const budgetPct = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
   const budgetRemaining = totalBudget - totalSpent;
 
   const today = new Date();
@@ -215,6 +214,10 @@ export default function Orcamentos() {
   const scoreRing = disciplineScore >= 70 ? "stroke-success" : disciplineScore >= 40 ? "stroke-warning" : "stroke-destructive";
   const circumference = 2 * Math.PI * 54;
   const scoreOffset = circumference - (disciplineScore / 100) * circumference;
+
+  // Budget summary
+  const overBudgetCount = budgets?.filter(b => getSpentForCategory(b.category_id) > Number(b.amount)).length || 0;
+  const onTrackCount = (budgets?.length || 0) - overBudgetCount;
 
   if (!canCreate) {
     return (
@@ -254,9 +257,24 @@ export default function Orcamentos() {
             <Card className="border-0 shadow-fintech overflow-hidden">
               <div className="bg-gradient-to-r from-[hsl(var(--brand-deep))] to-[hsl(var(--brand-highlight))] p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <p className="text-[11px] uppercase tracking-[0.2em] font-medium text-primary-foreground/50">
-                    Plano do Mês — {MONTHS[month - 1]}
-                  </p>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="flex items-center gap-1.5 text-primary-foreground/50 hover:text-primary-foreground/80 transition-colors">
+                          <HelpCircle className="h-4 w-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-[220px] p-3">
+                        <p className="text-xs font-semibold mb-1">Saldo Livre</p>
+                        <p className="text-lg font-bold tabular-nums" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                          {formatCurrency(freeBalance)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Receita − Investimento − Despesas
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   <Button
                     size="sm" variant="ghost"
                     className="h-7 text-[10px] text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/10"
@@ -290,55 +308,38 @@ export default function Orcamentos() {
                     </Button>
                   </div>
                 ) : (
-                  <>
-                    {/* Gauge Charts */}
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground">
-                        <GaugeChart
-                          label="Receita"
-                          valorPlanejado={effectiveIncome}
-                          valorRealizado={income}
-                          variant="success"
-                          compact
-                        />
-                      </div>
-                      <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground">
-                        <GaugeChart
-                          label="Investimento"
-                          valorPlanejado={planInvestment || 1}
-                          valorRealizado={0}
-                          variant="blue"
-                          compact
-                        />
-                      </div>
-                      <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground">
-                        <GaugeChart
-                          label="Despesas"
-                          valorPlanejado={totalBudget || 1}
-                          valorRealizado={totalSpent}
-                          variant="destructive"
-                          compact
-                        />
-                      </div>
+                  <div className="flex items-end justify-center gap-2">
+                    {/* Receita — left, smaller */}
+                    <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground scale-90">
+                      <GaugeChart
+                        label="Receita"
+                        valorPlanejado={effectiveIncome}
+                        valorRealizado={income}
+                        variant="success"
+                        compact
+                      />
                     </div>
-                    <div className="border-t border-primary-foreground/10 pt-4 mt-4 flex items-end justify-between">
-                      <div>
-                        <p className="text-[10px] text-primary-foreground/40">Saldo Livre</p>
-                        <p
-                          className={cn("font-bold leading-none mt-1", freeBalance >= 0 ? "text-primary-foreground" : "text-destructive")}
-                          style={{
-                            fontFamily: "'Playfair Display', Georgia, serif",
-                            fontSize: "clamp(1.3rem, 6vw, 2rem)",
-                          }}
-                        >
-                          <MaskedValue>{formatCurrency(freeBalance)}</MaskedValue>
-                        </p>
-                      </div>
-                      <p className="text-[10px] text-primary-foreground/30">
-                        Receita − Investimento − Despesas
-                      </p>
+                    {/* Investimento — center, larger */}
+                    <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground scale-105">
+                      <GaugeChart
+                        label="Investimento"
+                        valorPlanejado={planInvestment || 1}
+                        valorRealizado={0}
+                        variant="blue"
+                        compact
+                      />
                     </div>
-                  </>
+                    {/* Despesas — right, smaller */}
+                    <div className="flex flex-col items-center [&_p]:text-primary-foreground/50 [&_span]:text-primary-foreground scale-90">
+                      <GaugeChart
+                        label="Despesas"
+                        valorPlanejado={totalBudget || 1}
+                        valorRealizado={totalSpent}
+                        variant="destructive"
+                        compact
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
             </Card>
@@ -346,7 +347,7 @@ export default function Orcamentos() {
         </div>
 
         {/* ═══════════════════════════════════════
-           3. REALIZADO — Budget Execution
+           3. RESUMO ORÇAMENTÁRIO + Budget Items
            ═══════════════════════════════════════ */}
         <div className="space-y-3">
           <FadeCard delay={280}>
@@ -359,50 +360,47 @@ export default function Orcamentos() {
             </div>
           </FadeCard>
 
-          {/* Summary numbers */}
-          <FadeCard delay={320}>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {[
-                { label: "Planejado", value: totalBudget, color: "" },
-                { label: "Realizado", value: totalSpent, color: totalSpent > totalBudget ? "text-destructive" : "" },
-                { label: "Disponível", value: budgetRemaining, color: budgetRemaining >= 0 ? "text-success" : "text-destructive" },
-              ].map(({ label, value, color }, i) => (
-                <Card key={label} className="border-0 shadow-fintech">
-                  <CardContent className="p-5">
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">{label}</p>
-                    <p
-                      className={cn("font-bold leading-none tabular-nums min-w-0", color)}
-                      style={{
-                        fontFamily: "'Playfair Display', Georgia, serif",
-                        fontSize: "clamp(1.1rem, 5vw, 2rem)",
-                      }}
-                    >
-                      <MaskedValue>{formatCurrency(value)}</MaskedValue>
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </FadeCard>
-
-          {/* Progress bar */}
-          <FadeCard delay={360}>
+          {/* Resumo Orçamentário */}
+          <FadeCard delay={300}>
             <Card className="border-0 shadow-fintech">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs text-muted-foreground">Consumo total</span>
-                  <span className="text-sm font-semibold tabular-nums">{budgetPct.toFixed(0)}%</span>
-                </div>
-                <div className="h-3 w-full rounded-full bg-muted/40 overflow-hidden">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all duration-700",
-                      totalSpent > totalBudget
-                        ? "bg-destructive"
-                        : "bg-gradient-to-r from-[hsl(210,100%,75%)] to-[hsl(210,100%,36%)]"
-                    )}
-                    style={{ width: `${Math.min(budgetPct, 100)}%` }}
-                  />
+              <CardContent className="p-5">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Resumo Orçamentário</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Planejado</p>
+                    <p className="text-base font-bold tabular-nums" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                      <MaskedValue>{formatCurrency(totalBudget)}</MaskedValue>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Realizado</p>
+                    <p className={cn("text-base font-bold tabular-nums", totalSpent > totalBudget && "text-destructive")} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                      <MaskedValue>{formatCurrency(totalSpent)}</MaskedValue>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Disponível</p>
+                    <p className={cn("text-base font-bold tabular-nums", budgetRemaining >= 0 ? "text-success" : "text-destructive")} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                      <MaskedValue>{formatCurrency(budgetRemaining)}</MaskedValue>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Status</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      {overBudgetCount > 0 ? (
+                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                          {overBudgetCount} excedido{overBudgetCount > 1 ? "s" : ""}
+                        </Badge>
+                      ) : budgets && budgets.length > 0 ? (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-success text-success">
+                          <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
+                          OK
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
