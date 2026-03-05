@@ -193,16 +193,6 @@ export function MobileMenuScreen({ onClose, isOpen = false }: MobileMenuScreenPr
             </div>
           </div>
 
-          {/* Relatórios */}
-          <div>
-            <SectionLabel>Relatórios</SectionLabel>
-            <div className="rounded-2xl border border-border/15 overflow-hidden divide-y divide-border/15">
-              {reportItems.map((item) => (
-                <MenuRow key={item.label} icon={item.icon} label={item.label} onClick={() => handleNav(item.path)} />
-              ))}
-            </div>
-          </div>
-
           {/* Cadastros */}
           <div>
             <SectionLabel>Cadastros</SectionLabel>

@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Home, Target, Plus, Menu, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { hapticLight } from "@/lib/haptics";
 
 const navItems = [
   { label: "Visão", icon: Home, path: "/" },
@@ -21,10 +22,12 @@ export function MobileBottomNav() {
   };
 
   const handleFabClick = () => {
+    hapticLight();
     window.dispatchEvent(new CustomEvent("ibbra:fab-toggle"));
   };
 
   const handleMenuClick = () => {
+    hapticLight();
     window.dispatchEvent(new CustomEvent("ibbra:mobile-menu-toggle"));
   };
 

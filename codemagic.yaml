@@ -37,3 +37,42 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
+
+  android-release:
+    name: Android Release
+    max_build_duration: 120
+    instance_type: linux_x2
+    environment:
+      android_signing:
+        - ibbra_keystore
+      groups:
+        - android_credentials
+      vars:
+        PACKAGE_NAME: "com.ibbra.bpo"
+      java: 17
+      node: 20
+    scripts:
+      - name: Install dependencies
+        script: npm install
+      - name: Build web assets
+        script: npm run build
+      - name: Sync Capacitor Android
+        script: npx cap sync android
+      - name: Set Android version
+        script: |
+          cd android
+          echo "VERSION_CODE=$(($(date +%s) / 60))" >> gradle.properties
+          echo "VERSION_NAME=1.0.0" >> gradle.properties
+      - name: Build Android App Bundle
+        script: |
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/**/*.aab
+      - android/app/build/outputs/**/*.apk
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true

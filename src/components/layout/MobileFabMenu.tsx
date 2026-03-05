@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { TransactionDialog } from "@/components/transactions/TransactionDialog";
 import { AccountDialog } from "@/components/accounts/AccountDialog";
+import { hapticSuccess, hapticLight } from "@/lib/haptics";
 
 const cadastroCards = [
   { label: "Contas", icon: Wallet, path: "/contas" },
