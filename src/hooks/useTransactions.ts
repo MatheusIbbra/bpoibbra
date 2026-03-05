@@ -1,9 +1,45 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { toast } from "sonner";
 import { Database } from "@/integrations/supabase/types";
+
+/**
+ * Invalidates every financial query so all dashboards, reports
+ * and KPIs refresh immediately after any transaction mutation.
+ */
+function invalidateAllFinancialQueries(queryClient: QueryClient) {
+  const keys = [
+    "transactions",
+    "dashboard-stats",
+    "accounts",
+    "pending-transactions-count",
+    "monthly-plan",
+    "budget-analysis",
+    "discipline-score",
+    "financial-events",
+    "monthly-evolution",
+    "cashflow-report",
+    "dre-report",
+    "category-analysis",
+    "financial-type-report",
+    "cash-flow",
+    "consolidated-balance",
+    "budget-alerts",
+    "recurring-expenses",
+    "reconciliation-metrics",
+    "anomaly-detection",
+    "financial-health",
+    "patrimony-evolution",
+    "structured-liquidity",
+    "credit-card-summary",
+    "credit-card-advanced",
+    "reports-data",
+    "paginated-transactions",
+  ];
+  keys.forEach(key => queryClient.invalidateQueries({ queryKey: [key] }));
+}
 
 type TransactionRow = Database["public"]["Tables"]["transactions"]["Row"];
 type TransactionInsert = Database["public"]["Tables"]["transactions"]["Insert"];
@@ -399,12 +435,7 @@ export function useCreateTransaction() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
-      queryClient.invalidateQueries({ queryKey: ["monthly-plan"] });
-      queryClient.invalidateQueries({ queryKey: ["budget-analysis"] });
-      queryClient.invalidateQueries({ queryKey: ["discipline-score"] });
+      invalidateAllFinancialQueries(queryClient);
       toast.success("Transação criada com sucesso!");
     },
     onError: (error) => {
@@ -457,13 +488,7 @@ export function useUpdateTransaction() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
-      queryClient.invalidateQueries({ queryKey: ["pending-transactions-count"] });
-      queryClient.invalidateQueries({ queryKey: ["monthly-plan"] });
-      queryClient.invalidateQueries({ queryKey: ["budget-analysis"] });
-      queryClient.invalidateQueries({ queryKey: ["discipline-score"] });
+      invalidateAllFinancialQueries(queryClient);
       toast.success("Transação atualizada!");
     },
     onError: (error) => {
@@ -510,12 +535,7 @@ export function useDeleteTransaction() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
-      queryClient.invalidateQueries({ queryKey: ["monthly-plan"] });
-      queryClient.invalidateQueries({ queryKey: ["budget-analysis"] });
-      queryClient.invalidateQueries({ queryKey: ["discipline-score"] });
+      invalidateAllFinancialQueries(queryClient);
       toast.success("Transação excluída!");
     },
     onError: (error) => {
