@@ -76,6 +76,7 @@ export default function Cadastros() {
   const navigate = useNavigate();
   const { isAdmin } = useIsAdmin();
   const [activeTab, setActiveTab] = useState("contas");
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   
   // Account state
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
