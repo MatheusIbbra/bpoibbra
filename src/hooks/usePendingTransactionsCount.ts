@@ -30,6 +30,7 @@ export function usePendingTransactionsCount() {
       return count || 0;
     },
     enabled: !!user,
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000,
+    staleTime: 30 * 1000,
   });
 }
