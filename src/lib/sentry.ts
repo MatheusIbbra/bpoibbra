@@ -10,11 +10,41 @@ export function initSentry() {
   Sentry.init({
     dsn,
     environment: import.meta.env.MODE,
-    tracesSampleRate: 0.2,
+    tracesSampleRate: import.meta.env.DEV ? 1.0 : 0.1,
     replaysSessionSampleRate: 0,
-    replaysOnErrorSampleRate: 0,
-    enabled: import.meta.env.PROD,
+    replaysOnErrorSampleRate: import.meta.env.PROD ? 1.0 : 0,
+    enabled: !!dsn,
+    integrations: [
+      Sentry.browserTracingIntegration(),
+    ],
+    beforeSend(event) {
+      // Never expose API keys in error context
+      if (event.extra) {
+        const sanitized = { ...event.extra };
+        for (const key of Object.keys(sanitized)) {
+          if (/key|token|secret|password|dsn/i.test(key)) {
+            sanitized[key] = "[Filtered]";
+          }
+        }
+        event.extra = sanitized;
+      }
+      return event;
+    },
   });
 }
 
 export { Sentry };
+
+/** Add a breadcrumb for product/feature tracking */
+export function addBreadcrumb(category: string, message: string, data?: Record<string, unknown>) {
+  Sentry.addBreadcrumb({ category, message, data, level: "info" });
+  if (import.meta.env.DEV) {
+    // eslint-disable-next-line no-console
+    console.debug(`[Breadcrumb:${category}] ${message}`, data);
+  }
+}
+
+/** Start a Sentry performance transaction */
+export function startTransaction(name: string, op: string) {
+  return Sentry.startInactiveSpan({ name, op });
+}
