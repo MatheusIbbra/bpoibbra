@@ -105,6 +105,11 @@ export default function Relatorios() {
             </StaggerGrid>
             <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
               <StaggerItem><PersonalRunwayCard /></StaggerItem>
+              {hasFeature("cashflow_forecast") && <StaggerItem><CashflowForecastCard /></StaggerItem>}
+            </StaggerGrid>
+            <StaggerGrid className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+              <StaggerItem><LifestylePatternCard /></StaggerItem>
+            </StaggerGrid>
             {hasFeature("financial_simulator") && <FinancialSimulatorCard />}
           </div>
         )}
