@@ -276,6 +276,7 @@ export function TransactionDialog({
   const showDestinationAccount = isTransferType && !showLinkOption;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto w-[calc(100vw-1rem)] sm:w-full p-4 sm:p-6 [&_input]:bg-white [&_input]:dark:bg-muted [&_textarea]:bg-white [&_textarea]:dark:bg-muted">
         <DialogHeader className="pb-1">
