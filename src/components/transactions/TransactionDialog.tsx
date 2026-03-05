@@ -777,5 +777,6 @@ export function TransactionDialog({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+    </>
   );
 }
