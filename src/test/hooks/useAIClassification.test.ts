@@ -99,7 +99,7 @@ describe("useAIClassification - pipeline logic", () => {
       confidence = Math.max(0, confidence - 0.3);
     }
 
-    expect(confidence).toBe(0.4);
+    expect(confidence).toBeCloseTo(0.4, 5);
   });
 
   it("calls classify-transaction edge function correctly", async () => {
