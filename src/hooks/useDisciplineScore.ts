@@ -170,27 +170,41 @@ export function useDisciplineScore(selectedMonth: Date): DisciplineScoreResult {
     if (uncategorized > 0) tips.push(`${uncategorized} transaç${uncategorized > 1 ? "ões" : "ão"} sem categoria`);
 
     // ── 5. Patrimony health / savings rate (10 pts) ───────────────────────
-    const expenses = stats.monthlyExpenses ?? 0;
-    const savingsRate = actualIncome > 0 ? (actualIncome - expenses) / actualIncome : 0;
-    // Target: 20%+ savings rate = full points
-    const patriPct = Math.max(0, Math.min(savingsRate / 0.20, 1));
-    const patriPts = Math.round(patriPct * 10);
+    // Taxa de poupança = investimento_mes / receita_mes (não (receita - despesa) / receita)
+    // Meta = meta_investimento / receita_mes
+    const savingsRatePct = actualIncome > 0 ? (totalInvested / actualIncome) * 100 : 0;
+    const targetSavingsRatePct = actualIncome > 0 && investTarget > 0
+      ? (investTarget / actualIncome) * 100
+      : 0;
+    // Progresso = investimento / meta_investimento (capped at 1 for score)
+    const patriProgress = investTarget > 0
+      ? Math.min(totalInvested / investTarget, 1)
+      : totalInvested > 0 ? 1 : 0;
+    const patriPts = Math.round(patriProgress * 10);
     totalScore += patriPts;
     const patriStatus: DisciplineIndicator["status"] =
-      savingsRate >= 0.20 ? "ok" : savingsRate >= 0.05 ? "warning" : "critical";
+      patriProgress >= 1 ? "ok" : patriProgress >= 0.5 ? "warning" : "critical";
     indicators.push({
       label: "Saúde patrimonial",
-      current: Math.max(savingsRate * 100, 0),
-      target: 20,
+      current: savingsRatePct,
+      target: targetSavingsRatePct,
       points: patriPts,
       maxPoints: 10,
-      pct: Math.round(Math.max(0, Math.min(savingsRate / 0.20, 1)) * 100),
+      pct: Math.round(patriProgress * 100),
       status: patriStatus,
       detail: actualIncome > 0
-        ? `Taxa de poupança: ${Math.round(savingsRate * 100)}% (meta: 20%)`
+        ? investTarget > 0
+          ? `Taxa de poupança: ${savingsRatePct.toFixed(1)}% (meta: ${targetSavingsRatePct.toFixed(1)}%)`
+          : `Taxa de poupança: ${savingsRatePct.toFixed(1)}% (sem meta definida)`
         : "Sem receita para calcular",
     });
-    if (savingsRate < 0.05 && actualIncome > 0) tips.push("Taxa de poupança abaixo de 5%");
+    if (investTarget > 0 && totalInvested < investTarget) {
+      tips.push(`Faltam ${fmt(investTarget - totalInvested)} para atingir sua meta de investimento`);
+    } else if (investTarget > 0 && totalInvested >= investTarget) {
+      // No tip needed — meta reached
+    } else if (investTarget === 0 && actualIncome > 0) {
+      tips.push("Defina uma meta de investimento para calcular sua taxa de poupança");
+    }
 
     return { score: Math.min(100, Math.max(0, totalScore)), indicators, tips };
   }, [budgetAnalysis, plan, stats, monthTx]);
