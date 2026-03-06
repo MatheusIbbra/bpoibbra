@@ -137,7 +137,7 @@ export function MovimentacoesReportContent() {
   const [currentPage, setCurrentPage] = useState(0);
   const PAGE_SIZE = 50;
 
-  const { data: allTransactions, isLoading } = useTransactions({ search: search || undefined });
+  const { data: allTransactions, isLoading } = useTransactions({ search: search || undefined, includeIgnored: true });
   const { data: costCenters } = useCostCenters();
   const deleteTransaction = useDeleteTransaction();
   const toggleIgnore = useToggleIgnoreTransaction();
