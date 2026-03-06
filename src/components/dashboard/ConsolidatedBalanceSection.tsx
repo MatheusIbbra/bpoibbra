@@ -30,8 +30,8 @@ export function ConsolidatedBalanceSection() {
   }
 
   // Separate accounts by type
-  let availableBalance = 0; // checking + savings + cash
-  let investmentBalance = 0;
+  let availableBalance = 0; // checking + cash
+  let investmentBalance = 0; // investment + savings
   let creditCardDebt = 0;
   let availableCount = 0;
   let investmentCount = 0;
@@ -41,12 +41,12 @@ export function ConsolidatedBalanceSection() {
     const balance = acc.current_balance ?? 0;
     switch (acc.account_type) {
       case "checking":
-      case "savings":
       case "cash":
         availableBalance += balance;
         availableCount++;
         break;
       case "investment":
+      case "savings":
         investmentBalance += balance;
         investmentCount++;
         break;

@@ -18,8 +18,8 @@ export function AccountBalancesSection() {
   }
 
   // Separate by type, exclude credit cards
-  const checkingAccounts = (accounts || []).filter(a => ["checking", "savings", "cash"].includes(a.account_type) && a.status === "active");
-  const investmentAccounts = (accounts || []).filter(a => a.account_type === "investment" && a.status === "active");
+  const checkingAccounts = (accounts || []).filter(a => ["checking", "cash"].includes(a.account_type) && a.status === "active");
+  const investmentAccounts = (accounts || []).filter(a => ["investment", "savings"].includes(a.account_type) && a.status === "active");
   
 
   const checkingBalance = checkingAccounts.reduce((sum, a) => sum + (a.current_balance ?? 0), 0);
