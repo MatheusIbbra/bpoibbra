@@ -149,7 +149,7 @@ export function MovimentacoesReportContent() {
       .filter(t => {
         if (costCenterFilter !== "all" && t.cost_center_id !== costCenterFilter) return false;
         if (classificationFilter === "classified" && !t.category_id) return false;
-        if (classificationFilter === "unclassified" && t.category_id) return false;
+        if (classificationFilter === "unclassified" && (t.category_id || ["transfer", "investment", "redemption"].includes(t.type))) return false;
         if (periodRange) {
           const txDate = parseLocalDate(t.date);
           if (!isWithinInterval(txDate, { start: periodRange.start, end: periodRange.end })) return false;
