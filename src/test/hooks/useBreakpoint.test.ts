@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useBreakpoint, useIsMobile, useIsTablet, useIsMobileOrTablet } from "@/hooks/use-breakpoint";
 
@@ -8,7 +8,18 @@ function setWindowWidth(width: number) {
     configurable: true,
     value: width,
   });
-  window.dispatchEvent(new Event("resize"));
+
+  window.matchMedia = vi.fn().mockImplementation((query: string) => {
+    const match = query.match(/max-width:\s*(\d+)px/);
+    const maxWidth = match ? parseInt(match[1]) : 0;
+    return {
+      matches: width <= maxWidth,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    };
+  });
 }
 
 describe("useBreakpoint", () => {
