@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Auth: only service_role or valid JWT
+  // Auth: only service_role or admin users
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -62,6 +62,15 @@ Deno.serve(async (req) => {
     const { data, error } = await supabaseAdmin.auth.getUser(token);
     if (error || !data.user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    // Only admin users may trigger background jobs
+    const { data: roleData } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', data.user.id)
+      .single();
+    if (roleData?.role !== 'admin') {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
   }
 

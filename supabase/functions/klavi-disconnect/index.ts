@@ -78,14 +78,32 @@ Deno.serve(async (req) => {
     // Try to revoke consent at Klavi (optional)
     if (KLAVI_BASE_URL && connection.external_consent_id && connection.access_token_encrypted) {
       try {
-        // Decrypt token
-        const keyBytes = new TextEncoder().encode(KLAVI_CLIENT_SECRET!);
-        const encryptedBytes = new Uint8Array(atob(connection.access_token_encrypted).split('').map(c => c.charCodeAt(0)));
-        const decrypted = new Uint8Array(encryptedBytes.length);
-        for (let i = 0; i < encryptedBytes.length; i++) {
-          decrypted[i] = encryptedBytes[i] ^ keyBytes[i % keyBytes.length];
+        // Decrypt token — use AES-256-GCM for v2, legacy XOR for v1
+        let accessToken: string;
+        const encryptedBytes = new Uint8Array(
+          atob(connection.access_token_encrypted).split('').map(c => c.charCodeAt(0))
+        );
+
+        if ((connection.encryption_version ?? 1) === 2) {
+          // AES-256-GCM: first 12 bytes are IV, rest is ciphertext+tag
+          const encoder = new TextEncoder();
+          const rawKey = await crypto.subtle.digest('SHA-256', encoder.encode(KLAVI_CLIENT_SECRET!));
+          const key = await crypto.subtle.importKey(
+            'raw', rawKey, { name: 'AES-GCM' }, false, ['decrypt']
+          );
+          const iv = encryptedBytes.slice(0, 12);
+          const ciphertext = encryptedBytes.slice(12);
+          const decryptedBuffer = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+          accessToken = new TextDecoder().decode(decryptedBuffer);
+        } else {
+          // Legacy XOR fallback
+          const keyBytes = new TextEncoder().encode(KLAVI_CLIENT_SECRET!);
+          const decrypted = new Uint8Array(encryptedBytes.length);
+          for (let i = 0; i < encryptedBytes.length; i++) {
+            decrypted[i] = encryptedBytes[i] ^ keyBytes[i % keyBytes.length];
+          }
+          accessToken = new TextDecoder().decode(decrypted);
         }
-        const accessToken = new TextDecoder().decode(decrypted);
 
         await fetch(`${KLAVI_BASE_URL}/consents/${connection.external_consent_id}`, {
           method: 'DELETE',
