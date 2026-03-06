@@ -8,6 +8,7 @@ import {
   FileText,
   Layers,
   Tags,
+  CreditCard,
 } from "lucide-react";
 
 const reportCards = [

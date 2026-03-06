@@ -28,7 +28,6 @@ const reportItems = [
 
 const cadastroItems = [
   { label: "Contas", icon: Wallet, path: "/contas" },
-  { label: "Cartões de Crédito", icon: CreditCardIcon, path: "/cartoes" },
   { label: "Categorias", icon: Tag, path: "/categorias" },
   { label: "Grupo de Custos", icon: Layers, path: "/centros-custo" },
   { label: "Open Finance", icon: Building, path: "/open-finance" },
