@@ -110,6 +110,7 @@ export function useDashboardStats(selectedMonth?: Date) {
       if (accountsData) {
         for (const account of accountsData) {
           if (account.account_type === 'credit_card') continue;
+          // savings is treated as investment (excluded from available cash)
           
           if (localAccountsWithOF.has(account.id)) {
             totalAccountBalance += ofBalanceByLocalAccount.get(account.id) || 0;
