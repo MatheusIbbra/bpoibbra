@@ -214,7 +214,7 @@ const Index = () => {
                 <div className="bg-primary p-6 md:p-8">
                   <button className="w-full text-left group" onClick={() => setShowAccountsDialog(true)}>
                     <p className="text-[10px] uppercase tracking-[0.2em] font-medium text-primary-foreground/40 mb-3">
-                      Patrimônio Consolidado
+                      Saldo Total
                     </p>
                     <p className="text-2xl md:text-4xl font-bold text-primary-foreground leading-none mb-4 tracking-tight tabular-nums min-w-0 break-all" style={{ fontSize: "clamp(1.4rem, 5vw, 2.5rem)" }}>
                       <MaskedValue>{formatCurrency(totalBalance)}</MaskedValue>
