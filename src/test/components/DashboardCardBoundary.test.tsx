@@ -32,7 +32,7 @@ describe("DashboardCardBoundary", () => {
 
   it("shows fallback UI when child throws an error", () => {
     render(
-      <DashboardCardBoundary label="Test Card">
+      <DashboardCardBoundary>
         <ThrowingComponent shouldThrow={true} />
       </DashboardCardBoundary>
     );
