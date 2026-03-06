@@ -197,6 +197,10 @@ export default function Orcamentos() {
   const totalSpent = budgets?.reduce((acc, b) => acc + getSpentForCategory(b.category_id), 0) || 0;
   const income = stats?.monthlyIncome ?? 0;
 
+  // Total invested in the month: investment-type transactions (covers both investment accounts and savings accounts acting as investments)
+  const totalInvested = transactions?.filter(t => t.type === "investment" && !t.is_ignored)
+    .reduce((acc, t) => acc + Number(t.amount), 0) || 0;
+
   const effectiveIncome = planIncome > 0 ? planIncome : income;
   const freeBalance = effectiveIncome - planInvestment - totalBudget;
   const budgetRemaining = totalBudget - totalSpent;
