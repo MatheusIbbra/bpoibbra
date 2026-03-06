@@ -61,6 +61,13 @@ const reportCards = [
     tab: "categorias",
     color: "160 55% 40%",
   },
+  {
+    title: "Cartões de Crédito",
+    description: "Faturas e gastos no cartão",
+    icon: CreditCard,
+    path: "/cartoes",
+    color: "280 70% 45%",
+  },
 ];
 
 export function ReportsHub() {
