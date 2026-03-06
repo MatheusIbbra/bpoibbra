@@ -175,7 +175,7 @@ const Index = () => {
   const projectionDiff = projectedExpenses - totalBudget;
 
   // Investment accounts
-  const investmentAccounts = accounts?.filter(a => a.account_type === 'investment' && a.status === 'active') || [];
+  const investmentAccounts = accounts?.filter(a => ['investment', 'savings'].includes(a.account_type) && a.status === 'active') || [];
   const totalInvested = investmentAccounts.reduce((s, a) => s + (a.current_balance || 0), 0);
   const investmentRate = income > 0 ? ((totalInvested / income) * 100) : 0;
 

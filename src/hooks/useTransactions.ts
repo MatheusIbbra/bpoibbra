@@ -76,6 +76,8 @@ interface TransactionFilters {
   costCenterId?: string;
   status?: TransactionStatus;
   search?: string;
+  /** When true, includes transactions marked as is_ignored. Default: false (excluded). */
+  includeIgnored?: boolean;
 }
 
 export function useTransactions(filters?: TransactionFilters) {
@@ -106,8 +108,12 @@ export function useTransactions(filters?: TransactionFilters) {
             name
           )
         `)
-        .neq("is_ignored", true)
         .order("date", { ascending: false });
+
+      // Exclude ignored transactions unless caller explicitly requests them
+      if (!filters?.includeIgnored) {
+        query = query.neq("is_ignored", true);
+      }
       
       // Aplicar filtro de organização
       if (orgFilter.type === 'single') {

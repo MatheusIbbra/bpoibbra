@@ -137,7 +137,7 @@ export function MovimentacoesReportContent() {
   const [currentPage, setCurrentPage] = useState(0);
   const PAGE_SIZE = 50;
 
-  const { data: allTransactions, isLoading } = useTransactions({ search: search || undefined });
+  const { data: allTransactions, isLoading } = useTransactions({ search: search || undefined, includeIgnored: true });
   const { data: costCenters } = useCostCenters();
   const deleteTransaction = useDeleteTransaction();
   const toggleIgnore = useToggleIgnoreTransaction();
@@ -149,7 +149,7 @@ export function MovimentacoesReportContent() {
       .filter(t => {
         if (costCenterFilter !== "all" && t.cost_center_id !== costCenterFilter) return false;
         if (classificationFilter === "classified" && !t.category_id) return false;
-        if (classificationFilter === "unclassified" && t.category_id) return false;
+        if (classificationFilter === "unclassified" && (t.category_id || ["transfer", "investment", "redemption"].includes(t.type))) return false;
         if (periodRange) {
           const txDate = parseLocalDate(t.date);
           if (!isWithinInterval(txDate, { start: periodRange.start, end: periodRange.end })) return false;
@@ -326,7 +326,7 @@ export function MovimentacoesReportContent() {
                             <Badge variant="outline" className="text-[8px] px-1 py-0 shrink-0 hidden sm:inline-flex">
                               {getTypeLabel(tx.type)}
                             </Badge>
-                            {!tx.category_id && (
+                            {!tx.category_id && !["transfer", "investment", "redemption"].includes(tx.type) && (
                               <Badge variant="outline" className="text-[8px] px-1 py-0 shrink-0 bg-warning/10 text-warning border-warning/20">
                                 Pendente
                               </Badge>
