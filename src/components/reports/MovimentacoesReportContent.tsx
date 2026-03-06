@@ -326,7 +326,7 @@ export function MovimentacoesReportContent() {
                             <Badge variant="outline" className="text-[8px] px-1 py-0 shrink-0 hidden sm:inline-flex">
                               {getTypeLabel(tx.type)}
                             </Badge>
-                            {!tx.category_id && (
+                            {!tx.category_id && !["transfer", "investment", "redemption"].includes(tx.type) && (
                               <Badge variant="outline" className="text-[8px] px-1 py-0 shrink-0 bg-warning/10 text-warning border-warning/20">
                                 Pendente
                               </Badge>
