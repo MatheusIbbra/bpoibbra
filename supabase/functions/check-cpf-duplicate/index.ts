@@ -27,6 +27,18 @@ serve(async (req) => {
   }
 
   try {
+    // Rate limiting: max 5 requests per IP per minute
+    const clientIp =
+      req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+      req.headers.get("x-real-ip") ||
+      "unknown";
+    if (!checkRateLimit(clientIp)) {
+      return new Response(JSON.stringify({ exists: false, error: "Too many requests" }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { cpf } = await req.json();
 
     if (!cpf || typeof cpf !== "string" || cpf.length !== 11) {
