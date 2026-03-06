@@ -337,7 +337,7 @@ export default function Orcamentos() {
                     <GaugeChart
                       label="Investimento"
                       valorPlanejado={planInvestment || 1}
-                      valorRealizado={0}
+                      valorRealizado={totalInvested}
                       variant="investment"
                       compact
                     />
