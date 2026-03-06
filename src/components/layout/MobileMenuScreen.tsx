@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { LogOut, CreditCard as CreditCardIcon } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useQuery } from "@tanstack/react-query";
@@ -28,7 +28,6 @@ const reportItems = [
 
 const cadastroItems = [
   { label: "Contas", icon: Wallet, path: "/contas" },
-  { label: "Cartões de Crédito", icon: CreditCardIcon, path: "/cartoes" },
   { label: "Categorias", icon: Tag, path: "/categorias" },
   { label: "Grupo de Custos", icon: Layers, path: "/centros-custo" },
   { label: "Open Finance", icon: Building, path: "/open-finance" },

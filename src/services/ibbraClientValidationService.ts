@@ -68,6 +68,16 @@ export function isValidCPF(cpf: string): boolean {
   if (cleaned.length !== 11) return false;
   // Rejeita sequências de dígitos iguais (ex: 111.111.111-11)
   if (/^(\d)\1{10}$/.test(cleaned)) return false;
+  // Valida dígitos verificadores
+  const calcDigit = (slice: string, weights: number[]) => {
+    const sum = slice.split("").reduce((acc, d, i) => acc + parseInt(d) * weights[i], 0);
+    const rem = (sum * 10) % 11;
+    return rem === 10 || rem === 11 ? 0 : rem;
+  };
+  const d1 = calcDigit(cleaned.slice(0, 9), [10, 9, 8, 7, 6, 5, 4, 3, 2]);
+  if (d1 !== parseInt(cleaned[9])) return false;
+  const d2 = calcDigit(cleaned.slice(0, 10), [11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+  if (d2 !== parseInt(cleaned[10])) return false;
   return true;
 }
 
