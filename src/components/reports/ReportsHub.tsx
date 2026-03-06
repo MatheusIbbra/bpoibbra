@@ -89,7 +89,7 @@ export function ReportsHub() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05, duration: 0.3 }}
-            onClick={() => navigate(`/relatorios?tab=${card.tab}`)}
+            onClick={() => card.path ? navigate(card.path) : navigate(`/relatorios?tab=${card.tab}`)}
             className="flex flex-col items-start p-4 bg-card rounded-[20px] border border-border/30 shadow-fintech text-left transition-all duration-300 active:scale-[0.97] hover:shadow-fintech-lg group"
           >
             <div
