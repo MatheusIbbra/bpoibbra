@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
+import { handleSupabaseError } from "@/lib/error-handler";
 import { toast } from "sonner";
 import { Database } from "@/integrations/supabase/types";
 
@@ -42,10 +43,8 @@ export function useAccounts() {
       }
 
       const { data, error } = await query;
-
       if (error) throw error;
       
-      // Fetch all OF-linked account IDs for this org filter
       let ofQuery = supabase.from("open_finance_accounts").select("local_account_id").not("local_account_id", "is", null);
       if (orgFilter.type === 'single') {
         ofQuery = ofQuery.eq("organization_id", orgFilter.ids[0]);
@@ -55,14 +54,12 @@ export function useAccounts() {
       const { data: ofAccounts } = await ofQuery;
       const ofLinkedIds = new Set((ofAccounts || []).map(a => a.local_account_id).filter(Boolean));
       
-      // Calculate current balance for each account
       const accountsWithBalance = await Promise.all(
         (data || []).map(async (account) => {
           const officialBalance = (account as any).official_balance;
           const lastOfficialAt = (account as any).last_official_balance_at;
           const isOpenFinance = ofLinkedIds.has(account.id) || (officialBalance !== null && officialBalance !== undefined);
           
-          // PRIORITY: Use official_balance from Open Finance API if available
           if (officialBalance !== null && officialBalance !== undefined) {
             return {
               ...account,
@@ -74,7 +71,6 @@ export function useAccounts() {
             } as Account;
           }
           
-          // FALLBACK: Calculate balance for manual accounts
           const { data: balanceData } = await supabase
             .rpc("calculate_account_balance", { account_uuid: account.id });
           
@@ -115,7 +111,6 @@ export function useCreateAccount() {
       if (!user) throw new Error("Sessão expirada. Faça login novamente.");
 
       const organizationId = getRequiredOrganizationId();
-      
       if (!organizationId) {
         throw new Error("Selecione uma base antes de criar uma conta");
       }
@@ -142,7 +137,7 @@ export function useCreateAccount() {
       toast.success("Conta criada com sucesso!");
     },
     onError: (error) => {
-      toast.error("Erro ao criar conta: " + error.message);
+      handleSupabaseError(error, "criar conta");
     },
   });
 }
@@ -178,7 +173,7 @@ export function useUpdateAccount() {
       toast.success("Conta atualizada!");
     },
     onError: (error) => {
-      toast.error("Erro ao atualizar conta: " + error.message);
+      handleSupabaseError(error, "atualizar conta");
     },
   });
 }
@@ -188,7 +183,6 @@ export function useDeleteAccount() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // Check for existing transactions before attempting delete
       const { count, error: countError } = await supabase
         .from("transactions")
         .select("id", { count: "exact", head: true })
@@ -207,7 +201,7 @@ export function useDeleteAccount() {
       toast.success("Conta excluída!");
     },
     onError: (error: Error) => {
-      toast.error(error.message);
+      handleSupabaseError(error, "excluir conta");
     },
   });
 }
