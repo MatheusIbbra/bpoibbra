@@ -231,7 +231,7 @@ export function useDeleteCategory() {
       toast.success("Categoria excluída!");
     },
     onError: (error) => {
-      toast.error("Erro ao excluir categoria: " + error.message);
+      handleSupabaseError(error, "excluir categoria");
     },
   });
 }
