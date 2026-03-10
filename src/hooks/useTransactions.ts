@@ -553,7 +553,7 @@ export function useDeleteTransaction() {
       toast.success("Transação excluída!");
     },
     onError: (error) => {
-      toast.error("Erro ao excluir transação: " + error.message);
+      handleSupabaseError(error, "excluir transação");
     },
   });
 }
