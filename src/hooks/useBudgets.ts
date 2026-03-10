@@ -233,7 +233,7 @@ export function useDeleteBudget() {
       toast.success("Orçamento excluído!");
     },
     onError: (error) => {
-      toast.error("Erro ao excluir orçamento: " + error.message);
+      handleSupabaseError(error, "excluir orçamento");
     },
   });
 }
