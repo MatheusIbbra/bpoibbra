@@ -141,7 +141,7 @@ export function useCreateBudget() {
       toast.success("Orçamento criado com sucesso!");
     },
     onError: (error) => {
-      toast.error("Erro ao criar orçamento: " + error.message);
+      handleSupabaseError(error, "criar orçamento");
     },
   });
 }
