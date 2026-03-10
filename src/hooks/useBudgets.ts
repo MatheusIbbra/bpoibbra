@@ -190,7 +190,7 @@ export function useUpdateBudget() {
       toast.success("Orçamento atualizado!");
     },
     onError: (error) => {
-      toast.error("Erro ao atualizar orçamento: " + error.message);
+      handleSupabaseError(error, "atualizar orçamento");
     },
   });
 }
