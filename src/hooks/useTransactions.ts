@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { toast } from "sonner";
+import { handleSupabaseError } from "@/lib/error-handler";
 import { Database } from "@/integrations/supabase/types";
 
 /**
