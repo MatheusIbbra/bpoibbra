@@ -502,7 +502,7 @@ export function useUpdateTransaction() {
       toast.success("Transação atualizada!");
     },
     onError: (error) => {
-      toast.error("Erro ao atualizar transação: " + error.message);
+      handleSupabaseError(error, "atualizar transação");
     },
   });
 }
