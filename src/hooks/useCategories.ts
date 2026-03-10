@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { toast } from "sonner";
+import { handleSupabaseError } from "@/lib/error-handler";
 import { Database } from "@/integrations/supabase/types";
 
 type CategoryRow = Database["public"]["Tables"]["categories"]["Row"];
@@ -157,7 +158,7 @@ export function useCreateCategory() {
       toast.success("Categoria criada com sucesso!");
     },
     onError: (error) => {
-      toast.error("Erro ao criar categoria: " + error.message);
+      handleSupabaseError(error, "criar categoria");
     },
   });
 }
@@ -207,7 +208,7 @@ export function useUpdateCategory() {
       toast.success("Categoria atualizada!");
     },
     onError: (error) => {
-      toast.error("Erro ao atualizar categoria: " + error.message);
+      handleSupabaseError(error, "atualizar categoria");
     },
   });
 }
@@ -230,7 +231,7 @@ export function useDeleteCategory() {
       toast.success("Categoria excluída!");
     },
     onError: (error) => {
-      toast.error("Erro ao excluir categoria: " + error.message);
+      handleSupabaseError(error, "excluir categoria");
     },
   });
 }

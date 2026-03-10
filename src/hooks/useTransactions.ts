@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBaseFilter } from "@/contexts/BaseFilterContext";
 import { toast } from "sonner";
+import { handleSupabaseError } from "@/lib/error-handler";
 import { Database } from "@/integrations/supabase/types";
 
 /**
@@ -448,7 +449,7 @@ export function useCreateTransaction() {
       toast.success("Transação criada com sucesso!");
     },
     onError: (error) => {
-      toast.error("Erro ao criar transação: " + error.message);
+      handleSupabaseError(error, "criar transação");
     },
   });
 }
@@ -501,7 +502,7 @@ export function useUpdateTransaction() {
       toast.success("Transação atualizada!");
     },
     onError: (error) => {
-      toast.error("Erro ao atualizar transação: " + error.message);
+      handleSupabaseError(error, "atualizar transação");
     },
   });
 }
@@ -552,7 +553,7 @@ export function useDeleteTransaction() {
       toast.success("Transação excluída!");
     },
     onError: (error) => {
-      toast.error("Erro ao excluir transação: " + error.message);
+      handleSupabaseError(error, "excluir transação");
     },
   });
 }

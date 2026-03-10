@@ -141,7 +141,7 @@ export function useCreateBudget() {
       toast.success("Orçamento criado com sucesso!");
     },
     onError: (error) => {
-      toast.error("Erro ao criar orçamento: " + error.message);
+      handleSupabaseError(error, "criar orçamento");
     },
   });
 }
@@ -190,7 +190,7 @@ export function useUpdateBudget() {
       toast.success("Orçamento atualizado!");
     },
     onError: (error) => {
-      toast.error("Erro ao atualizar orçamento: " + error.message);
+      handleSupabaseError(error, "atualizar orçamento");
     },
   });
 }
@@ -233,7 +233,7 @@ export function useDeleteBudget() {
       toast.success("Orçamento excluído!");
     },
     onError: (error) => {
-      toast.error("Erro ao excluir orçamento: " + error.message);
+      handleSupabaseError(error, "excluir orçamento");
     },
   });
 }
