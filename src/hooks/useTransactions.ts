@@ -449,7 +449,7 @@ export function useCreateTransaction() {
       toast.success("Transação criada com sucesso!");
     },
     onError: (error) => {
-      toast.error("Erro ao criar transação: " + error.message);
+      handleSupabaseError(error, "criar transação");
     },
   });
 }
