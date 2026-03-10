@@ -16,6 +16,7 @@ interface CategoryPattern {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -24,10 +25,8 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     
-    // Create client with service role for internal operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Verify authorization - allow service role or valid user token
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
@@ -37,14 +36,10 @@ Deno.serve(async (req) => {
     }
     
     const token = authHeader.replace("Bearer ", "");
-    
-    // Check if this is a service role call (internal edge function call)
     const isServiceRole = token === supabaseServiceKey;
     
     if (!isServiceRole) {
-      // Validate user token using getUser
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-      
       if (authError || !user) {
         console.error("Auth error:", authError);
         return new Response(
@@ -59,7 +54,6 @@ Deno.serve(async (req) => {
 
     console.log(`Classifying ${transactionIds.length} transactions for org ${organizationId}`);
 
-    // Fetch transactions to classify
     const { data: transactions, error: txError } = await supabase
       .from("transactions")
       .select("id, description, raw_description, amount, type, date")
@@ -74,7 +68,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch historical patterns from validated transactions
     const { data: historicalTx } = await supabase
       .from("transactions")
       .select(`
@@ -89,11 +82,9 @@ Deno.serve(async (req) => {
       .not("category_id", "is", null)
       .limit(1000);
 
-    // Build pattern map from historical data
     const patternMap = new Map<string, CategoryPattern>();
     
     for (const tx of historicalTx || []) {
-      // Extract keywords from description (words with 3+ chars)
       const keywords = (tx.description || "")
         .toLowerCase()
         .replace(/[^\w\s]/g, " ")
@@ -117,25 +108,21 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Sort patterns by frequency
     const sortedPatterns = Array.from(patternMap.values())
       .sort((a, b) => b.count - a.count);
 
     console.log(`Found ${sortedPatterns.length} patterns from historical data`);
 
-    // Classify each transaction
     const suggestions: any[] = [];
     
     for (const tx of transactions) {
       const description = (tx.raw_description || tx.description || "").toLowerCase();
       
-      // Find matching patterns
       let bestMatch: CategoryPattern | null = null;
       let bestScore = 0;
       
       for (const pattern of sortedPatterns) {
         if (description.includes(pattern.pattern)) {
-          // Score based on pattern frequency and match position
           const score = pattern.count * (description.indexOf(pattern.pattern) < 10 ? 2 : 1);
           if (score > bestScore) {
             bestScore = score;
@@ -144,15 +131,12 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Calculate confidence based on match quality
       let confidence = 0;
       let reasoning = "";
       
       if (bestMatch) {
-        // Base confidence from pattern frequency
         confidence = Math.min(0.95, 0.5 + (bestMatch.count / 100));
         
-        // Boost if multiple patterns match
         const matchingPatterns = sortedPatterns.filter((p) => 
           description.includes(p.pattern) && p.category_id === bestMatch!.category_id
         );
@@ -167,24 +151,21 @@ Deno.serve(async (req) => {
           reasoning += ` Centro de custo "${bestMatch.cost_center_name}" também sugerido.`;
         }
       } else {
-        // No match found - suggest based on transaction type
         confidence = 0.3;
         reasoning = "Nenhum padrão histórico encontrado. Sugestão baseada apenas no tipo de transação.";
       }
 
-      // Create suggestion
       const suggestion = {
         transaction_id: tx.id,
         suggested_category_id: bestMatch?.category_id || null,
         suggested_cost_center_id: bestMatch?.cost_center_id || null,
         suggested_type: tx.type,
-        suggested_competence_date: tx.date, // Default to transaction date
+        suggested_competence_date: tx.date,
         confidence_score: parseFloat(confidence.toFixed(2)),
         reasoning,
         model_version: "pattern-matching-v1",
       };
 
-      // Insert suggestion
       const { data: insertedSuggestion, error: insertError } = await supabase
         .from("ai_suggestions")
         .insert(suggestion)
@@ -210,12 +191,10 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error("Error classifying transactions:", error);
-    
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    
     return new Response(
       JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
 });
