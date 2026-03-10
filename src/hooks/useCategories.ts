@@ -158,7 +158,7 @@ export function useCreateCategory() {
       toast.success("Categoria criada com sucesso!");
     },
     onError: (error) => {
-      toast.error("Erro ao criar categoria: " + error.message);
+      handleSupabaseError(error, "criar categoria");
     },
   });
 }
