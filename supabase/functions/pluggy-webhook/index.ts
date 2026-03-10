@@ -41,7 +41,6 @@ async function getPluggyToken(clientId: string, clientSecret: string): Promise<s
 }
 
 Deno.serve(async (req) => {
-Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
