@@ -208,7 +208,7 @@ export function useUpdateCategory() {
       toast.success("Categoria atualizada!");
     },
     onError: (error) => {
-      toast.error("Erro ao atualizar categoria: " + error.message);
+      handleSupabaseError(error, "atualizar categoria");
     },
   });
 }
