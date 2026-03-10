@@ -3,6 +3,7 @@ import { checkCircuitBreaker, recordSuccess, recordFailure } from "../_shared/ci
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }

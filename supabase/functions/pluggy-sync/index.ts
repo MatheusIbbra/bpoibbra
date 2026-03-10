@@ -412,6 +412,7 @@ function mapPluggyAccountType(pluggyType: string, pluggySubtype?: string): strin
 // MAIN HANDLER
 // ========================================
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
