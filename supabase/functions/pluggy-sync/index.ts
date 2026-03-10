@@ -1,10 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkCircuitBreaker, recordSuccess, recordFailure } from "../_shared/circuit-breaker.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const PLUGGY_API_URL = 'https://api.pluggy.ai';
 
@@ -416,6 +412,7 @@ function mapPluggyAccountType(pluggyType: string, pluggySubtype?: string): strin
 // MAIN HANDLER
 // ========================================
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;

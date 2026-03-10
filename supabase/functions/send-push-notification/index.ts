@@ -1,14 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-// Web Push VAPID signing using Web Crypto API
 async function sendWebPush(subscription: any, payload: string, vapidPublicKey: string, vapidPrivateKey: string) {
-  // For Web Push in Deno, we use the fetch API to send directly
-  // This is a simplified implementation - in production consider using a proper web-push library
   const endpoint = subscription.endpoint;
   
   const response = await fetch(endpoint, {
@@ -29,6 +22,7 @@ async function sendWebPush(subscription: any, payload: string, vapidPublicKey: s
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -45,7 +39,6 @@ Deno.serve(async (req) => {
     );
   }
 
-  // Auth check
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -78,7 +71,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get user's push subscription
     const { data: subs, error: subError } = await supabaseAdmin
       .from('push_subscriptions')
       .select('subscription_json')
@@ -111,7 +103,6 @@ Deno.serve(async (req) => {
       } catch (e) {
         console.error('[Push] Send error:', e);
         failed++;
-        // Remove invalid subscriptions (410 Gone)
         if (e instanceof Error && e.message.includes('410')) {
           await supabaseAdmin
             .from('push_subscriptions')
